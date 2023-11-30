@@ -1,6 +1,6 @@
 # TurnkeyML Models
 
-This directory contains the TurnkeyML models, which is a large collection of models that can be evaluated using the [`turnkey` CLI tool](https://github.com/aig-bench/onnxmodelzoo/blob/main/toolchain/docs/tools_user_guide.md).
+This directory contains the TurnkeyML models, which is a large collection of models that can be evaluated using the [`turnkey` CLI tool](https://github.com/onnx/turnkeyml/blob/main/docs/tools_user_guide.md).
 
 ## Table of Contents
 
@@ -34,9 +34,9 @@ The corpora are:
 ### Prerequisites
 
 Before running the benchmark we suggest you:
-1. Install the `turnkey` package by following the [install instructions](https://github.com/aig-bench/onnxmodelzoo/tree/main/docs/install.md).
-1. Go through the [`turnkey` CLI tutorials](https://github.com/aig-bench/onnxmodelzoo/tree/main/examples/cli/readme.md).
-1. Familiarize yourself with the [`turnkey` CLI tool](https://github.com/aig-bench/onnxmodelzoo/blob/main/toolchain/docs/turnkey_user_guide.md) documentation.
+1. Install the `turnkey` package by following the [install instructions](https://github.com/onnx/turnkeyml/tree/main/docs/install.md).
+1. Go through the [`turnkey` CLI tutorials](https://github.com/onnx/turnkeyml/tree/main/examples/cli/readme.md).
+1. Familiarize yourself with the [`turnkey` CLI tool](https://github.com/onnx/turnkeyml/blob/main/docs/turnkey_user_guide.md) documentation.
 
 You must also run the following command to install all of the models' dependencies into your Python environment.
 
@@ -47,13 +47,13 @@ You must also run the following command to install all of the models' dependenci
 Once you have fulfilled the prerequisites, you can evaluate one model from the benchmark with a command like this:
 
 ```
-cd OMZ_ROOT/toolchain/models # OMZ_ROOT is where you cloned onnxmodelzoo
+cd REPO_ROOT/models # REPO_ROOT is where you cloned turnkeyml
 turnkey selftest/linear.py
 ```
 
-You can also run the entire all models in one shot with:
+You can also run all models in one shot with:
 ```
-cd OMZ_ROOT/toolchain/models # OMZ_ROOT is where you cloned onnxmodelzoo
+cd REPO_ROOT/models # REPO_ROOT is where you cloned turnkeyml
 turnkey */*.py
 ```
 
