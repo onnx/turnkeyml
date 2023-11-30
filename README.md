@@ -40,7 +40,7 @@ TurnkeyML is designed to support the following use cases. Of course, it is also 
 
 ## Demo
 
-Let's say you have some python script that includes a PyTorch model. Maybe you downloaded the model from Huggingface, grabbed it from our corpus, or wrote it yourself. Doesn't matter, just call `turnkey` and get to work.   
+Let's say you have a Python script that includes a PyTorch model. Maybe you downloaded the model from Huggingface, grabbed it from our corpus, or wrote it yourself. Doesn't matter, just call `turnkey` and get to work.   
 
 The `turnkey` CLI will analyze your script, find the model(s), run an ONNX toolchain on the model, and execute the resulting ONNX file in CPU hardware:
 
