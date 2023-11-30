@@ -9,7 +9,7 @@
 
 We are on a mission to understand and use as many models as possible while leveraging the right toolchain and AI hardware for the job in every scenario. 
 
-Evaluating a deep learning model with a familiar toolchain and hardware accelerator is pretty straightforward. Scaling these evaluations to get apples-to-applies insights across a landscape of millions of permutations of models, toolchains, and hardware targets is not straightforward. Not without help, anyways. 
+Evaluating a deep learning model with a familiar toolchain and hardware accelerator is pretty straightforward. Scaling these evaluations to get apples-to-applies insights across a landscape of millions of permutations of models, toolchains, and hardware targets is not straightforward. Not without help, anyways.
 
 TurnkeyML is a *tools framework* that integrates models, toolchains, and hardware backends to make evaluation and actuation of this landscape as simple as turning a key.
 
@@ -65,10 +65,10 @@ bert.py:
                                 Throughput:     22.6    inferences per second (IPS)
 ```
 
-Let's say you want an float16 ONNX file of the same model: incorporate the `oml-float16` (ONNX ML Tools fp16 converter tool) into the build sequence, and the `Build dir` will contain the ONNX file you seek:
+Let's say you want a fp16 ONNX file of the same model: incorporate the ONNX ML Tools fp16 converter tool into the build sequence, and the `Build dir` will contain the ONNX file you seek:
 
 ```
-> turnkey build bert.py --sequence export optimize-fp16
+> turnkey build bert.py --sequence optimize-fp16
 ```
 
 ```
@@ -85,7 +85,7 @@ bert.py:
 bert_bf722986-op14-base.onnx  bert_bf722986-op14-opt-f16.onnx  bert_bf722986-op14-opt.onnx
 ```
 
-Now you want to see the float16 model running on your Nvidia GPU with the Nvidia TensorRT runtime:
+Now you want to see the fp16 model running on your Nvidia GPU with the Nvidia TensorRT runtime:
 
 ```
 > turnkey bert.py --sequence export optimize-fp16 --device nvidia --runtime tensorrt
@@ -100,10 +100,10 @@ bert.py:
                                 Throughput:     377.8   inferences per second (IPS)
 ```
 
-And finally, mad with power, you want to see dozens of float16 Transformers running on your Nvidia GPU:
+And finally, mad with power, you want to see dozens of fp16 Transformers running on your Nvidia GPU:
 
 ```
-> turnkey REPO_ROOT/models/transformers/*.py --sequence export oml-float16 --device nvidia --runtime tensorrt
+> turnkey REPO_ROOT/models/transformers/*.py --sequence optimize-fp16 --device nvidia --runtime tensorrt
 ```
 
 ```
