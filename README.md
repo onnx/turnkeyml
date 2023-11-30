@@ -28,13 +28,14 @@ The [installation guide](ADDLINK), [tutorials](ADDLINK), and [user guide](ADDLIN
 
 TurnkeyML is designed to support the following use cases. Of course, it is also quite flexible, so we are sure you will come up with some use cases of your own too.
 
-| Use Case               | Description | Example         |
-|------------------------|-------------|-----------------|
-| ONNX Model Zoo         | Export thousands of ONNX files across different opsets and data types. This is how we generated the contents of the new [ONNX Model Zoo](ADDLINK). | [Link](ADDLINK) |
-| Model insights         | Analyze a model to learn its parameter count, input shapes, which ONNX ops it uses, etc. | [Link](ADDLINK) |
-| Functional coverage    | Measure the functional coverage of toolchain/hardware combinations over a large corpus of models (e.g., how many models are supported by a novel compiler?). | [Link](ADDLINK) |
-| Stress testing         | Run millions of inferences across thousands of models and log all the results to find the bugs in a HW/SW stack. | [Link](ADDLINK) |
-| Performance validation | Measure latency and throughput in hardware across devices and runtimes to understand product-market fit. | [Link](ADDLINK) |
+| Use Case               | Description |
+|------------------------|-------------|
+| ONNX Model Zoo         | Export thousands of ONNX files across different opsets and data types. This is how we generated the contents of the new [ONNX Model Zoo](ADDLINK). |
+| Performance validation | Measure latency and throughput in hardware across devices and runtimes to understand product-market fit. |
+| Functional coverage    | Measure the functional coverage of toolchain/hardware combinations over a large corpus of models (e.g., how many models are supported by a novel compiler?). |
+| Stress testing         | Run millions of inferences across thousands of models and log all the results to find the bugs in a HW/SW stack. |
+| Model insights         | Analyze a model to learn its parameter count, input shapes, which ONNX ops it uses, etc. |
+
 
 
 ## Demo
