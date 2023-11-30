@@ -163,7 +163,7 @@ You can read more about the code organization [here](ADDLINK).
 [![torchvision](https://img.shields.io/github/directory-file-count/aig-bench/onnxmodelzoo/toolchain/models/torchvision?label=torchvision)](https://github.com/aig-bench/onnxmodelzoo/tree/main/toolchain/models/torchvision "Models from Torch Vision")
 [![timm](https://img.shields.io/github/directory-file-count/aig-bench/onnxmodelzoo/toolchain/models/timm?label=timm)](https://github.com/aig-bench/onnxmodelzoo/tree/main/toolchain/models/timm "Pytorch Image Models")
 
-This repository is home to a diverse corpus of hundreds of models. We are actively working on increasing the number of models on our model library. You can see the set of models in each category by clicking on the corresponding badge.
+This repository is home to a diverse corpus of hundreds of models. We are actively working on increasing the number of models in our model library. You can see the set of models in each category by clicking on the corresponding badge.
 
 Evaluating a new model is as simple as taking a Python script that instantiates and invokes a PyTorch `torch.nn.module` and call `turnkey` on it. Read about model contributions [here](ADDLINK).
 
