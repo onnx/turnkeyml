@@ -100,7 +100,7 @@ bert.py:
                                 Throughput:     377.8   inferences per second (IPS)
 ```
 
-And finally, mad with power, you want to see dozens of fp16 Transformers running on your Nvidia GPU:
+Mad with power, you want to see dozens of fp16 Transformers running on your Nvidia GPU:
 
 ```
 > turnkey REPO_ROOT/models/transformers/*.py --sequence optimize-fp16 --device nvidia --runtime tensorrt
@@ -136,16 +136,25 @@ bert.py:
 ...
 ```
 
+Finally, you want to visualize the results in one place so that your boss can see how productive you've been. This command will collect all of the statistics across all prior commands into a single spreadsheet.
+
+```
+> turnkey cache report
+
+Summary spreadsheet saved at /home/jfowers/2023-11-30.csv
+```
+
 You're probably starting to get the idea :rocket:
 
 There's a lot more features you can learn about in the [tutorials](ADDLINK) and [user guide](ADDLINK).
 
 ## What's Inside
 
-The TurnkeyML framework has 4 core components:
+The TurnkeyML framework has 5 core components:
 - **Analysis tool**: Inspect Python scripts to find the PyTorch models within. Discover insights and pass the models to the other tools.
 - **Build tool**: Prepare your model using industry-standard AI tools (e.g., exporters, optimizers, quantizers, and compilers). Any model-to-model transformation is fair game.
 - **Runtime tool**: Invoke AI runtimes (e.g., ONNX Runtime, TensorRT, etc.) to execute models in hardware and measure key performance indicators.
+- **Reporting tool**: Visualize statistics about the models, builds, and invocations.  
 - **Models corpus**: Hundreds of popular PyTorch models that are ready for use with `turnkey`.
 
 All of this is seamlessly integrated together such that a command like `turnkey repo/models/corpus/script.py` gets you all of the functionality in one shot. Or you can access functionality piecemeal with commands and APIs like `turnkey analyze script.py` or `build_model(my_model_instance)`. The [tutorials](ADDLINK) show off the individual features.
@@ -174,8 +183,8 @@ The build tool has built-in support for a variety of export and optimization too
 If you need more, the TurnkeyML plugin API lets you extend the build and runtime tools with any functionality you like:
 
 ```
-pip install -e my_custom_plugin
-turnkey my_model.py --sequence my-custom-sequence --device my-custom-device --runtime my-custom-runtime --rt-args my-custom-args
+> pip install -e my_custom_plugin
+> turnkey my_model.py --sequence my-custom-sequence --device my-custom-device --runtime my-custom-runtime --rt-args my-custom-args
 ```
 
 All of the built-in sequences, runtimes, and devices are implemented against the plugin API. Check out this [example plugin](ADDLINK) and the [plugin API guide](ADDLINK).
