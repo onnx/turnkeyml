@@ -42,7 +42,7 @@ TurnkeyML is designed to support the following use cases. Of course, it is also 
 
 Let's say you have some python script that includes a PyTorch model. Maybe you downloaded the model from Huggingface, grabbed it from our corpus, or wrote it yourself. Doesn't matter, just call `turnkey` and get to work.   
 
-The `turnkey` CLI will analyze your script, find the model(s), run an ONNX toolchain on the model, and execute the resulting ONNX file in hardware:
+The `turnkey` CLI will analyze your script, find the model(s), run an ONNX toolchain on the model, and execute the resulting ONNX file in CPU hardware:
 
 ```
 > turnkey bert.py
@@ -144,8 +144,8 @@ There's a lot more features you can learn about in the [tutorials](ADDLINK) and 
 
 The TurnkeyML framework has 4 core components:
 - **Analysis tool**: Inspect Python scripts to find the PyTorch models within. Discover insights and pass the models to the other tools.
-- **Build tool**: Export, optimize, quantize, and compile models. Any model-to-model transformation is fair game.
-- **Runtime tool**: Execute models in hardware and measure key performance indicators.
+- **Build tool**: Prepare your model using industry-standard AI tools (e.g., exporters, optimizers, quantizers, and compilers). Any model-to-model transformation is fair game.
+- **Runtime tool**: Invoke AI runtimes (e.g., ONNX Runtime, TensorRT, etc.) to execute models in hardware and measure key performance indicators.
 - **Models corpus**: Hundreds of popular PyTorch models that are ready for use with `turnkey`.
 
 All of this is seamlessly integrated together such that a command like `turnkey repo/models/corpus/script.py` gets you all of the functionality in one shot. Or you can access functionality piecemeal with commands and APIs like `turnkey analyze script.py` or `build_model(my_model_instance)`. The [tutorials](ADDLINK) show off the individual features.
