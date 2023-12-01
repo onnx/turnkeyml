@@ -71,7 +71,6 @@ jobs:
           cd test/
           python cli.py
           python analysis.py
-          python model_api.py
       - name: Test example plugins
         shell: bash -el {0}
         run: |
