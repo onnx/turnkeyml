@@ -29,7 +29,7 @@ TurnkeyML is designed to support the following use cases. Of course, it is also 
 
 | Use Case               | Description |
 |------------------------|-------------|
-| ONNX Model Zoo         | Export thousands of ONNX files across different opsets and data types. This is how we generated the contents of the new [ONNX Model Zoo](ADDLINK). |
+| ONNX Model Zoo         | Export thousands of ONNX files across different opsets and data types. This is how we generated the contents of the new [ONNX Model Zoo](https://github.com/onnx/models). |
 | Performance validation | Measure latency and throughput in hardware across devices and runtimes to understand product-market fit. |
 | Functional coverage    | Measure the functional coverage of toolchain/hardware combinations over a large corpus of models (e.g., how many models are supported by a novel compiler?). |
 | Stress testing         | Run millions of inferences across thousands of models and log all the results to find the bugs in a HW/SW stack. |
