@@ -23,7 +23,6 @@ import turnkeyml.analyze.util as util
 import turnkeyml.common.tf_helpers as tf_helpers
 import turnkeyml.common.labels as labels
 from turnkeyml.build_api import build_model
-from turnkeyml.model_api import benchmark_model
 import turnkeyml.common.filesystem as fs
 import turnkeyml.run.devices as plugins
 
