@@ -345,11 +345,15 @@ class Keys:
     SYSTEM_INFO = "system_info"
     # Path to the built-in model script used as input
     MODEL_SCRIPT = "builtin_model_script"
-    # Indicates a benchmark's status: running, successful, failed, or killed
+    # Indicates status of the most recent analysis tool run: FunctionStatus
+    ANALYSIS_STATUS = "analysis_status"
+    # Indicates status of the most recent build tool run: FunctionStatus
+    BUILD_STATUS = "build_status"
+    # Indicates status of the most recent benchmark tool run: FunctionStatus
     BENCHMARK_STATUS = "benchmark_status"
 
 
-class BenchmarkStatus:
+class FunctionStatus:
     RUNNING = "running"
     SUCCESSFUL = "successful"
     FAILED = "failed"

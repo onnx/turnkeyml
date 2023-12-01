@@ -22,13 +22,10 @@ import turnkeyml.analyze.status as status
 import turnkeyml.analyze.util as util
 import turnkeyml.common.tf_helpers as tf_helpers
 import turnkeyml.common.labels as labels
+from turnkeyml.build_api import build_model
 from turnkeyml.model_api import benchmark_model
 import turnkeyml.common.filesystem as fs
-from turnkeyml.run.devices import (
-    DEVICE_RUNTIME_MAP,
-    DEFAULT_RUNTIME,
-    SUPPORTED_RUNTIMES,
-)
+import turnkeyml.run.devices as plugins
 
 
 class Action(Enum):
@@ -143,14 +140,21 @@ def explore_invocation(
         tracer_args.labels["class"] = [f"{type(model_info.model).__name__}"]
     labels.save_to_cache(tracer_args.cache_dir, build_name, tracer_args.labels)
 
+    # Create a build directory in the cache
+    fs.make_build_dir(tracer_args.cache_dir, build_name)
+
     # If the user has not provided a specific runtime, select the runtime
     # based on the device provided.
-    if tracer_args.runtime is None:
-        selected_runtime = DEVICE_RUNTIME_MAP[tracer_args.device][DEFAULT_RUNTIME]
-    else:
-        selected_runtime = tracer_args.runtime
+    (
+        selected_runtime,
+        runtime_info,
+        sequence_selected,
+    ) = plugins.select_runtime_and_sequence(
+        tracer_args.device,
+        tracer_args.runtime,
+        tracer_args.sequence,
+    )
 
-    runtime_info = SUPPORTED_RUNTIMES[selected_runtime]
     if "status_stats" in runtime_info.keys():
         invocation_info.stats_keys = runtime_info["status_stats"]
     else:
@@ -170,6 +174,10 @@ def explore_invocation(
     invocation_info.stats = stats
 
     # Stats that apply to the model, regardless of build
+    stats.save_stat(
+        fs.Keys.ANALYSIS_STATUS,
+        fs.FunctionStatus.SUCCESSFUL,
+    )
     stats.save_stat(
         fs.Keys.HASH,
         model_info.hash,
@@ -231,29 +239,58 @@ def explore_invocation(
             )
             invocation_info.status_message_color = printing.Colors.WARNING
         else:
-            # Indicate that the benchmark is running. If the build fails for any reason,
-            # we will try to catch the exception and note it in the stats.
-            # If a concluded build still has a status of "running", this means
-            # there was an uncaught exception.
-            stats.add_build_stat(fs.Keys.BENCHMARK_STATUS, fs.BenchmarkStatus.RUNNING)
+            if runtime_info["build_required"]:
+                # Indicate that the build is running. If the build fails for any reason,
+                # we will try to catch the exception and note it in the stats.
+                # If a concluded build still has a status of "running", this means
+                # there was an uncaught exception.
+                stats.add_build_stat(fs.Keys.BUILD_STATUS, fs.FunctionStatus.RUNNING)
 
-            perf = benchmark_model(
-                model_info.model,
-                inputs,
-                stats_id=stats_id,
-                device=tracer_args.device,
-                runtime=selected_runtime,
-                build_name=build_name,
-                iterations=tracer_args.iterations,
-                cache_dir=tracer_args.cache_dir,
-                build_only=Action.BENCHMARK not in tracer_args.actions,
-                lean_cache=tracer_args.lean_cache,
-                sequence=tracer_args.sequence,
-                onnx_opset=tracer_args.onnx_opset,
-                rebuild=tracer_args.rebuild,
-                rt_args=tracer_args.rt_args,
-            )
+                state = build_model(
+                    model=model_info.model,
+                    inputs=inputs,
+                    stats_id=stats_id,
+                    build_name=build_name,
+                    cache_dir=tracer_args.cache_dir,
+                    rebuild=tracer_args.rebuild,
+                    sequence=sequence_selected,
+                    onnx_opset=tracer_args.onnx_opset,
+                    device=tracer_args.device,
+                )
+
+                stats.add_build_stat(fs.Keys.BUILD_STATUS, fs.FunctionStatus.SUCCESSFUL)
+
+                model_to_benchmark = state.results[0]
+            else:
+                model_to_benchmark = model_info.model
+
             if Action.BENCHMARK in tracer_args.actions:
+                stats.add_build_stat(
+                    fs.Keys.BENCHMARK_STATUS, fs.FunctionStatus.RUNNING
+                )
+
+                if tracer_args.rt_args is None:
+                    rt_args_to_use = {}
+                else:
+                    rt_args_to_use = tracer_args.rt_args
+
+                model_handle = runtime_info["RuntimeClass"](
+                    cache_dir=tracer_args.cache_dir,
+                    build_name=build_name,
+                    stats=stats,
+                    iterations=tracer_args.iterations,
+                    model=model_to_benchmark,
+                    inputs=inputs,
+                    device_type=tracer_args.device,
+                    runtime=selected_runtime,
+                    **rt_args_to_use,
+                )
+                perf = model_handle.benchmark()
+
+                stats.add_build_stat(
+                    fs.Keys.BENCHMARK_STATUS, fs.FunctionStatus.SUCCESSFUL
+                )
+
                 invocation_info.status_message = "Model successfully benchmarked!"
                 invocation_info.performance = perf
                 invocation_info.status_message_color = printing.Colors.OKGREEN
@@ -265,7 +302,7 @@ def explore_invocation(
         invocation_info.status_message = f"Build Error: {e}"
         invocation_info.status_message_color = printing.Colors.WARNING
 
-        stats.add_build_stat(fs.Keys.BENCHMARK_STATUS, fs.BenchmarkStatus.FAILED)
+        stats.add_build_stat(fs.Keys.BUILD_STATUS, fs.FunctionStatus.FAILED)
 
         _store_traceback(invocation_info)
 
@@ -277,14 +314,10 @@ def explore_invocation(
         )
         invocation_info.status_message_color = printing.Colors.WARNING
 
-        stats.add_build_stat(fs.Keys.BENCHMARK_STATUS, fs.BenchmarkStatus.KILLED)
-
     except exp.ArgError as e:
         # ArgError indicates that some argument to benchmark_model() was
         # illegal. In that case we want to halt execution so that users can
         # fix their arguments.
-
-        stats.add_build_stat(fs.Keys.BENCHMARK_STATUS, fs.BenchmarkStatus.FAILED)
 
         raise e
 
@@ -292,7 +325,7 @@ def explore_invocation(
         invocation_info.status_message = f"Error: {e}."
         invocation_info.status_message_color = printing.Colors.WARNING
 
-        stats.add_build_stat(fs.Keys.BENCHMARK_STATUS, fs.BenchmarkStatus.FAILED)
+        stats.add_build_stat(fs.Keys.BENCHMARK_STATUS, fs.FunctionStatus.FAILED)
 
         _store_traceback(invocation_info)
 
@@ -302,12 +335,9 @@ def explore_invocation(
         invocation_info.status_message = f"Unknown turnkey error: {e}"
         invocation_info.status_message_color = printing.Colors.WARNING
 
-        stats.add_build_stat(fs.Keys.BENCHMARK_STATUS, fs.BenchmarkStatus.FAILED)
+        stats.add_build_stat(fs.Keys.BENCHMARK_STATUS, fs.FunctionStatus.FAILED)
 
         _store_traceback(invocation_info)
-    else:
-        # If there was no exception then we consider the build to be a success
-        stats.add_build_stat(fs.Keys.BENCHMARK_STATUS, fs.BenchmarkStatus.SUCCESSFUL)
 
     finally:
         # Ensure that stdout/stderr is not being forwarded before updating status
@@ -360,6 +390,10 @@ def explore_invocation(
                     )
 
             status.update(tracer_args.models_found, build_name, tracer_args.cache_dir)
+
+        if tracer_args.lean_cache:
+            printing.log_info("Removing build artifacts...")
+            fs.clean_output_dir(tracer_args.cache_dir, build_name)
 
 
 def get_model_hash(
