@@ -352,8 +352,6 @@ class Keys:
     SYSTEM_INFO = "system_info"
     # Path to the built-in model script used as input
     MODEL_SCRIPT = "builtin_model_script"
-    # Indicates status of the most recent analysis tool run: FunctionStatus
-    ANALYSIS_STATUS = "analysis_status"
     # Indicates status of the most recent build tool run: FunctionStatus
     BUILD_STATUS = "build_status"
     # Indicates status of the most recent benchmark tool run: FunctionStatus
