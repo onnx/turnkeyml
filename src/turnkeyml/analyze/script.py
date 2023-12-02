@@ -169,7 +169,7 @@ def explore_invocation(
         invocation_info.stats_keys = []
 
     # Create an ID for the build stats by combining the device and runtime.
-    # We don't need more info in the stats_id because changes to benchmark_model()
+    # We don't need more info in the stats_id because changes to build_model()
     # arguments (e.g., sequence) will trigger a rebuild, which is intended to replace the
     # build stats so long as the device and runtime have not changed.
     stats_id = f"{tracer_args.device}_{selected_runtime}"
@@ -343,7 +343,7 @@ def explore_invocation(
         invocation_info.status_message_color = printing.Colors.WARNING
 
     except exp.ArgError as e:
-        # ArgError indicates that some argument to benchmark_model() was
+        # ArgError indicates that some argument to build_model() or BaseRT was
         # illegal. In that case we want to halt execution so that users can
         # fix their arguments.
 
@@ -626,7 +626,7 @@ def explore_frame(
             )
             invocation_info.executed = invocation_info.executed + 1
 
-            # Call benchmark_model() if this is the first time the model is being executed
+            # Call explore_invocation() if this is the first time the model is being executed
             # and this model has been selected by the user
             if (
                 invocation_info.executed == 1
@@ -639,7 +639,7 @@ def explore_frame(
                     invocation_info=invocation_info,
                     tracer_args=tracer_args,
                 )
-                # Ensure that benchmark_model() doesn't interfere with our execution count
+                # Ensure that explore_invocation() doesn't interfere with our execution count
                 model_info.executed = 1
 
             build_name = fs.get_build_name(
@@ -811,7 +811,7 @@ def evaluate_script(tracer_args: TracerArgs) -> Dict[str, util.ModelInfo]:
                 "torch.jit.script(",
                 "torch.jit.script() is not supported by turnkey CLI and benchmark_files() API, "
                 "however torch.jit.script() is being called in your script."
-                "You can try passing your model instance into the benchmark_model() API instead. ",
+                "You can try passing your model instance into the build_model() API instead. ",
             )
         ]
     ):
