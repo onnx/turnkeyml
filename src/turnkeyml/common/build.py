@@ -8,7 +8,6 @@ import platform
 import subprocess
 import enum
 from typing import Optional, Any, List, Dict, Union, Type
-from collections.abc import Collection
 import dataclasses
 import hashlib
 import pkg_resources

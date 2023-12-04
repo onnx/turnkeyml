@@ -1,6 +1,5 @@
 import os
 from typing import Optional, List, Dict, Any
-from collections.abc import Collection
 import turnkeyml.build.ignition as ignition
 import turnkeyml.build.stage as stage
 import turnkeyml.common.printing as printing
