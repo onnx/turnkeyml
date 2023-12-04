@@ -144,6 +144,6 @@ def get_stats_and_state(
                 build_state.config.build_name,
                 build_state.evaluation_id,
             )
-            return stats.build_stats, build_state
+            return stats.evaluation_stats, build_state
 
     raise Exception(f"Stats not found for {test_script}")
