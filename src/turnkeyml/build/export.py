@@ -189,8 +189,10 @@ class ReceiveOnnxModel(stage.Stage):
         if check_model(output_path, success_msg, fail_msg):
             state.intermediate_results = [output_path]
 
-            stats = fs.Stats(state.cache_dir, state.config.build_name, state.stats_id)
-            stats.add_build_stat(
+            stats = fs.Stats(
+                state.cache_dir, state.config.build_name, state.evaluation_id
+            )
+            stats.save_model_eval_stat(
                 fs.Keys.ONNX_FILE,
                 output_path,
             )
@@ -315,8 +317,10 @@ class ExportPytorchModel(stage.Stage):
         if check_model(output_path, success_msg, fail_msg):
             state.intermediate_results = [output_path]
 
-            stats = fs.Stats(state.cache_dir, state.config.build_name, state.stats_id)
-            stats.add_build_stat(
+            stats = fs.Stats(
+                state.cache_dir, state.config.build_name, state.evaluation_id
+            )
+            stats.save_model_eval_stat(
                 fs.Keys.ONNX_FILE,
                 output_path,
             )
@@ -436,8 +440,10 @@ class ExportKerasModel(stage.Stage):
         if check_model(output_path, success_msg, fail_msg):
             state.intermediate_results = [output_path]
 
-            stats = fs.Stats(state.cache_dir, state.config.build_name, state.stats_id)
-            stats.add_build_stat(
+            stats = fs.Stats(
+                state.cache_dir, state.config.build_name, state.evaluation_id
+            )
+            stats.save_model_eval_stat(
                 fs.Keys.ONNX_FILE,
                 output_path,
             )
@@ -500,8 +506,10 @@ class OptimizeOnnxModel(stage.Stage):
         if check_model(output_path, success_msg, fail_msg):
             state.intermediate_results = [output_path]
 
-            stats = fs.Stats(state.cache_dir, state.config.build_name, state.stats_id)
-            stats.add_build_stat(
+            stats = fs.Stats(
+                state.cache_dir, state.config.build_name, state.evaluation_id
+            )
+            stats.save_model_eval_stat(
                 fs.Keys.ONNX_FILE,
                 output_path,
             )
@@ -605,8 +613,10 @@ class ConvertOnnxToFp16(stage.Stage):
         if check_model(output_path, success_msg, fail_msg):
             state.intermediate_results = [output_path]
 
-            stats = fs.Stats(state.cache_dir, state.config.build_name, state.stats_id)
-            stats.add_build_stat(
+            stats = fs.Stats(
+                state.cache_dir, state.config.build_name, state.evaluation_id
+            )
+            stats.save_model_eval_stat(
                 fs.Keys.ONNX_FILE,
                 output_path,
             )
@@ -657,8 +667,10 @@ class QuantizeONNXModel(stage.Stage):
         if check_model(output_path, success_msg, fail_msg):
             state.intermediate_results = [output_path]
 
-            stats = fs.Stats(state.cache_dir, state.config.build_name, state.stats_id)
-            stats.add_build_stat(
+            stats = fs.Stats(
+                state.cache_dir, state.config.build_name, state.evaluation_id
+            )
+            stats.save_model_eval_stat(
                 fs.Keys.ONNX_FILE,
                 output_path,
             )

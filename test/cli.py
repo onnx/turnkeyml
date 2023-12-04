@@ -149,7 +149,7 @@ def assert_success_of_builds(
                 stats = filesystem.Stats(
                     build_state.cache_dir,
                     build_state.config.build_name,
-                    build_state.stats_id,
+                    build_state.evaluation_id,
                 )
                 assert build_state.build_status == build.Status.SUCCESSFUL_BUILD
                 script_build_found = True

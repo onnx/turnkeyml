@@ -68,12 +68,12 @@ def summary_spreadsheets(args) -> None:
                     model_stats = yaml.load(stream, Loader=yaml.FullLoader)
 
                     # create a separate dict for each build
-                    for build in model_stats[fs.Keys.BUILDS].values():
+                    for build in model_stats[fs.Keys.EVALUATIONS].values():
                         build_stats = {}
 
                         # Copy all of the stats for the model that are common across builds
                         for key, value in model_stats.items():
-                            if key != fs.Keys.BUILDS:
+                            if key != fs.Keys.EVALUATIONS:
                                 build_stats[key] = value
 
                         # Copy the build-specific stats

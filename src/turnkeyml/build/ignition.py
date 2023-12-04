@@ -251,7 +251,7 @@ def _rebuild_if_needed(
 
 def load_or_make_state(
     config: build.Config,
-    stats_id: str,
+    evaluation_id: str,
     cache_dir: str,
     rebuild: str,
     model_type: build.ModelType,
@@ -276,7 +276,7 @@ def load_or_make_state(
         "inputs": inputs,
         "monitor": monitor,
         "rebuild": rebuild,
-        "stats_id": stats_id,
+        "evaluation_id": evaluation_id,
         "cache_dir": cache_dir,
         "config": config,
         "model_type": model_type,

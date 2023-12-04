@@ -222,7 +222,7 @@ class State:
     monitor: bool = False
     rebuild: str = ""
     cache_dir: str = ""
-    stats_id: str = ""
+    evaluation_id: str = ""
 
     # User-provided args that will not be saved as part of state.yaml
     model: UnionValidModelInstanceTypes = None
@@ -524,7 +524,7 @@ def get_system_info():
     # Get OS Version
     try:
         info_dict["OS Version"] = platform.platform()
-    except Exception as e: # pylint: disable=broad-except
+    except Exception as e:  # pylint: disable=broad-except
         info_dict["Error OS Version"] = str(e)
 
     if os_type == "Windows":
@@ -537,7 +537,7 @@ def get_system_info():
                 .strip()
             )
             info_dict["Processor"] = proc_info
-        except Exception as e: # pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             info_dict["Error Processor"] = str(e)
 
         # Get OEM System Information
@@ -549,7 +549,7 @@ def get_system_info():
                 .strip()
             )
             info_dict["OEM System"] = oem_info
-        except Exception as e: # pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             info_dict["Error OEM System"] = str(e)
 
         # Get Physical Memory in GB
@@ -564,7 +564,7 @@ def get_system_info():
             )
             mem_info_gb = round(int(mem_info_bytes) / (1024**3), 2)
             info_dict["Physical Memory"] = f"{mem_info_gb} GB"
-        except Exception as e: # pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             info_dict["Error Physical Memory"] = str(e)
 
     elif os_type == "Linux":
@@ -586,7 +586,7 @@ def get_system_info():
                     .strip()
                 )
                 info_dict["OEM System"] = oem_info
-            except Exception as e: # pylint: disable=broad-except
+            except Exception as e:  # pylint: disable=broad-except
                 info_dict["Error OEM System (WSL)"] = str(e)
 
         else:
@@ -602,7 +602,7 @@ def get_system_info():
                     .replace("\n", " ")
                 )
                 info_dict["OEM System"] = oem_info
-            except Exception as e: # pylint: disable=broad-except
+            except Exception as e:  # pylint: disable=broad-except
                 info_dict["Error OEM System"] = str(e)
 
         # Get CPU Information
@@ -612,7 +612,7 @@ def get_system_info():
                 if "Model name:" in line:
                     info_dict["Processor"] = line.split(":")[1].strip()
                     break
-        except Exception as e: # pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             info_dict["Error Processor"] = str(e)
 
         # Get Memory Information
@@ -625,7 +625,7 @@ def get_system_info():
             )
             mem_info_gb = round(int(mem_info) / 1024, 2)
             info_dict["Memory Info"] = f"{mem_info_gb} GB"
-        except Exception as e: # pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             info_dict["Error Memory Info"] = str(e)
 
     else:
@@ -635,9 +635,10 @@ def get_system_info():
     try:
         installed_packages = pkg_resources.working_set
         info_dict["Python Packages"] = [
-            f"{i.key}=={i.version}" for i in installed_packages # pylint: disable=not-an-iterable
+            f"{i.key}=={i.version}"
+            for i in installed_packages  # pylint: disable=not-an-iterable
         ]
-    except Exception as e: # pylint: disable=broad-except
+    except Exception as e:  # pylint: disable=broad-except
         info_dict["Error Python Packages"] = str(e)
 
     return info_dict
