@@ -177,10 +177,8 @@ def explore_invocation(
         fs.Keys.PARAMETERS,
         model_info.params,
     )
-    stats.save_stat(
-        fs.Keys.CLASS,
-        type(model_info.model).__name__,
-    )
+    if model_info.model_type != build.ModelType.ONNX_FILE:
+        stats.save_stat(fs.Keys.CLASS, type(model_info.model).__name__)
     if fs.Keys.AUTHOR in tracer_args.labels:
         stats.save_stat(fs.Keys.AUTHOR, tracer_args.labels[fs.Keys.AUTHOR][0])
     if fs.Keys.TASK in tracer_args.labels:
