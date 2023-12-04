@@ -8,7 +8,6 @@ import platform
 import subprocess
 import enum
 from typing import Optional, Any, List, Dict, Union, Type
-from collections.abc import Collection
 import dataclasses
 import hashlib
 import pkg_resources
@@ -259,8 +258,6 @@ class State:
     # Results of a successful build
     results: Any = None
 
-    quantization_samples: Optional[Collection] = None
-
     def __post_init__(self):
         if self.uid is None:
             self.uid = unique_id()
@@ -308,16 +305,6 @@ class State:
 
         state_dict["model_type"] = self.model_type.value
         state_dict["build_status"] = self.build_status.value
-
-        # During actual execution, quantization_samples in the state
-        # stores the actual quantization samples.
-        # However, we do not save quantization samples
-        # Instead, we save a boolean to indicate whether the model
-        # stored has been quantized by some samples.
-        if self.quantization_samples:
-            state_dict["quantization_samples"] = True
-        else:
-            state_dict["quantization_samples"] = False
 
         return state_dict
 

@@ -15,7 +15,6 @@ import turnkeyml.common.exceptions as exp
 import turnkeyml.common.build as build
 import turnkeyml.build.tensor_helpers as tensor_helpers
 import turnkeyml.build.onnx_helpers as onnx_helpers
-import turnkeyml.build.quantization_helpers as quant_helpers
 import turnkeyml.common.filesystem as fs
 
 
@@ -74,13 +73,6 @@ def converted_onnx_file(state: build.State):
     return os.path.join(
         onnx_dir(state),
         f"{state.config.build_name}-op{state.config.onnx_opset}-opt-f16.onnx",
-    )
-
-
-def quantized_onnx_file(state: build.State):
-    return os.path.join(
-        onnx_dir(state),
-        f"{state.config.build_name}-op{state.config.onnx_opset}-opt-quantized_int8.onnx",
     )
 
 
@@ -579,9 +571,8 @@ class ConvertOnnxToFp16(stage.Stage):
         inputs_file = state.original_inputs_file
         if os.path.isfile(inputs_file):
             inputs = np.load(inputs_file, allow_pickle=True)
-            to_downcast = False if state.quantization_samples else True
             inputs_converted = tensor_helpers.save_inputs(
-                inputs, inputs_file, downcast=to_downcast
+                inputs, inputs_file, downcast=True
             )
         else:
             raise exp.StageError(
@@ -631,6 +622,7 @@ class ConvertOnnxToFp16(stage.Stage):
         return state
 
 
+<<<<<<< HEAD
 class QuantizeONNXModel(stage.Stage):
     """
     Stage that takes an ONNX model and a dataset of quantization samples as inputs,
@@ -685,6 +677,8 @@ class QuantizeONNXModel(stage.Stage):
         return state
 
 
+=======
+>>>>>>> canary
 class SuccessStage(stage.Stage):
     """
     Stage that sets state.build_status = build.Status.SUCCESSFUL_BUILD,
