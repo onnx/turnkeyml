@@ -77,6 +77,13 @@ def apply_default_runtime(device: str, runtime: Optional[str] = None):
         return runtime
 
 
+def _check_suggestion(value: str):
+    return (
+        f"You may need to check the spelling of '{value}', install a "
+        "plugin, or update the turnkeyml package."
+    )
+
+
 def select_runtime_and_sequence(
     device: str, runtime: Optional[str], sequence: Optional[Sequence]
 ) -> Tuple[str, str, Sequence]:
@@ -87,17 +94,14 @@ def select_runtime_and_sequence(
         raise exp.ArgError(
             f"Device argument '{device}' is not one of the available "
             f"supported devices {SUPPORTED_DEVICES}\n"
-            f"You may need to check the spelling of '{device}', install a "
-            "plugin, or update the turnkeyml package."
+            f"{_check_suggestion(device)}"
         )
-    else:
-        if selected_runtime not in DEVICE_RUNTIME_MAP[device]:
-            raise exp.ArgError(
-                f"Runtime argument '{selected_runtime}' is not one of the available "
-                f"runtimes supported for device '{device}': {DEVICE_RUNTIME_MAP[device]}\n"
-                f"You may need to check the spelling of '{selected_runtime}', install a "
-                "plugin, or update the turnkeyml package."
-            )
+    if selected_runtime not in DEVICE_RUNTIME_MAP[device]:
+        raise exp.ArgError(
+            f"Runtime argument '{selected_runtime}' is not one of the available "
+            f"runtimes supported for device '{device}': {DEVICE_RUNTIME_MAP[device]}\n"
+            f"{_check_suggestion(selected_runtime)}"
+        )
 
     # Get the plugin module for the selected runtime
     runtime_info = SUPPORTED_RUNTIMES[selected_runtime]
@@ -119,8 +123,7 @@ def select_runtime_and_sequence(
                         f"Sequence argument {sequence} is not one of the "
                         "available sequences installed: "
                         f"{sequences.SUPPORTED_SEQUENCES.keys()} \n"
-                        f"You may need to check the spelling of `{sequence}`, "
-                        "install a plugin, or update the turnkeyml package."
+                        f"{_check_suggestion(sequence)}"
                     )
 
             elif isinstance(sequence, Sequence):
