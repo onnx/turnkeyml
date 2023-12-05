@@ -261,7 +261,7 @@ class Testing(unittest.TestCase):
 
         assert_success_of_builds(test_scripts, cache_dir)
 
-    def test_021_cli_report(self):
+    def test_004_cli_report(self):
         # NOTE: this is not a unit test, it relies on other command
         # If this test is failing, make sure the following tests are passing:
         # - test_cli_corpus
@@ -570,7 +570,7 @@ class Testing(unittest.TestCase):
 
     # TODO: Investigate why this test is failing only on Windows CI failing
     @unittest.skipIf(platform.system() == "Windows", "Windows CI only failure")
-    def test_011_cli_benchmark(self):
+    def test_010_cli_benchmark(self):
         # Test the first model in the corpus
         test_script = list(common.test_scripts_dot_py.keys())[0]
 
@@ -588,7 +588,7 @@ class Testing(unittest.TestCase):
 
     # TODO: Investigate why this test is non-deterministically failing
     @unittest.skip("Flaky test")
-    def test_013_cli_labels(self):
+    def test_011_cli_labels(self):
         # Only build models labels with test_group::a
         testargs = [
             "turnkey",
@@ -638,7 +638,7 @@ class Testing(unittest.TestCase):
         assert state_files == ["linear_d5b1df11_state", "linear2_80b93950_state"]
 
     @unittest.skip("Needs re-implementation")
-    def test_014_report_on_failed_build(self):
+    def test_012_report_on_failed_build(self):
         testargs = [
             "turnkey",
             bash(f"{corpus_dir}/linear.py"),
@@ -680,7 +680,7 @@ class Testing(unittest.TestCase):
         ), "Wrong number of parameters found in report"
         assert summary[0]["hash"] == "d5b1df11", "Wrong hash found in report"
 
-    def test_015_runtimes(self):
+    def test_013_runtimes(self):
         # Attempt to benchmark using an invalid runtime
         with self.assertRaises(exceptions.ArgError):
             testargs = [
@@ -729,7 +729,7 @@ class Testing(unittest.TestCase):
 
     # TODO: Investigate why this test is only failing on Windows CI
     @unittest.skipIf(platform.system() == "Windows", "Windows CI only failure")
-    def test_016_cli_onnx_opset(self):
+    def test_014_cli_onnx_opset(self):
         # Test the first model in the corpus
         test_script = list(common.test_scripts_dot_py.keys())[0]
 
@@ -752,7 +752,7 @@ class Testing(unittest.TestCase):
             [test_script], cache_dir, None, check_perf=True, check_opset=user_opset
         )
 
-    def test_016_cli_iteration_count(self):
+    def test_015_cli_iteration_count(self):
         # Test the first model in the corpus
         test_script = list(common.test_scripts_dot_py.keys())[0]
 
@@ -777,7 +777,7 @@ class Testing(unittest.TestCase):
             check_iteration_count=test_iterations,
         )
 
-    def test_017_cli_process_isolation(self):
+    def test_016_cli_process_isolation(self):
         # Test the first model in the corpus
         test_script = list(common.test_scripts_dot_py.keys())[0]
 
@@ -799,7 +799,7 @@ class Testing(unittest.TestCase):
         "Skipping, as torch.compile is not supported on Windows"
         "Revisit when torch.compile for Windows is supported",
     )
-    def test_018_skip_compiled(self):
+    def test_017_skip_compiled(self):
         test_script = "compiled.py"
         testargs = [
             "turnkey",
@@ -817,14 +817,14 @@ class Testing(unittest.TestCase):
         # One of those is compiled and should be skipped.
         assert builds_found == 1
 
-    def test_019_invalid_file_type(self):
+    def test_018_invalid_file_type(self):
         # Ensure that we get an error when running turnkey with invalid input_files
         with self.assertRaises(exceptions.ArgError):
             testargs = ["turnkey", "gobbledegook"]
             with patch.object(sys, "argv", flatten(testargs)):
                 turnkeycli()
 
-    def test_020_cli_export_only(self):
+    def test_019_cli_export_only(self):
         # Test the first model in the corpus
         test_script = list(common.test_scripts_dot_py.keys())[0]
 
@@ -842,7 +842,7 @@ class Testing(unittest.TestCase):
 
         assert_success_of_builds([test_script], cache_dir, check_onnx_file_count=1)
 
-    def test_022_cli_onnx_model(self):
+    def test_020_cli_onnx_model(self):
         """
         Manually export an ONNX file, then feed it into the CLI
         """
@@ -871,7 +871,7 @@ class Testing(unittest.TestCase):
 
         assert_success_of_builds([build_name], cache_dir)
 
-    def test_023_cli_onnx_model_opset(self):
+    def test_021_cli_onnx_model_opset(self):
         """
         Manually export an ONNX file with a non-defualt opset, then feed it into the CLI
         """
@@ -904,7 +904,7 @@ class Testing(unittest.TestCase):
 
         assert_success_of_builds([build_name], cache_dir)
 
-    def test_024_args_encode_decode(self):
+    def test_022_args_encode_decode(self):
         """
         Test the encoding and decoding of arguments that follow the
         ["arg1::[value1,value2]","arg2::value1","flag_arg"]' format
@@ -916,7 +916,7 @@ class Testing(unittest.TestCase):
             reencoded_value == encoded_value
         ), f"input: {encoded_value}, decoded: {decoded_value}, reencoded_value: {reencoded_value}"
 
-    def test_025_benchmark_non_existent_file(self):
+    def test_023_benchmark_non_existent_file(self):
         # Ensure we get an error when benchmarking a non existent file
         with self.assertRaises(exceptions.ArgError):
             filename = "thou_shall_not_exist.py"
@@ -925,7 +925,7 @@ class Testing(unittest.TestCase):
                 with patch.object(sys, "argv", testargs):
                     turnkeycli()
 
-    def test_026_benchmark_non_existent_file_prefix(self):
+    def test_024_benchmark_non_existent_file_prefix(self):
         # Ensure we get an error when benchmarking a non existent file
         with self.assertRaises(exceptions.ArgError):
             file_prefix = "non_existent_prefix_*.py"
@@ -934,7 +934,7 @@ class Testing(unittest.TestCase):
                 with patch.object(sys, "argv", testargs):
                     turnkeycli()
 
-    def test_027_input_text_file(self):
+    def test_025_input_text_file(self):
         """
         Ensure that we can intake .txt files
         """
@@ -955,7 +955,7 @@ class Testing(unittest.TestCase):
             builds_found == 3
         ), f"Expected 3 builds (1 for linear.py, 2 for linear2.py), but got {builds_found}."
 
-    def test_028_cli_timeout(self):
+    def test_026_cli_timeout(self):
         """
         Make sure that the --timeout option and its associated reporting features work.
 
