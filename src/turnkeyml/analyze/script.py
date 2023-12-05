@@ -178,14 +178,14 @@ def explore_invocation(
         model_info.params,
     )
     if model_info.model_type != build.ModelType.ONNX_FILE:
-        stats.save_stat(fs.Keys.CLASS, type(model_info.model).__name__)
+        stats.save_model_stat(fs.Keys.CLASS, type(model_info.model).__name__)
     if fs.Keys.AUTHOR in tracer_args.labels:
         stats.save_model_stat(fs.Keys.AUTHOR, tracer_args.labels[fs.Keys.AUTHOR][0])
     if fs.Keys.TASK in tracer_args.labels:
         stats.save_model_stat(fs.Keys.TASK, tracer_args.labels[fs.Keys.TASK][0])
 
     # Save all of the lables in one place
-    stats.save_stat(fs.Keys.LABELS, tracer_args.labels)
+    stats.save_model_stat(fs.Keys.LABELS, tracer_args.labels)
 
     # If the input script is a built-in TurnkeyML model, make a note of
     # which one
