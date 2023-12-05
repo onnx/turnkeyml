@@ -3,6 +3,7 @@ from typing import List, Dict
 import turnkeyml.run.onnxrt as onnxrt
 import turnkeyml.run.tensorrt as tensorrt
 import turnkeyml.run.torchrt as torchrt
+import turnkeyml.run.onnxrtdml as onnxrtdml
 import turnkeyml.common.plugins as plugins
 
 
@@ -27,7 +28,7 @@ DEFAULT_RUNTIME = 0
 # Note: order matters here. We append the discovered_plugins after builtin so
 # that the default runtime for each device will come from a builtin, whenever
 # available.
-builtin_runtimes = [onnxrt, tensorrt, torchrt]
+builtin_runtimes = [onnxrt, tensorrt, torchrt, onnxrtdml]
 plugin_modules = builtin_runtimes + list(discovered_plugins.values())
 
 SUPPORTED_RUNTIMES = {}

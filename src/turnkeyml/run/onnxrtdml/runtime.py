@@ -5,7 +5,7 @@ import numpy as np
 from turnkeyml.run.basert import BaseRT
 import xml.etree.ElementTree as ET
 import turnkeyml.common.exceptions as exp
-from turnkeyml.run.onnxrtdml.execute import ORT_VERSION
+from turnkeyml.run.onnxrtdml.execute import ORT_DML_VERSION
 from turnkeyml.common.filesystem import Stats
 from turnkeyml.run.onnxrtdml.execute import create_conda_env, execute_benchmark
 import turnkeyml.run.plugin_helpers as plugin_helpers
@@ -33,7 +33,7 @@ class OnnxRTDML(BaseRT):
             iterations=iterations,
             runtime=runtime,
             runtimes_supported=[rt_name],
-            runtime_version=ORT_VERSION,
+            runtime_version=ORT_DML_VERSION,
             base_path=os.path.dirname(__file__),
             model=model,
             inputs=inputs,

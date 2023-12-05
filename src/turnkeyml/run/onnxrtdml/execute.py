@@ -11,7 +11,7 @@ import platform
 import turnkeyml.common.build as build
 import turnkeyml.run.plugin_helpers as plugin_helpers
 
-ORT_VERSION = "1.15.1"
+ORT_DML_VERSION = "1.16.3"
 
 BATCHSIZE = 1
 
@@ -54,7 +54,7 @@ def create_conda_env(conda_env_name: str):
         conda_env_name,
         "pip",
         "install",
-        f"onnxruntime=={ORT_VERSION}",
+        f"onnxruntime-directml=={ORT_DML_VERSION}",
     ]
     plugin_helpers.run_subprocess(setup_cmd)
 
@@ -102,7 +102,7 @@ def execute_benchmark(
         )
 
     cpu_performance = get_cpu_specs()
-    cpu_performance["OnnxRuntime Version"] = str(ORT_VERSION)
+    cpu_performance["OnnxRuntime Version"] = str(ORT_DML_VERSION)
     cpu_performance["Mean Latency(ms)"] = str(mean(per_iteration_latency) * 1000)
     cpu_performance["Throughput"] = str(BATCHSIZE / mean(per_iteration_latency))
     cpu_performance["Min Latency(ms)"] = str(min(per_iteration_latency) * 1000)
