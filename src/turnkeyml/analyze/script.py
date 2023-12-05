@@ -88,9 +88,9 @@ def set_status_on_exception(build_state: build.State, stats: fs.Stats):
     # We get `state` when the build tool succeeds, so we can use that to identify
     # whether the exception was thrown during build or benchmark
     if not build_state:
-        stats.add_build_stat(fs.Keys.BUILD_STATUS, fs.FunctionStatus.FAILED)
+        stats.save_model_eval_stat(fs.Keys.BUILD_STATUS, fs.FunctionStatus.FAILED)
     else:
-        stats.add_build_stat(fs.Keys.BENCHMARK_STATUS, fs.FunctionStatus.FAILED)
+        stats.save_model_eval_stat(fs.Keys.BENCHMARK_STATUS, fs.FunctionStatus.FAILED)
 
 
 def explore_invocation(
