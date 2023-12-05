@@ -81,8 +81,17 @@ def summary_spreadsheets(args) -> None:
                             # Break each value in "completed build stages" into its own column
                             # to make analysis easier
                             if key == fs.Keys.COMPLETED_BUILD_STAGES:
-                                for subkey, subvalue in value.items():
-                                    evaluation_stats[subkey] = subvalue
+                                for stage in build[fs.Keys.ALL_BUILD_STAGES]:
+                                    column_name = f"stage_duration-{stage}"
+                                    if stage in build[fs.Keys.COMPLETED_BUILD_STAGES]:
+                                        evaluation_stats[column_name] = build[
+                                            fs.Keys.COMPLETED_BUILD_STAGES
+                                        ][stage]
+                                    else:
+                                        evaluation_stats[column_name] = "INCOMPLETE"
+
+                                # Do not add the raw version of COMPLETED_BUILD_STAGES to the report
+                                continue
 
                             # If a build or benchmark is still marked as "running" at
                             # reporting time, it
