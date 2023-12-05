@@ -321,6 +321,10 @@ class Sequence(Stage):
             state.current_build_stage = None
             state.build_status = build.Status.SUCCESSFUL_BUILD
 
+            # We use a deepcopy here because the Stage framework supports
+            # intermediate_results of any type, including model objects in memory.
+            # The deepcopy ensures that we are providing a result that users
+            # are free to take any action with.
             state.results = copy.deepcopy(state.intermediate_results)
 
             return state
