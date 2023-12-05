@@ -167,11 +167,11 @@ def stop_logger_forward() -> None:
 def analyze_onnx(build_name: str, cache_dir: str, stats: fs.Stats):
     # ONNX stats that we want to save into the build's turnkey_stats.yaml file
     # so that they can be easily accessed by the report command later
-    if fs.Keys.ONNX_FILE in stats.build_stats.keys():
+    if fs.Keys.ONNX_FILE in stats.evaluation_stats.keys():
         # Just in case the ONNX file was generated on a different machine:
         # strip the state's cache dir, then prepend the current cache dir
         final_onnx_file = fs.rebase_cache_dir(
-            stats.build_stats[fs.Keys.ONNX_FILE],
+            stats.evaluation_stats[fs.Keys.ONNX_FILE],
             build_name,
             cache_dir,
         )
@@ -180,15 +180,15 @@ def analyze_onnx(build_name: str, cache_dir: str, stats: fs.Stats):
         onnx_model_info = populate_onnx_model_info(final_onnx_file)
         input_dimensions = onnx_input_dimensions(final_onnx_file)
 
-        stats.save_stat(
+        stats.save_model_stat(
             fs.Keys.ONNX_OPS_COUNTER,
             onnx_ops_counter,
         )
-        stats.save_stat(
+        stats.save_model_stat(
             fs.Keys.ONNX_MODEL_INFO,
             onnx_model_info,
         )
-        stats.save_stat(
+        stats.save_model_stat(
             fs.Keys.ONNX_INPUT_DIMENSIONS,
             input_dimensions,
         )
