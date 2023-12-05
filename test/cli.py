@@ -307,7 +307,6 @@ class Testing(unittest.TestCase):
             "mean_latency",
             "throughput",
             "all_build_stages",
-            "completed_build_stages",
         ]
         linear_summary = summary[1]
         assert len(summary) == len(test_scripts)
