@@ -198,7 +198,7 @@ def explore_invocation(
 
     # Save the system information used for this evaluation
     system_info = build.get_system_info()
-    stats.save_stat(
+    stats.save_model_stat(
         fs.Keys.SYSTEM_INFO,
         system_info,
     )
@@ -257,7 +257,7 @@ def explore_invocation(
             # we will try to catch the exception and note it in the stats.
             # If a concluded build still has a status of "running", this means
             # there was an uncaught exception.
-            stats.add_model_eval_stat(fs.Keys.BUILD_STATUS, fs.FunctionStatus.RUNNING)
+            stats.save_model_eval_stat(fs.Keys.BUILD_STATUS, fs.FunctionStatus.RUNNING)
 
             build_state = build_model(
                 model=model_info.model,
@@ -271,7 +271,7 @@ def explore_invocation(
                 device=tracer_args.device,
             )
 
-            stats.add_model_eval_stat(
+            stats.save_model_eval_stat(
                 fs.Keys.BUILD_STATUS, fs.FunctionStatus.SUCCESSFUL
             )
 
@@ -293,7 +293,7 @@ def explore_invocation(
             else:
                 rt_args_to_use = tracer_args.rt_args
 
-            stats.add_model_eval_stat(
+            stats.save_model_eval_stat(
                 fs.Keys.BENCHMARK_STATUS, fs.FunctionStatus.RUNNING
             )
 
@@ -311,12 +311,12 @@ def explore_invocation(
             perf = model_handle.benchmark()
 
             for key, value in vars(perf).items():
-                stats.add_model_eval_stat(
+                stats.save_model_eval_stat(
                     key=key,
                     value=value,
                 )
 
-            stats.add_model_eval_stat(
+            stats.save_model_eval_stat(
                 fs.Keys.BENCHMARK_STATUS, fs.FunctionStatus.SUCCESSFUL
             )
 
