@@ -342,20 +342,12 @@ class Testing(unittest.TestCase):
         ), f"throughput must be >100, got {linear_summary['throughput']}"
 
         # Make sure the report.get_dict() API works
-        result_dict = report.get_dict(
-            summary_csv_path, ["all_build_stages", "completed_build_stages"]
-        )
+        result_dict = report.get_dict(summary_csv_path, ["all_build_stages"])
         for result in result_dict.values():
             # All of the models should have exported to ONNX, so the "onnx_exported" value
             # should be True for all of them
             assert "export_pytorch" in yaml.safe_load(result["all_build_stages"])
-            assert (
-                "export_pytorch"
-                in yaml.safe_load(result["completed_build_stages"]).keys()
-            )
-            assert (
-                yaml.safe_load(result["completed_build_stages"])["export_pytorch"] > 0
-            )
+            assert float(yaml.safe_load(result["stage_duration-export_pytorch"])) > 0
 
     def test_005_cli_list(self):
         # NOTE: this is not a unit test, it relies on other command
