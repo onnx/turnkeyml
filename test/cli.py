@@ -993,7 +993,9 @@ class Testing(unittest.TestCase):
         ), f"throughput must be >100, got {linear_summary['throughput']}"
 
         # Make sure the report.get_dict() API works
-        result_dict = report.get_dict(summary_csv_path, ["all_build_stages"])
+        result_dict = report.get_dict(
+            summary_csv_path, ["all_build_stages", "stage_duration-export_pytorch"]
+        )
         for result in result_dict.values():
             # All of the models should have exported to ONNX, so the "onnx_exported" value
             # should be True for all of them
