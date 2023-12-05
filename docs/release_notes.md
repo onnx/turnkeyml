@@ -47,6 +47,7 @@ None.
    - `Stats.save_stat()` is now `Stats.save_model_stat()`.
    - `Stats.build_stats` is now `Stats.evaluation_stats`.
  - The `SetSuccess` build stage has been removed because build success has been reworked (see improvements).
+ - The `logged_subprocess()` API has been moved from the `common.build` module to the `run.plugin_helpers` module.
 
 # Version 0.3.0
 
