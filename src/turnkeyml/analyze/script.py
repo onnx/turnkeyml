@@ -164,37 +164,37 @@ def explore_invocation(
         invocation_info.stats_keys = []
 
     # Create an ID for the build stats by combining the device and runtime.
-    # We don't need more info in the stats_id because changes to build_model()
+    # We don't need more info in the evaluation_id because changes to build_model()
     # arguments (e.g., sequence) will trigger a rebuild, which is intended to replace the
     # build stats so long as the device and runtime have not changed.
-    stats_id = f"{tracer_args.device}_{selected_runtime}"
+    evaluation_id = f"{tracer_args.device}_{selected_runtime}"
 
     stats = fs.Stats(
         tracer_args.cache_dir,
         build_name,
-        stats_id,
+        evaluation_id,
     )
     invocation_info.stats = stats
 
     # Stats that apply to the model, regardless of build
-    stats.save_stat(
+    stats.save_model_stat(
         fs.Keys.HASH,
         model_info.hash,
     )
-    stats.save_stat(
+    stats.save_model_stat(
         fs.Keys.MODEL_NAME,
         tracer_args.script_name,
     )
-    stats.save_stat(
+    stats.save_model_stat(
         fs.Keys.PARAMETERS,
         model_info.params,
     )
     if model_info.model_type != build.ModelType.ONNX_FILE:
-        stats.save_stat(fs.Keys.CLASS, type(model_info.model).__name__)
+        stats.save_model_stat(fs.Keys.CLASS, type(model_info.model).__name__)
     if fs.Keys.AUTHOR in tracer_args.labels:
-        stats.save_stat(fs.Keys.AUTHOR, tracer_args.labels[fs.Keys.AUTHOR][0])
+        stats.save_model_stat(fs.Keys.AUTHOR, tracer_args.labels[fs.Keys.AUTHOR][0])
     if fs.Keys.TASK in tracer_args.labels:
-        stats.save_stat(fs.Keys.TASK, tracer_args.labels[fs.Keys.TASK][0])
+        stats.save_model_stat(fs.Keys.TASK, tracer_args.labels[fs.Keys.TASK][0])
 
     # Save the system information used for this evaluation
     system_info = build.get_system_info()
@@ -204,7 +204,7 @@ def explore_invocation(
     )
 
     # Save all of the lables in one place
-    stats.save_stat(fs.Keys.LABELS, tracer_args.labels)
+    stats.save_model_stat(fs.Keys.LABELS, tracer_args.labels)
 
     # If the input script is a built-in TurnkeyML model, make a note of
     # which one
@@ -222,18 +222,18 @@ def explore_invocation(
             fs.MODELS_DIR,
             f"https://github.com/onnx/turnkeyml/tree/{git_hash}/models",
         ).replace("\\", "/")
-        stats.save_stat(fs.Keys.MODEL_SCRIPT, relative_path)
+        stats.save_model_stat(fs.Keys.MODEL_SCRIPT, relative_path)
 
     # Build-specific stats
-    stats.add_build_stat(
+    stats.save_model_eval_stat(
         fs.Keys.DEVICE_TYPE,
         tracer_args.device,
     )
-    stats.add_build_stat(
+    stats.save_model_eval_stat(
         fs.Keys.RUNTIME,
         selected_runtime,
     )
-    stats.add_build_stat(
+    stats.save_model_eval_stat(
         fs.Keys.ITERATIONS,
         tracer_args.iterations,
     )
@@ -257,12 +257,12 @@ def explore_invocation(
             # we will try to catch the exception and note it in the stats.
             # If a concluded build still has a status of "running", this means
             # there was an uncaught exception.
-            stats.add_build_stat(fs.Keys.BUILD_STATUS, fs.FunctionStatus.RUNNING)
+            stats.add_model_eval_stat(fs.Keys.BUILD_STATUS, fs.FunctionStatus.RUNNING)
 
             build_state = build_model(
                 model=model_info.model,
                 inputs=inputs,
-                stats_id=stats_id,
+                evaluation_id=evaluation_id,
                 build_name=build_name,
                 cache_dir=tracer_args.cache_dir,
                 rebuild=tracer_args.rebuild,
@@ -271,7 +271,9 @@ def explore_invocation(
                 device=tracer_args.device,
             )
 
-            stats.add_build_stat(fs.Keys.BUILD_STATUS, fs.FunctionStatus.SUCCESSFUL)
+            stats.add_model_eval_stat(
+                fs.Keys.BUILD_STATUS, fs.FunctionStatus.SUCCESSFUL
+            )
 
             model_to_benchmark = build_state.results[0]
 
@@ -291,7 +293,9 @@ def explore_invocation(
             else:
                 rt_args_to_use = tracer_args.rt_args
 
-            stats.add_build_stat(fs.Keys.BENCHMARK_STATUS, fs.FunctionStatus.RUNNING)
+            stats.add_model_eval_stat(
+                fs.Keys.BENCHMARK_STATUS, fs.FunctionStatus.RUNNING
+            )
 
             model_handle = runtime_info["RuntimeClass"](
                 cache_dir=tracer_args.cache_dir,
@@ -307,12 +311,14 @@ def explore_invocation(
             perf = model_handle.benchmark()
 
             for key, value in vars(perf).items():
-                stats.add_build_stat(
+                stats.add_model_eval_stat(
                     key=key,
                     value=value,
                 )
 
-            stats.add_build_stat(fs.Keys.BENCHMARK_STATUS, fs.FunctionStatus.SUCCESSFUL)
+            stats.add_model_eval_stat(
+                fs.Keys.BENCHMARK_STATUS, fs.FunctionStatus.SUCCESSFUL
+            )
 
             invocation_info.status_message = "Model successfully benchmarked!"
             invocation_info.performance = perf
