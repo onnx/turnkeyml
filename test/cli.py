@@ -1002,11 +1002,10 @@ class Testing(unittest.TestCase):
             ],
         )
         for result in result_dict.values():
-            # All of the models should have exported to ONNX, so the "onnx_exported" value
-            # should be True for all of them
-            assert "export_pytorch" in yaml.safe_load(result["selected_stages"])
-            assert yaml.safe_load(result["stage_state: export_pytorch"]) == "COMPLETED"
-            assert yaml.safe_load(result["stage_duration: export_pytorch"]) > 0
+            # All of the models should have exported to ONNX
+            assert "export_pytorch" in result["selected_stages"]
+            assert result["stage_state: export_pytorch"] == "COMPLETED"
+            assert result["stage_duration: export_pytorch"] > 0
 
 
 if __name__ == "__main__":
