@@ -6,7 +6,7 @@ implements = {
         "ort": {
             "build_required": True,
             "RuntimeClass": OnnxRT,
-            "supported_devices": {"x86"},
+            "supported_devices": {"x86","apple_silicon"},
             "default_sequence": sequences.optimize_fp32,
         }
     }

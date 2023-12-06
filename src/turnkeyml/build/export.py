@@ -10,6 +10,7 @@ import numpy as np
 import onnxruntime
 import onnxmltools
 import onnx
+import coremltools as ct
 import turnkeyml.build.stage as stage
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.build as build
@@ -62,13 +63,17 @@ def base_onnx_file(state: build.State):
         f"{state.config.build_name}-op{state.config.onnx_opset}-base.onnx",
     )
 
+def base_coreml_file(state: build.State):
+    return os.path.join(
+        onnx_dir(state),
+        f"{state.config.build_name}-op{state.config.onnx_opset}-base.mlmodel",
+    )
 
 def opt_onnx_file(state: build.State):
     return os.path.join(
         onnx_dir(state),
         f"{state.config.build_name}-op{state.config.onnx_opset}-opt.onnx",
     )
-
 
 def converted_onnx_file(state: build.State):
     return os.path.join(
@@ -620,6 +625,108 @@ class ConvertOnnxToFp16(stage.Stage):
 
         return state
 
+class ExportToCoreML(stage.Stage):
+    """
+    Stage that takes a Pytorch model and inputs and converts to CoreML format.
+
+    Expected inputs:
+     - state.model is a torch.nn.Module or torch.jit.ScriptModule
+     - state.inputs is a dict that represents valid kwargs to the forward
+        function of state.model
+    Outputs:
+     - A *.mlmodel file
+    """
+
+    def __init__(self):
+        super().__init__(
+            unique_name="coreml_conversion",
+            monitor_message="Converting to CoreML",
+        )
+
+
+    def fire(self, state: build.State):
+        if not isinstance(state.model, (torch.nn.Module, torch.jit.ScriptModule)):
+            msg = f"""
+            The current stage (ExportToCoreML) is only compatible with
+            models of type torch.nn.Module or torch.jit.ScriptModule, however
+            the stage received a model of type {type(state.model)}.
+            """
+            raise exp.StageError(msg)
+
+        # The `torch.onnx.export()` function accepts a tuple of positional inputs
+        # followed by a dictionary with all keyword inputs.
+        # The dictionary must be last item in tuple.
+        user_provided_args = list(state.inputs.keys())
+
+        if isinstance(state.model, torch.nn.Module):
+            # Validate user provided args
+            all_args = list(inspect.signature(state.model.forward).parameters.keys())
+
+            for inp in user_provided_args:
+                if inp not in all_args:
+                    msg = f"""
+                    Input name {inp} not found in the model's forward method. Available
+                    input names are: {all_args}"
+                    """
+                    raise ValueError(msg)
+
+            # Most pytorch models have args that are kind = positional_or_keyword.
+            # The `torch.onnx.export()` function accepts model args as
+            #     (all_positional_args_value,{keyword_arg:value}).
+            # To map the input_args correctly and to build an accurate model
+            # the order of the input_names must reflect the order of the model args.
+
+            # Collect order of pytorch model args.
+            all_args_order_mapping = {arg: idx for idx, arg in enumerate(all_args)}
+
+            # Sort the user provided inputs with respect to model args and store as tuple.
+            sorted_user_inputs = sorted(
+                user_provided_args, key=lambda x: all_args_order_mapping[x]
+            )
+            dummy_input_names = tuple(sorted_user_inputs)
+
+            # If a single input is provided torch.onnx.export will
+            # not accept a dictionary, so pop the first arg
+            user_args = copy.deepcopy(state.inputs)
+            first_input = user_args.pop(dummy_input_names[0])
+
+            # Create tuple: (first input, {rest of user_args dict as keyword args})
+            dummy_inputs = (first_input, user_args)
+
+        else:  # state.model is a torch.jit.ScriptModule
+            dummy_inputs = tuple(state.inputs.values())
+
+            # Collect input names
+            dummy_input_names = tuple(state.inputs.keys())
+
+        # Send torch export warnings to stdout (and therefore the log file)
+        # so that they don't fill up the command line
+        default_warnings = warnings.showwarning
+        warnings.showwarning = _warn_to_stdout
+
+        # Generate a TorchScript Version
+        traced_model = torch.jit.trace(state.model, dummy_inputs)
+
+        # Export the model to CoreML
+        output_path = base_coreml_file(state)
+        os.makedirs(onnx_dir(state), exist_ok=True)
+        coreml_model = ct.convert(
+            traced_model,
+            inputs=[ct.TensorType(shape=inp.shape) for inp in dummy_inputs]
+        )
+
+        # Save the CoreML model
+        coreml_model.save(output_path)
+
+        # Save output names to ensure we are preserving the order of the outputs
+        state.expected_output_names = get_output_names(output_path)
+
+        # Restore default warnings behavior
+        warnings.showwarning = default_warnings
+
+        tensor_helpers.save_inputs(
+            [state.inputs], state.original_inputs_file, downcast=False
+        )
 
 class QuantizeONNXModel(stage.Stage):
     """

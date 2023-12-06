@@ -35,6 +35,16 @@ onnx_fp32 = stage.Sequence(
     enable_model_validation=True,
 )
 
+coreml = stage.Sequence(
+    "coreml",
+    "CoreML Sequence",
+    [
+        export.ExportToCoreML(),
+        export.SuccessStage(),
+    ],
+    enable_model_validation=True,
+)
+
 pytorch_with_quantization = stage.Sequence(
     "pytorch_export_sequence_with_quantization",
     "Exporting PyTorch Model and Quantizing Exported ONNX",
