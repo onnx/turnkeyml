@@ -29,11 +29,11 @@ TurnkeyML is designed to support the following use cases. Of course, it is also 
 
 | Use Case               | Description | Recipe |
 |------------------------|-------------|---------|
-| ONNX Model Zoo         | Export thousands of ONNX files across different ONNX opsets. This is how we generated the contents of the new [ONNX Model Zoo](https://github.com/onnx/models). | `turnkey */*.py -b --onnx-opset 16` + <br /> `turnkey */*.py -b --onnx-opset 17` |
-| Performance validation | Measure latency and throughput in hardware across devices and runtimes to understand product-market fit. | `turnkey model.py --runtime ort` + <br /> `turnkey model.py --runtime torch-eager` + <br />`turnkey cache report` |
-| Functional coverage    | Measure the functional coverage of toolchain/hardware combinations over a large corpus of models (e.g., how many models are supported by a novel compiler?). | `turnkey transformers/*.py --sequence MY_COMPILER` + <br />`turnkey cache report` |
+| ONNX Model Zoo         | Export thousands of ONNX files across different ONNX opsets. This is how we generated the contents of the new [ONNX Model Zoo](https://github.com/onnx/models). | `turnkey */*.py -b --onnx-opset 16` <br /> `turnkey */*.py -b --onnx-opset 17` |
+| Performance validation | Measure latency and throughput in hardware across devices and runtimes to understand product-market fit. | `turnkey model.py --runtime ort` <br /> `turnkey model.py --runtime torch-eager` <br />`turnkey cache report` |
+| Functional coverage    | Measure the functional coverage of toolchain/hardware combinations over a large corpus of models (e.g., how many models are supported by a novel compiler?). | `turnkey transformers/*.py --sequence MY_COMPILER` <br />`turnkey cache report` |
 | Stress testing         | Run millions of inferences across thousands of models and log all the results to find the bugs in a HW/SW stack. | `turnkey timm/*.py --iterations 1000 --device MY_DEVICE --runtime MY_RUNTIME` |
-| Model insights         | Analyze a model to learn its parameter count, input shapes, which ONNX ops it uses, etc. | `turnkey model.py` + <br /> `turnkey cache stats MY_BUILD`|
+| Model insights         | Analyze a model to learn its parameter count, input shapes, which ONNX ops it uses, etc. | `turnkey model.py` <br /> `turnkey cache stats MY_BUILD`|
 
 
 
