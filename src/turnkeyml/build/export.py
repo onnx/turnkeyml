@@ -670,54 +670,27 @@ class ExportToCoreML(stage.Stage):
                     """
                     raise ValueError(msg)
 
-            # Most pytorch models have args that are kind = positional_or_keyword.
-            # The `torch.onnx.export()` function accepts model args as
-            #     (all_positional_args_value,{keyword_arg:value}).
-            # To map the input_args correctly and to build an accurate model
-            # the order of the input_names must reflect the order of the model args.
-
-            # Collect order of pytorch model args.
-            all_args_order_mapping = {arg: idx for idx, arg in enumerate(all_args)}
-
-            # Sort the user provided inputs with respect to model args and store as tuple.
-            sorted_user_inputs = sorted(
-                user_provided_args, key=lambda x: all_args_order_mapping[x]
-            )
-            dummy_input_names = tuple(sorted_user_inputs)
-
-            # If a single input is provided torch.onnx.export will
-            # not accept a dictionary, so pop the first arg
-            user_args = copy.deepcopy(state.inputs)
-            first_input = user_args.pop(dummy_input_names[0])
-
-            # Create tuple: (first input, {rest of user_args dict as keyword args})
-            dummy_inputs = (first_input, user_args)
-
-        else:  # state.model is a torch.jit.ScriptModule
-            dummy_inputs = tuple(state.inputs.values())
-
-            # Collect input names
-            dummy_input_names = tuple(state.inputs.keys())
-
         # Send torch export warnings to stdout (and therefore the log file)
         # so that they don't fill up the command line
         default_warnings = warnings.showwarning
         warnings.showwarning = _warn_to_stdout
 
         # Generate a TorchScript Version
-        traced_model = torch.jit.trace(state.model, dummy_inputs)
+        dummy_inputs = copy.deepcopy(state.inputs)
+        traced_model = torch.jit.trace(state.model, example_kwarg_inputs = dummy_inputs)
 
         # Export the model to CoreML
         output_path = base_coreml_file(state)
         os.makedirs(onnx_dir(state), exist_ok=True)
         coreml_model = ct.convert(
             traced_model,
-            inputs=[ct.TensorType(shape=inp.shape) for inp in dummy_inputs]
+            inputs=[ct.TensorType(shape=inp.shape) for inp in dummy_inputs.values()],
+            convert_to="neuralnetwork"
         )
 
         # Save the CoreML model
         coreml_model.save(output_path)
-
+        
         # Save output names to ensure we are preserving the order of the outputs
         state.expected_output_names = get_output_names(output_path)
 
@@ -727,6 +700,11 @@ class ExportToCoreML(stage.Stage):
         tensor_helpers.save_inputs(
             [state.inputs], state.original_inputs_file, downcast=False
         )
+
+        # Save intermediate results
+        state.intermediate_results = [output_path]
+
+        return state
 
 class QuantizeONNXModel(stage.Stage):
     """

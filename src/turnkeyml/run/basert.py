@@ -80,7 +80,7 @@ class BaseRT(ABC):
         # Validate runtime is supported
         if runtime not in runtimes_supported:
             raise ValueError(
-                f"'runtime' argument {runtime} passed to TensorRT, which only "
+                f"'runtime' argument {runtime} passed to a runtime that only "
                 f"supports runtimes: {runtimes_supported}"
             )
 
