@@ -12,11 +12,14 @@ The tools currently support the following combinations of runtimes and devices:
 | ----------- | ---------- | ------------------------------------------------------------------------------------- | -------------------------------- | --------------------------------------------- |
 | Nvidia GPU  | nvidia     | TensorRT<sup>†</sup>                                                                  | trt                              | Any Nvidia GPU supported by TensorRT          |
 | x86 CPU     | x86        | ONNX Runtime<sup>‡</sup>, Pytorch Eager, Pytoch 2.x Compiled | ort, torch-eager, torch-compiled | Any Intel or AMD CPU supported by the runtime |
+| Apple Silicon    | apple_silicon        | CoreML<sup>◊</sup>, ONNX Runtime<sup>‡</sup>, Pytorch Eager | coreml, ort, torch-eager | Any Apple M* Silicon supported by the runtime |
+
 </span>
 
 <sup>†</sup> Requires TensorRT >= 8.5.2  
 <sup>‡</sup> Requires ONNX Runtime >= 1.13.1  
 <sup>*</sup> Requires Pytorch >= 2.0.0  
+<sup>◊</sup> Requires CoreML >= 7.1  
 
 
 # Table of Contents
@@ -271,6 +274,9 @@ Each device type has its own default runtime, as indicated below.
   - `torch-compiled`: PyTorch 2.x-style compiled graph execution using TorchInductor.
 - Valid runtimes for `nvidia` device
   - `trt`: Nvidia TensorRT (default).
+- Valid runtimes for `apple_silicon` device
+  - `coreml`: CoreML (default).
+  - `ort`: ONNX Runtime.
 
 This feature is also be available as an API argument: 
 - `benchmark_files(runtime=[...])`

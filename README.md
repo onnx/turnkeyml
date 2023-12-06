@@ -2,7 +2,7 @@
 
 [![Turnkey tests](https://github.com/onnx/turnkeyml/actions/workflows/test_turnkey.yml/badge.svg)](https://github.com/onnx/turnkeyml/tree/main/test "Check out our tests")
 [![Build API tests](https://github.com/onnx/turnkeyml/actions/workflows/test_build_api.yml/badge.svg)](https://github.com/onnx/turnkeyml/tree/main/test "Check out our tests")
-[![OS - Windows | Linux](https://img.shields.io/badge/OS-windows%20%7C%20linux-blue)](https://github.com/onnx/turnkeyml/blob/main/docs/install.md "Check out our instructions")
+[![OS - Windows | Linux | MacOS](https://img.shields.io/badge/OS-Windows%20%7C%20Linux%20%7C%20MacOS-blue)](https://github.com/onnx/turnkeyml/blob/main/docs/install.md "Check out our instructions")
 [![Made with Python](https://img.shields.io/badge/Python-3.8,3.10-blue?logo=python&logoColor=white)](https://github.com/onnx/turnkeyml/blob/main/docs/install.md "Check out our instructions")
 
 
