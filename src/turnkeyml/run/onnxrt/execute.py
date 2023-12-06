@@ -127,7 +127,8 @@ def get_cpu_specs() -> dict:
     }
 
     # Check the operating system and define the command accordingly
-    if platform.system() == "Windows":
+    system_platform = platform.system()
+    if system_platform == "Windows":
         cpu_info_command = (
             "wmic CPU get Architecture,Manufacturer,MaxClockSpeed,"
             "Name,NumberOfCores /format:list"
@@ -137,6 +138,9 @@ def get_cpu_specs() -> dict:
             cpu_info_command, stdout=subprocess.PIPE, shell=True
         )
         separator = "="
+    elif system_platform == "Darwin":
+        cpu_info_command = "sysctl -n machdep.cpu.brand_string"
+        cpu_info = subprocess.Popen(cpu_info_command.split(), stdout=subprocess.PIPE)
     else:
         cpu_info_command = "lscpu"
         cpu_info = subprocess.Popen(cpu_info_command.split(), stdout=subprocess.PIPE)
@@ -152,17 +156,20 @@ def get_cpu_specs() -> dict:
     decoded_info = (
         cpu_info_output.decode()
         .strip()
-        .split("\r\n" if platform.system() == "Windows" else "\n")
+        .split("\r\n" if system_platform == "Windows" else "\n")
     )
 
     # Initialize an empty dictionary to hold the CPU specifications
     cpu_spec = {}
-    for line in decoded_info:
-        key, value = line.split(separator, 1)
-        # Get the corresponding key from the field mapping
-        key = field_mapping.get(key.strip())
-        if key:
-            # Add the key and value to the CPU specifications dictionary
-            cpu_spec[key] = value.strip()
+    if system_platform != "Darwin":
+        for line in decoded_info:
+            key, value = line.split(separator, 1)
+            # Get the corresponding key from the field mapping
+            key = field_mapping.get(key.strip())
+            if key:
+                # Add the key and value to the CPU specifications dictionary
+                cpu_spec[key] = value.strip()
+    else:
+        cpu_spec["CPU Name"] = decoded_info[0]
 
     return cpu_spec
