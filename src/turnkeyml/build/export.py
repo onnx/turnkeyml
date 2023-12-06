@@ -265,6 +265,7 @@ class ExportPytorchModel(stage.Stage):
             # the order of the input_names must reflect the order of the model args.
 
             # Collect order of pytorch model args.
+            all_args = list(inspect.signature(state.model.forward).parameters.keys())
             all_args_order_mapping = {arg: idx for idx, arg in enumerate(all_args)}
 
             # Sort the user provided inputs with respect to model args and store as tuple.

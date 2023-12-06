@@ -53,6 +53,8 @@ class BaseRT(ABC):
         requires_docker: bool = False,
         tensor_type=np.array,
         execute_function: Optional[callable] = None,
+        model_filename="model.onnx",
+        model_dirname="onnxmodel",
     ):
         self.tensor_type = tensor_type
         self.cache_dir = cache_dir
@@ -71,8 +73,8 @@ class BaseRT(ABC):
         self.runtime_version = runtime_version
         self.model = model
         self.inputs = inputs
-        self.onnx_filename = "model.onnx"
-        self.onnx_dirname = "onnxmodel"
+        self.model_filename = model_filename
+        self.model_dirname = model_dirname
         self.outputs_filename = "outputs.json"
         self.runtimes_supported = runtimes_supported
         self.execute_function = execute_function
@@ -102,23 +104,23 @@ class BaseRT(ABC):
         )
 
     @property
-    def local_onnx_dir(self):
-        return os.path.join(self.local_output_dir, self.onnx_dirname)
+    def local_model_dir(self):
+        return os.path.join(self.local_output_dir, self.model_dirname)
 
     @property
     def docker_onnx_dir(self):
         return self.posix_path_format(
-            os.path.join(self.docker_output_dir, self.onnx_dirname)
+            os.path.join(self.docker_output_dir, self.model_dirname)
         )
 
     @property
-    def local_onnx_file(self):
-        return os.path.join(self.local_onnx_dir, self.onnx_filename)
+    def local_model_file(self):
+        return os.path.join(self.local_model_dir, self.model_filename)
 
     @property
-    def docker_onnx_file(self):
+    def docker_model_file(self):
         return self.posix_path_format(
-            os.path.join(self.docker_onnx_dir, self.onnx_filename)
+            os.path.join(self.docker_onnx_dir, self.model_filename)
         )
 
     @property
@@ -183,16 +185,16 @@ class BaseRT(ABC):
             raise exp.ModelRuntimeError(msg)
 
         os.makedirs(self.local_output_dir, exist_ok=True)
-        os.makedirs(self.local_onnx_dir, exist_ok=True)
-        shutil.copy(model_file, self.local_onnx_file)
+        os.makedirs(self.local_model_dir, exist_ok=True)
+        shutil.copy(model_file, self.local_model_file)
 
         # Execute benchmarking in hardware
         if self.requires_docker:
             _check_docker_install()
-            onnx_file = self.docker_onnx_file
+            onnx_file = self.docker_model_file
             _check_docker_running()
         else:
-            onnx_file = self.local_onnx_file
+            onnx_file = self.local_model_file
 
         self._execute(
             output_dir=self.local_output_dir,
