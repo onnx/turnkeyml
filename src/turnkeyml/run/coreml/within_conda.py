@@ -23,6 +23,9 @@ def run_coreml_profile(
     inputs_path = os.path.join(Path(coreml_file_path).parents[2],"inputs.npy")
     input_data = np.load(inputs_path, allow_pickle=True)[0]
 
+    # Change input keys to match model
+    input_data = {key + '_1': value for key, value in input_data.items()}
+
     # Run model for a certain number of iterations
     for _ in range(iterations):
         start = time.perf_counter()
