@@ -41,6 +41,15 @@ class OnnxRTDML(BaseRT):
         )
 
     def _setup(self):
+        # import torch_directml
+
+        # if torch_directml.is_available(): 
+        #     print('default device_id:',torch_directml.default_device())
+        #     for i in range(torch_directml.device_count()):
+        #         print(f'device_id:{i},device_name:{torch_directml.device_name(i)}')
+        # else:
+        #     print('directml is not available')
+
         # Check if DirectX12 is supported
         dxdiag_xml_file = 'dxdiag_output.xml'
         try:
