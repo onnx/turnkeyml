@@ -15,49 +15,47 @@ ORT_DML_VERSION = "1.16.3"
 
 BATCHSIZE = 1
 
-
-def create_conda_env(conda_env_name: str):
-    """Create a Conda environment with the given name and install requirements."""
+def create_conda_env(conda_env_name: str, requirements: list):
     conda_path = os.getenv("CONDA_EXE")
     if conda_path is None:
         raise EnvironmentError(
-            "CONDA_EXE environment variable not set."
-            "Make sure Conda is properly installed."
+            "CONDA_EXE environment variable not set. Make sure Conda is properly installed."
         )
 
     # Normalize the path for Windows
     if platform.system() == "Windows":
         conda_path = os.path.normpath(conda_path)
 
-    env_path = os.path.join(
-        os.path.dirname(os.path.dirname(conda_path)), "envs", conda_env_name
-    )
+    env_path = os.path.join(os.path.dirname(os.path.dirname(conda_path)), "envs", conda_env_name)
 
-    # Only create the environment if it does not already exist
-    if not os.path.exists(env_path):
-        plugin_helpers.run_subprocess(
-            [
-                conda_path,
-                "create",
-                "--name",
-                conda_env_name,
-                "python=3.8",
-                "-y",
-            ]
-        )
+    try:
+        # Only create the environment if it does not already exist
+        if not os.path.exists(env_path):
+            plugin_helpers.run_subprocess([conda_path, "create", "--name", conda_env_name, "python=3.8", "-y"])
 
-    # Using conda run to execute pip install within the environment
-    setup_cmd = [
-        conda_path,
-        "run",
-        "--name",
-        conda_env_name,
-        "pip",
-        "install",
-        f"onnxruntime-directml=={ORT_DML_VERSION}",
-    ]
-    plugin_helpers.run_subprocess(setup_cmd)
+        # Install requirements in the created environment
+        for req in requirements:
+            plugin_helpers.run_subprocess([conda_path, "run", "--name", conda_env_name, "pip", "install", req])
 
+    except subprocess.CalledProcessError as cpe:
+        # Handle subprocess exceptions
+        raise EnvironmentError(f"Failed to create or setup Conda environment: {cpe}")
+
+    except PermissionError as pe:
+        os_type = platform.system()
+        if os_type == "Windows":
+            raise EnvironmentError(
+                f"Conda environment setup encountered a permission issue: {pe}. "
+                "Ensure you have write permissions for the Conda installation directory. "
+                "If Conda is installed for 'All Users' on a Windows machine, it defaults "
+                "to 'C:\\ProgramData', where you may not have the necessary permissions. "
+                "To resolve this, consider reinstalling Conda for 'Just Me' instead."
+            )
+        else:
+            raise EnvironmentError(f"Conda env setup failed due to permission error: {pe}")
+
+    except Exception as e:
+        raise EnvironmentError(f"Conda env setup failed with exception: {e}")
 
 def execute_benchmark(
     onnx_file: str,

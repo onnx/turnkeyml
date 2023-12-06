@@ -3,8 +3,8 @@ import os
 import subprocess
 import numpy as np
 from turnkeyml.run.basert import BaseRT
-import xml.etree.ElementTree as ET
 import turnkeyml.common.exceptions as exp
+import turnkeyml.common.build as build
 from turnkeyml.run.onnxrtdml.execute import ORT_DML_VERSION
 from turnkeyml.common.filesystem import Stats
 from turnkeyml.run.onnxrtdml.execute import create_conda_env, execute_benchmark
@@ -41,42 +41,49 @@ class OnnxRTDML(BaseRT):
         )
 
     def _setup(self):
-        # import torch_directml
-
-        # if torch_directml.is_available(): 
-        #     print('default device_id:',torch_directml.default_device())
-        #     for i in range(torch_directml.device_count()):
-        #         print(f'device_id:{i},device_name:{torch_directml.device_name(i)}')
-        # else:
-        #     print('directml is not available')
 
         # Check if DirectX12 is supported
-        dxdiag_xml_file = 'dxdiag_output.xml'
+        enumerate_dx12_devices = """
+import torch_directml
+if not torch_directml.is_available() or torch_directml.device_count() == 0:
+    print('no_devices')
+else:
+    for i in range(torch_directml.device_count()):
+        print(f'device_id: {i}, device_name: {torch_directml.device_name(i)}')
+"""
+        conda_env_name = "turnkey-torch-dml-helper"
+        dml_helper_requirements = ["torch_directml"]
         try:
-            # Run dxdiag and output to an XML file
-            subprocess.run(['dxdiag', '/x',  '/whql:off', dxdiag_xml_file])
-
-            # Parse the XML file
-            tree = ET.parse(dxdiag_xml_file)
-            root = tree.getroot()
-
-            # Find DirectX version
-            dx_version = root.find(".//DirectXVersion")
-            if dx_version is  None or 'DirectX 12' not in dx_version.text:
-                msg = (
-                    f"System under test does not support Directx 12, {rt_name} "
-                    "needs Directx 12 for execution"
-                )
-                raise exp.ModelRuntimeError(msg)
+            # Create and setup the conda env
+            create_conda_env(conda_env_name, dml_helper_requirements)
         except Exception as e:
-            msg = (
-                    f"dxdiag command to verify Directx 12 support failed"
-                )
-            raise exp.ModelRuntimeError(msg)
-        finally:
-            # Delete the XML file
-            if os.path.exists(dxdiag_xml_file):
-                os.remove(dxdiag_xml_file)
+            raise plugin_helpers.CondaError(
+                f"Conda env setup failed with exception: {e}"
+            )
+        python_in_env = plugin_helpers.get_python_path(conda_env_name)
+        
+        cmd = [
+            python_in_env,
+            '-c', 
+            enumerate_dx12_devices.strip()
+        ]
+
+        try:
+            output = subprocess.check_output(cmd, text=True)
+            if output.strip() == 'no_devices':
+                raise RuntimeError('DirectML is not available or no Directx 12 supported devices found')
+        except Exception as e:
+            raise plugin_helpers.CondaError(
+                f"Checking for DirectX12 devices failed: {e}"
+            )
+
+        dx12_devices = []
+        for line in output.splitlines():
+            if line.startswith('device_id'):
+                parts = line.split(',')
+                device_id = parts[0].split(':')[1].strip()
+                device_name = parts[1].split(':')[1].strip()
+                dx12_devices.append({'device_id': device_id, 'device_name': device_name})
 
         self._transfer_files([self.conda_script])
 
@@ -87,24 +94,11 @@ class OnnxRTDML(BaseRT):
         outputs_file: str,
     ):
         conda_env_name = "turnkey-onnxruntime-dml-ep"
+        dml_requirements = [f"onnxruntime-directml=={ORT_DML_VERSION}"]
 
         try:
             # Create and setup the conda env
-            create_conda_env(conda_env_name)
-        except PermissionError as pe:
-            os_type = platform.system()
-            if os_type == "Windows":
-                raise plugin_helpers.CondaError(
-                    f"Conda environment setup encountered a permission issue: {pe}. "
-                    "Ensure you have write permissions for the Conda installation directory. "
-                    "If Conda is installed for 'All Users' on a Windows machine, it defaults "
-                    "to 'C:\\ProgramData', where you may not have the necessary permissions."
-                    "To resolve this, consider reinstalling Conda for 'Just Me' instead."
-                )
-            else:
-                raise plugin_helpers.CondaError(
-                    f"Conda env setup failed due to permission error: {pe}"
-                )
+            create_conda_env(conda_env_name, dml_requirements)
         except Exception as e:
             raise plugin_helpers.CondaError(
                 f"Conda env setup failed with exception: {e}"

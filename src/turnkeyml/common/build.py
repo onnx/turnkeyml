@@ -334,7 +334,6 @@ class State:
 
         self.save_yaml(state_dict)
 
-
 def load_state(
     cache_dir=None,
     build_name=None,
@@ -469,7 +468,7 @@ def logged_subprocess(
     """
     This function calls a subprocess and sends the logs to either a file, stdout/stderr, or both.
 
-    cmd             Command that will run o a sbprocess
+    cmd             Command that will run on a sbprocess
     cwd             Working directory from where the subprocess should run
     env             Evironment to be used by the subprocess (useful for passing env vars)
     log_file_path   Where logs will be stored
