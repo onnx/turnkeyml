@@ -996,7 +996,7 @@ class Testing(unittest.TestCase):
         result_dict = report.get_dict(
             summary_csv_path,
             [
-                "stages_selected",
+                "selected_stages",
                 "stage_duration: export_pytorch",
                 "stage_state: export_pytorch",
             ],
@@ -1004,7 +1004,7 @@ class Testing(unittest.TestCase):
         for result in result_dict.values():
             # All of the models should have exported to ONNX, so the "onnx_exported" value
             # should be True for all of them
-            assert "export_pytorch" in yaml.safe_load(result["stages_selected"])
+            assert "export_pytorch" in yaml.safe_load(result["selected_stages"])
             assert yaml.safe_load(result["stage_state: export_pytorch"]) == "COMPLETED"
             assert yaml.safe_load(result["stage_duration: export_pytorch"]) > 0
 
