@@ -957,7 +957,7 @@ class Testing(unittest.TestCase):
             "device",
             "mean_latency",
             "throughput",
-            "all_build_stages",
+            "selected_stages",
         ]
         linear_summary = summary[1]
         assert len(summary) == len(test_scripts)
