@@ -78,21 +78,31 @@ def summary_spreadsheets(args) -> None:
 
                         # Copy the build-specific stats
                         for key, value in build.items():
-                            # Break each value in "completed build stages" into its own column
-                            # to make analysis easier
+                            # Break each value in "completed build stages" into state and duration
+                            # to make the analysis of this data easier
                             if key == fs.Keys.COMPLETED_BUILD_STAGES:
-                                previous_stave_incomplete = False
+                                previous_state_incomplete = False
                                 for stage in build[fs.Keys.ALL_BUILD_STAGES]:
-                                    column_name = f"stage_duration-{stage}"
+                                    duration_column_name = f"stage_duration: {stage}"
+                                    state_column_name = f"stage_state: {stage}"
                                     if stage in build[fs.Keys.COMPLETED_BUILD_STAGES]:
-                                        evaluation_stats[column_name] = build[
+                                        evaluation_stats[
+                                            state_column_name
+                                        ] = "COMPLETED"
+                                        evaluation_stats[duration_column_name] = build[
                                             fs.Keys.COMPLETED_BUILD_STAGES
                                         ][stage]
-                                    elif not previous_stave_incomplete:
-                                        previous_stave_incomplete = True
-                                        evaluation_stats[column_name] = "INCOMPLETE"
+                                    elif not previous_state_incomplete:
+                                        previous_state_incomplete = True
+                                        evaluation_stats[
+                                            state_column_name
+                                        ] = "INCOMPLETE"
+                                        evaluation_stats[duration_column_name] = "-"
                                     else:
-                                        evaluation_stats[column_name] = "NOT STARTED"
+                                        evaluation_stats[
+                                            state_column_name
+                                        ] = "NOT STARTED"
+                                        evaluation_stats[duration_column_name] = "-"
 
                                 # Do not add the raw version of COMPLETED_BUILD_STAGES to the report
                                 continue
@@ -106,7 +116,8 @@ def summary_spreadsheets(args) -> None:
                             ) and value == fs.FunctionStatus.RUNNING:
                                 value = fs.FunctionStatus.KILLED
 
-                            evaluation_stats[key] = value
+                            # Add stats ensuring that those are all in lower case
+                            evaluation_stats[key.lower()] = value
 
                         all_evaluation_stats.append(evaluation_stats)
                 except yaml.scanner.ScannerError:
@@ -120,6 +131,8 @@ def summary_spreadsheets(args) -> None:
             for header in evaluation_stats.keys():
                 if header not in column_headers:
                     column_headers.append(header)
+
+        # Sort all columns alphabetically
         column_headers = sorted(column_headers)
 
         # Add each build to the report
