@@ -10,11 +10,13 @@ If you are creating the release notes for a new version, please see the [templat
 
 # Version 1.0.0
 
-This version focuses on cleaning up technical debts. It removes cumbersome requirements and unused features, while also clarifying some naming schemes.
+This version focuses on cleaning up technical debts and most of the changes are not visible to users. It removes cumbersome requirements for developers, removes unused features to streamline the codebase, and also clarifying some API naming schemes.
 
-## Improvements
+Users, however, will enjoy improved fidelity in their reporting telemetry thanks to the streamlined code.
 
-### CLI Users
+## Users
+
+### User Improvements
 
 Improvements to the information in `turnkey_stats.yaml` and report CSVs:
  
@@ -22,19 +24,19 @@ Improvements to the information in `turnkey_stats.yaml` and report CSVs:
  - `build_status` and `benchmark_status` now accurately report the status of their respective toolchain phases.
      - Previously, `benchmark_status` was a superset of the status of both build and benchmark.
 
-### API Developers
+## User Breaking Changes
+
+None.
+
+## Developers
+
+### Developer Improvements
 
  - Build success has been conceptually reworked for Stages/Sequences such that the `SetSuccess` Stage is no longer required at the end of every Sequence.
    - Previously, `build_model()` would only return a `State` object if the `state.build_status == successful_build`, which in turn had to be manually set in a Stage.
    - Now, if a Sequence finishes then the underlying toolflow will automatically set `state.build_status = successful_build` on your behalf.
 
-## Breaking Changes
-
-### CLI Users
-
-None.
-
-### API Developers
+### Developer Breaking Changes
 
  - The `benchmark_model()` API has been removed as there were no known users / use cases. Anyone who wants to run standalone benchmarking can still instantiate any `BaseRT` child class and call `BaseRT.benchmark()`.
  - The APIs for saving and loading labels `.txt` files in the cache have been removed since no code was using those APIs. Labels are now saved into `turnkey_stats.yaml` instead.
@@ -57,22 +59,24 @@ This version was used to initialize the repository.
 
 Headline statement.
 
-## Improvements
 
-### CLI Users
 
-List of enhancements specific to CLI users.
+## Users
 
-### API Developers
+### User Improvements
 
-List of enhancements specific to API developers.
+List of enhancements specific to users of the tools.
 
-## Breaking Changes
+### User Breaking Changes
 
-### CLI Users
+List of breaking changes specific to users of the tools.
 
-List of breaking changes specific to CLI users.
+## Developers
 
-### API Developers
+### Developer Improvements
 
-List of changes specific to API developers.
+List of enhancements specific to developers who build on the tools.
+
+### Developer Breaking Changes
+
+List of breaking changes specific to developers who build on the tools.
