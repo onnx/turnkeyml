@@ -46,6 +46,7 @@ setup(
         "pandas>=1.5.3",
         "fasteners",
         "GitPython>=3.1.40",
+        "coremltools>=7.1",
     ],
     extras_require={
         "tensorflow": [
