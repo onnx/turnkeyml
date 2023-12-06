@@ -41,17 +41,6 @@ coreml = stage.Sequence(
     enable_model_validation=True,
 )
 
-pytorch_with_quantization = stage.Sequence(
-    "pytorch_export_sequence_with_quantization",
-    "Exporting PyTorch Model and Quantizing Exported ONNX",
-    [
-        export.ExportPytorchModel(),
-        export.OptimizeOnnxModel(),
-        export.QuantizeONNXModel(),
-    ],
-    enable_model_validation=True,
-)
-
 # Plugin interface for sequences
 discovered_plugins = plugins.discover()
 
