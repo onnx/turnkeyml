@@ -9,7 +9,6 @@ optimize_fp16 = stage.Sequence(
         export.ExportPlaceholder(),
         export.OptimizeOnnxModel(),
         export.ConvertOnnxToFp16(),
-        export.SuccessStage(),
     ],
     enable_model_validation=True,
 )
@@ -20,7 +19,6 @@ optimize_fp32 = stage.Sequence(
     [
         export.ExportPlaceholder(),
         export.OptimizeOnnxModel(),
-        export.SuccessStage(),
     ],
     enable_model_validation=True,
 )
@@ -30,7 +28,6 @@ onnx_fp32 = stage.Sequence(
     "Base Sequence",
     [
         export.ExportPlaceholder(),
-        export.SuccessStage(),
     ],
     enable_model_validation=True,
 )
@@ -40,7 +37,6 @@ coreml = stage.Sequence(
     "CoreML Sequence",
     [
         export.ExportToCoreML(),
-        export.SuccessStage(),
     ],
     enable_model_validation=True,
 )
@@ -52,7 +48,6 @@ pytorch_with_quantization = stage.Sequence(
         export.ExportPytorchModel(),
         export.OptimizeOnnxModel(),
         export.QuantizeONNXModel(),
-        export.SuccessStage(),
     ],
     enable_model_validation=True,
 )
@@ -65,7 +60,7 @@ SUPPORTED_SEQUENCES = {
     "optimize-fp16": optimize_fp16,
     "optimize-fp32": optimize_fp32,
     "onnx-fp32": onnx_fp32,
-    "coreml": coreml
+    "coreml": coreml,
 }
 
 # Add sequences from plugins to supported sequences dict

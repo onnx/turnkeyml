@@ -16,7 +16,6 @@ import turnkeyml.common.exceptions as exp
 import turnkeyml.common.build as build
 import turnkeyml.build.tensor_helpers as tensor_helpers
 import turnkeyml.build.onnx_helpers as onnx_helpers
-import turnkeyml.build.quantization_helpers as quant_helpers
 import turnkeyml.common.filesystem as fs
 
 
@@ -63,11 +62,13 @@ def base_onnx_file(state: build.State):
         f"{state.config.build_name}-op{state.config.onnx_opset}-base.onnx",
     )
 
+
 def base_coreml_file(state: build.State):
     return os.path.join(
         onnx_dir(state),
         f"{state.config.build_name}-op{state.config.onnx_opset}-base.mlmodel",
     )
+
 
 def opt_onnx_file(state: build.State):
     return os.path.join(
@@ -75,17 +76,11 @@ def opt_onnx_file(state: build.State):
         f"{state.config.build_name}-op{state.config.onnx_opset}-opt.onnx",
     )
 
+
 def converted_onnx_file(state: build.State):
     return os.path.join(
         onnx_dir(state),
         f"{state.config.build_name}-op{state.config.onnx_opset}-opt-f16.onnx",
-    )
-
-
-def quantized_onnx_file(state: build.State):
-    return os.path.join(
-        onnx_dir(state),
-        f"{state.config.build_name}-op{state.config.onnx_opset}-opt-quantized_int8.onnx",
     )
 
 
@@ -194,8 +189,10 @@ class ReceiveOnnxModel(stage.Stage):
         if check_model(output_path, success_msg, fail_msg):
             state.intermediate_results = [output_path]
 
-            stats = fs.Stats(state.cache_dir, state.config.build_name, state.stats_id)
-            stats.add_build_stat(
+            stats = fs.Stats(
+                state.cache_dir, state.config.build_name, state.evaluation_id
+            )
+            stats.save_model_eval_stat(
                 fs.Keys.ONNX_FILE,
                 output_path,
             )
@@ -320,8 +317,10 @@ class ExportPytorchModel(stage.Stage):
         if check_model(output_path, success_msg, fail_msg):
             state.intermediate_results = [output_path]
 
-            stats = fs.Stats(state.cache_dir, state.config.build_name, state.stats_id)
-            stats.add_build_stat(
+            stats = fs.Stats(
+                state.cache_dir, state.config.build_name, state.evaluation_id
+            )
+            stats.save_model_eval_stat(
                 fs.Keys.ONNX_FILE,
                 output_path,
             )
@@ -441,8 +440,10 @@ class ExportKerasModel(stage.Stage):
         if check_model(output_path, success_msg, fail_msg):
             state.intermediate_results = [output_path]
 
-            stats = fs.Stats(state.cache_dir, state.config.build_name, state.stats_id)
-            stats.add_build_stat(
+            stats = fs.Stats(
+                state.cache_dir, state.config.build_name, state.evaluation_id
+            )
+            stats.save_model_eval_stat(
                 fs.Keys.ONNX_FILE,
                 output_path,
             )
@@ -505,8 +506,10 @@ class OptimizeOnnxModel(stage.Stage):
         if check_model(output_path, success_msg, fail_msg):
             state.intermediate_results = [output_path]
 
-            stats = fs.Stats(state.cache_dir, state.config.build_name, state.stats_id)
-            stats.add_build_stat(
+            stats = fs.Stats(
+                state.cache_dir, state.config.build_name, state.evaluation_id
+            )
+            stats.save_model_eval_stat(
                 fs.Keys.ONNX_FILE,
                 output_path,
             )
@@ -576,9 +579,8 @@ class ConvertOnnxToFp16(stage.Stage):
         inputs_file = state.original_inputs_file
         if os.path.isfile(inputs_file):
             inputs = np.load(inputs_file, allow_pickle=True)
-            to_downcast = False if state.quantization_samples else True
             inputs_converted = tensor_helpers.save_inputs(
-                inputs, inputs_file, downcast=to_downcast
+                inputs, inputs_file, downcast=True
             )
         else:
             raise exp.StageError(
@@ -610,8 +612,10 @@ class ConvertOnnxToFp16(stage.Stage):
         if check_model(output_path, success_msg, fail_msg):
             state.intermediate_results = [output_path]
 
-            stats = fs.Stats(state.cache_dir, state.config.build_name, state.stats_id)
-            stats.add_build_stat(
+            stats = fs.Stats(
+                state.cache_dir, state.config.build_name, state.evaluation_id
+            )
+            stats.save_model_eval_stat(
                 fs.Keys.ONNX_FILE,
                 output_path,
             )
@@ -624,6 +628,7 @@ class ConvertOnnxToFp16(stage.Stage):
             raise exp.StageError(msg)
 
         return state
+
 
 class ExportToCoreML(stage.Stage):
     """
@@ -642,7 +647,6 @@ class ExportToCoreML(stage.Stage):
             unique_name="coreml_conversion",
             monitor_message="Converting to CoreML",
         )
-
 
     def fire(self, state: build.State):
         if not isinstance(state.model, (torch.nn.Module, torch.jit.ScriptModule)):
@@ -677,7 +681,7 @@ class ExportToCoreML(stage.Stage):
 
         # Generate a TorchScript Version
         dummy_inputs = copy.deepcopy(state.inputs)
-        traced_model = torch.jit.trace(state.model, example_kwarg_inputs = dummy_inputs)
+        traced_model = torch.jit.trace(state.model, example_kwarg_inputs=dummy_inputs)
 
         # Export the model to CoreML
         output_path = base_coreml_file(state)
@@ -685,12 +689,12 @@ class ExportToCoreML(stage.Stage):
         coreml_model = ct.convert(
             traced_model,
             inputs=[ct.TensorType(shape=inp.shape) for inp in dummy_inputs.values()],
-            convert_to="neuralnetwork"
+            convert_to="neuralnetwork",
         )
 
         # Save the CoreML model
         coreml_model.save(output_path)
-        
+
         # Save output names to ensure we are preserving the order of the outputs
         state.expected_output_names = get_output_names(output_path)
 
@@ -705,6 +709,7 @@ class ExportToCoreML(stage.Stage):
         state.intermediate_results = [output_path]
 
         return state
+
 
 class QuantizeONNXModel(stage.Stage):
     """
@@ -754,25 +759,5 @@ class QuantizeONNXModel(stage.Stage):
             More information may be available in the log file at **{self.logfile_path}**
             """
             raise exp.StageError(msg)
-
-        return state
-
-
-class SuccessStage(stage.Stage):
-    """
-    Stage that sets state.build_status = build.Status.SUCCESSFUL_BUILD,
-    indicating that the build sequence has completed all of the requested build stages.
-    """
-
-    def __init__(self):
-        super().__init__(
-            unique_name="set_success",
-            monitor_message="Finishing up",
-        )
-
-    def fire(self, state: build.State):
-        state.build_status = build.Status.SUCCESSFUL_BUILD
-
-        state.results = copy.deepcopy(state.intermediate_results)
 
         return state

@@ -15,6 +15,7 @@ COREML_VERSION = "7.1"
 
 BATCHSIZE = 1
 
+
 def create_conda_env(conda_env_name: str):
     """Create a Conda environment with the given name and install requirements."""
     conda_path = os.getenv("CONDA_EXE")
@@ -79,7 +80,7 @@ def execute_benchmark(
     ]
 
     # Execute command and log stdout/stderr
-    build.logged_subprocess(
+    plugin_helpers.logged_subprocess(
         cmd=cmd,
         cwd=os.path.dirname(output_dir),
         log_to_std_streams=False,
