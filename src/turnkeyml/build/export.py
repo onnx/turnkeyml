@@ -41,6 +41,20 @@ def _warn_to_stdout(message, category, filename, line_number, _, line):
     )
 
 
+def validate_torch_args(state: build.State) -> None:
+    """
+    Ensure that the inputs received match the model's forward function
+    """
+    all_args = list(inspect.signature(state.model.forward).parameters.keys())
+    for inp in list(state.inputs.keys()):
+        if inp not in all_args:
+            msg = f"""
+            Input name {inp} not found in the model's forward method. Available
+            input names are: {all_args}"
+            """
+            raise ValueError(msg)
+
+
 def get_output_names(
     onnx_model: Union[str, onnx.ModelProto]
 ):  # pylint: disable=no-member
@@ -242,16 +256,7 @@ class ExportPytorchModel(stage.Stage):
         user_provided_args = list(state.inputs.keys())
 
         if isinstance(state.model, torch.nn.Module):
-            # Validate user provided args
-            all_args = list(inspect.signature(state.model.forward).parameters.keys())
-
-            for inp in user_provided_args:
-                if inp not in all_args:
-                    msg = f"""
-                    Input name {inp} not found in the model's forward method. Available
-                    input names are: {all_args}"
-                    """
-                    raise ValueError(msg)
+            validate_torch_args(state)
 
             # Most pytorch models have args that are kind = positional_or_keyword.
             # The `torch.onnx.export()` function accepts model args as
@@ -657,25 +662,10 @@ class ExportToCoreML(stage.Stage):
             """
             raise exp.StageError(msg)
 
-        # The `torch.onnx.export()` function accepts a tuple of positional inputs
-        # followed by a dictionary with all keyword inputs.
-        # The dictionary must be last item in tuple.
-        user_provided_args = list(state.inputs.keys())
-
         if isinstance(state.model, torch.nn.Module):
-            # Validate user provided args
-            all_args = list(inspect.signature(state.model.forward).parameters.keys())
+            validate_torch_args(state)
 
-            for inp in user_provided_args:
-                if inp not in all_args:
-                    msg = f"""
-                    Input name {inp} not found in the model's forward method. Available
-                    input names are: {all_args}"
-                    """
-                    raise ValueError(msg)
-
-        # Send torch export warnings to stdout (and therefore the log file)
-        # so that they don't fill up the command line
+        # Send warnings to stdout (and therefore the log file)
         default_warnings = warnings.showwarning
         warnings.showwarning = _warn_to_stdout
 
