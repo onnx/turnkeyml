@@ -8,7 +8,6 @@ import subprocess
 import json
 from statistics import mean
 import platform
-import turnkeyml.common.build as build
 import turnkeyml.run.plugin_helpers as plugin_helpers
 
 COREML_VERSION = "7.1"

@@ -2,9 +2,9 @@ import argparse
 import json
 import os
 import time
+from pathlib import Path
 import numpy as np
 import coremltools as ct
-from pathlib import Path
 
 
 def run_coreml_profile(

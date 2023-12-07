@@ -51,7 +51,10 @@ class CoreML(BaseRT):
 
         # Check silicon
         if "Apple M" not in self.device_name:
-            msg = f"You need an 'Apple M*' processor to run using apple_silicon, got '{self.device_name}'"
+            msg = (
+                "You need an 'Apple M*' processor to run using apple_silicon "
+                f", got '{self.device_name}'"
+            )
             raise exp.ModelRuntimeError(msg)
 
         self._transfer_files([self.conda_script])
