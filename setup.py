@@ -18,6 +18,7 @@ setup(
         "turnkeyml.run.onnxrt",
         "turnkeyml.run.tensorrt",
         "turnkeyml.run.torchrt",
+        "turnkeyml.run.coreml",
         "turnkeyml.cli",
         "turnkeyml.common",
         "turnkeyml_models",

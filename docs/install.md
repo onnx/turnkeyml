@@ -20,6 +20,13 @@ bash Miniconda3-latest-Linux-x86_64.sh
 
 If you are installing TurnkeyML on **Windows**, manually download and install [Miniconda3 for Windows 64-bit](https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe). Please note that PowerShell is recommended when using miniconda on Windows.
 
+
+If you are installing TurnkeyML on **MacOS**, run the command below:
+```
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
+Miniconda3-latest-MacOSX-x86_64.sh
+```
+
 Then create and activate a virtual environment like this:
 
 ```
