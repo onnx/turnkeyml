@@ -39,10 +39,18 @@ class OnnxRT(BaseRT):
         )
 
     def _setup(self):
+        # Apple Silicon requires M* devices
+        if (
+            str(self.device_type) == "apple_silicon"
+            and "Apple M" not in self.device_name
+        ):
+            msg = f"You need an 'Apple M*' processor to run using apple_silicon, got '{self.device_name}'"
+            raise exp.ModelRuntimeError(msg)
+
         # Check if x86_64 (aka AMD64) CPU is available locally
         machine = platform.uname().machine
         if machine != "x86_64" and machine != "AMD64":
-            msg = "Only x86_64 and AMD64 CPUs are supported, got {machine}"
+            msg = f"Only x86_64 and AMD64 CPUs are supported, got {machine}"
             raise exp.ModelRuntimeError(msg)
 
         self._transfer_files([self.conda_script])
