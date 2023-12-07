@@ -280,7 +280,7 @@ class Sequence(Stage):
         # Collect telemetry for the build
         stats = fs.Stats(state.cache_dir, state.config.build_name, state.evaluation_id)
         stats.save_model_eval_stat(
-            fs.Keys.ALL_BUILD_STAGES,
+            fs.Keys.SELECTED_SEQUENCE_OF_STAGES,
             self.get_names(),
         )
 

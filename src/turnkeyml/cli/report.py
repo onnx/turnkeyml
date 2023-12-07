@@ -78,13 +78,13 @@ def summary_spreadsheets(args) -> None:
 
                         # Copy the build-specific stats
                         for key, value in build.items():
-                            # Break each value in "completed build stages" into state and duration
+                            # Break each value in "completed build stages" into status and duration
                             # to make the analysis of this data easier
                             if key == fs.Keys.COMPLETED_BUILD_STAGES:
                                 previous_state_incomplete = False
-                                for stage in build[fs.Keys.ALL_BUILD_STAGES]:
+                                for stage in build[fs.Keys.SELECTED_SEQUENCE_OF_STAGES]:
                                     duration_column_name = f"stage_duration: {stage}"
-                                    state_column_name = f"stage_state: {stage}"
+                                    state_column_name = f"stage_status: {stage}"
                                     if stage in build[fs.Keys.COMPLETED_BUILD_STAGES]:
                                         evaluation_stats[
                                             state_column_name

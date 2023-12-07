@@ -322,10 +322,10 @@ class Keys:
     # ONNX model input tensor dimensions
     ONNX_INPUT_DIMENSIONS = "onnx_input_dimensions"
     # List of all build stages in the Sequence
-    ALL_BUILD_STAGES = "selected_stages"
+    SELECTED_SEQUENCE_OF_STAGES = "selected_sequence_of_stages"
     # Map of build stages that completed successfully to the
     # execution time for that stage. We can figure out if any build
-    # stages failed if selected_stages != completed_build_stages.keys().
+    # stages failed if selected_sequence_of_stages != completed_build_stages.keys().
     COMPLETED_BUILD_STAGES = "completed_build_stages"
     # Location of the most up-to-date ONNX file for this build. If the
     # build completed successfully, this is the final ONNX file.

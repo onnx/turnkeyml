@@ -957,7 +957,7 @@ class Testing(unittest.TestCase):
             "device",
             "mean_latency",
             "throughput",
-            "selected_stages",
+            "selected_sequence_of_stages",
         ]
         linear_summary = summary[1]
         assert len(summary) == len(test_scripts)
@@ -996,15 +996,15 @@ class Testing(unittest.TestCase):
         result_dict = report.get_dict(
             summary_csv_path,
             [
-                "selected_stages",
+                "selected_sequence_of_stages",
                 "stage_duration: export_pytorch",
-                "stage_state: export_pytorch",
+                "stage_status: export_pytorch",
             ],
         )
         for result in result_dict.values():
             # All of the models should have exported to ONNX
-            assert "export_pytorch" in result["selected_stages"]
-            assert result["stage_state: export_pytorch"] == "COMPLETED"
+            assert "export_pytorch" in result["selected_sequence_of_stages"]
+            assert result["stage_status: export_pytorch"] == "COMPLETED"
             assert result["stage_duration: export_pytorch"] > 0
 
 
