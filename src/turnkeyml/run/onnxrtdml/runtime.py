@@ -1,6 +1,7 @@
 import platform
 import os
 import subprocess
+import json
 import numpy as np
 from turnkeyml.run.basert import BaseRT
 import turnkeyml.common.exceptions as exp
@@ -44,12 +45,17 @@ class OnnxRTDML(BaseRT):
 
         # Check if DirectX12 is supported
         enumerate_dx12_devices = """
+import json
 import torch_directml
+
 if not torch_directml.is_available() or torch_directml.device_count() == 0:
-    print('no_devices')
+    print(json.dumps({'error': 'DirectML is not available or no Directx 12 supported devices found'}))
 else:
-    for i in range(torch_directml.device_count()):
-        print(f'device_id: {i}, device_name: {torch_directml.device_name(i)}')
+    devices = [
+        {'device_id': i, 'device_name': torch_directml.device_name(i)}
+        for i in range(torch_directml.device_count())
+    ]
+    print(json.dumps(devices))
 """
         conda_env_name = "turnkey-torch-dml-helper"
         dml_helper_requirements = ["torch_directml"]
@@ -68,22 +74,18 @@ else:
             enumerate_dx12_devices.strip()
         ]
 
+        dx12_device = []
         try:
             output = subprocess.check_output(cmd, text=True)
-            if output.strip() == 'no_devices':
-                raise RuntimeError('DirectML is not available or no Directx 12 supported devices found')
+            data = json.loads(output)
+            if 'error' in data:
+                raise RuntimeError(data['error'])
+            else:
+                dx12_devices = data
         except Exception as e:
             raise plugin_helpers.CondaError(
                 f"Checking for DirectX12 devices failed: {e}"
             )
-
-        dx12_devices = []
-        for line in output.splitlines():
-            if line.startswith('device_id'):
-                parts = line.split(',')
-                device_id = parts[0].split(':')[1].strip()
-                device_name = parts[1].split(':')[1].strip()
-                dx12_devices.append({'device_id': device_id, 'device_name': device_name})
 
         self._transfer_files([self.conda_script])
 
