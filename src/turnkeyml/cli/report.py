@@ -81,7 +81,6 @@ def summary_spreadsheets(args) -> None:
                             # Break each value in "completed build stages" into status and duration
                             # to make the analysis of this data easier
                             if key == fs.Keys.COMPLETED_BUILD_STAGES:
-<<<<<<< HEAD
                                 previous_state_incomplete = False
                                 for stage in build[fs.Keys.SELECTED_SEQUENCE_OF_STAGES]:
                                     duration_column_name = f"stage_duration: {stage}"
@@ -108,11 +107,6 @@ def summary_spreadsheets(args) -> None:
                                 # Do not add the raw version of COMPLETED_BUILD_STAGES to the report
                                 continue
 
-=======
-                                for subkey, subvalue in value.items():
-                                    evaluation_stats[subkey] = subvalue
-
->>>>>>> main
                             # If a build or benchmark is still marked as "running" at
                             # reporting time, it
                             # must have been killed by a time out, out-of-memory (OOM), or some
@@ -122,12 +116,8 @@ def summary_spreadsheets(args) -> None:
                             ) and value == fs.FunctionStatus.RUNNING:
                                 value = fs.FunctionStatus.KILLED
 
-<<<<<<< HEAD
                             # Add stats ensuring that those are all in lower case
                             evaluation_stats[key.lower()] = value
-=======
-                            evaluation_stats[key] = value
->>>>>>> main
 
                         all_evaluation_stats.append(evaluation_stats)
                 except yaml.scanner.ScannerError:
