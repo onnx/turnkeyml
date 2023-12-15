@@ -476,22 +476,21 @@ def main():
         first_arg = sys.argv[1]
         if first_arg not in subparsers.choices.keys() and "-h" not in first_arg:
             if "." in first_arg:
+                # User has provided a file as the first positional arg
                 sys.argv.insert(1, "benchmark")
             else:
+                # User has provided a command as the first positional arg
                 # Check how close we are from each of the valid options
+                # NOTE: if we are not close to a valid option, we will let
+                # argparse handle the error
                 valid_options = list(subparsers.choices.keys())
                 close_matches = get_close_matches(first_arg, valid_options)
 
-                error_msg = f"Unexpected positional argument `turnkey {first_arg}`. "
                 if close_matches:
-                    error_msg += f"Did you mean `turnkey {close_matches[0]}`?"
-                else:
-                    error_msg += (
-                        "The first positional argument must either be "
-                        "an input file with the .py or .onnx file extension or "
-                        f"one of the following commands: {valid_options}."
+                    raise exceptions.ArgError(
+                        f"Unexpected positional argument `turnkey {first_arg}`. "
+                        f"Did you mean `turnkey {close_matches[0]}`?"
                     )
-                raise exceptions.ArgError(error_msg)
 
     args = parser.parse_args()
 
