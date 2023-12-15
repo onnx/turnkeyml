@@ -113,7 +113,8 @@ def main():
     )
 
     toolchain_select_group = benchmark_parser.add_argument_group(
-        "Select which phase(s) of the toolchain to run (default is to run analyze, build, and benchmark)"
+        "Select which phase(s) of the toolchain to run "
+        "(default is to run analyze, build, and benchmark)"
     )
 
     toolchain_select_group.add_argument(
