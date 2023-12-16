@@ -21,11 +21,6 @@ class MyParser(argparse.ArgumentParser):
         self.print_help()
         sys.exit(2)
 
-    def print_cache_help(self):
-        print("Error: a cache command is required")
-        self.print_help()
-        sys.exit(2)
-
 
 def print_version(_):
     """
@@ -90,11 +85,11 @@ def main():
     # Parser for the "benchmark" command
     #######################################
 
-    def check_extension(choices, file_name):
+    def check_extension(choices, file_name, error_func):
         _, extension = os.path.splitext(file_name.split("::")[0])
         if extension[1:].lower() not in choices:
-            raise exceptions.ArgError(
-                f"input_files must end with .py, .onnx, or .txt (got '{file_name}')"
+            error_func(
+                f"input_files must end with .py, .onnx, or .txt (got '{file_name}')\n"
             )
         return file_name
 
@@ -107,7 +102,9 @@ def main():
         "input_files",
         nargs="+",
         help="One or more script (.py), ONNX (.onnx), or input list (.txt) files to be benchmarked",
-        type=lambda file: check_extension(("py", "onnx", "txt"), file),
+        type=lambda file: check_extension(
+            ("py", "onnx", "txt"), file, benchmark_parser.error
+        ),
     )
 
     slurm_or_processes_group = benchmark_parser.add_mutually_exclusive_group()
@@ -491,7 +488,7 @@ def main():
 
                 if close_matches:
                     raise exceptions.ArgError(
-                        f"Unexpected positional argument `turnkey {first_arg}`. "
+                        f"Unexpected command `turnkey {first_arg}`. "
                         f"Did you mean `turnkey {close_matches[0]}`?"
                     )
 
