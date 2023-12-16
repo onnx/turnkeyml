@@ -472,17 +472,20 @@ def main():
     # on a target script. If the user doesn't provide a command,
     # we alter argv to insert the command for them.
 
+    # Special characters that indicate a string is a filename, not a command
+    file_chars = [".", "/", "\\", "*"]
+
     if len(sys.argv) > 1:
         first_arg = sys.argv[1]
         if first_arg not in subparsers.choices.keys() and "-h" not in first_arg:
-            if "." in first_arg:
+            if any(char_to_check in first_arg for char_to_check in file_chars):
                 # User has provided a file as the first positional arg
                 sys.argv.insert(1, "benchmark")
             else:
                 # User has provided a command as the first positional arg
                 # Check how close we are from each of the valid options
                 # NOTE: if we are not close to a valid option, we will let
-                # argparse handle the error
+                # argparse detect and raise the error
                 valid_options = list(subparsers.choices.keys())
                 close_matches = get_close_matches(first_arg, valid_options)
 
