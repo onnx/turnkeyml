@@ -3,6 +3,7 @@ import sys
 import time
 import os
 import copy
+import enum
 from typing import List, Tuple
 from multiprocessing import Process
 import psutil
@@ -50,6 +51,11 @@ def _name_is_file_safe(name: str):
 
 
 class Stage(abc.ABC):
+    class Status(enum.Enum):
+        NOT_STARTED = "not_started"
+        COMPLETED = "completed"
+        INCOMPLETE = "incomplete"
+
     def status_line(self, successful, verbosity):
         """
         Print a line of status information for this Stage into the monitor.
@@ -83,6 +89,8 @@ class Stage(abc.ABC):
         _name_is_file_safe(unique_name)
 
         self.unique_name = unique_name
+        self.status_key = f"stage_status:{unique_name}"
+        self.duration_key = f"stage_duration:{unique_name}"
         self.monitor_message = monitor_message
         self.progress = None
         self.logfile_path = None
@@ -284,9 +292,19 @@ class Sequence(Stage):
             self.get_names(),
         )
 
+        # At the beginning of a sequence no stage has started
+        for stage in self.stages:
+            stats.save_model_eval_stat(stage.status_key, Stage.Status.NOT_STARTED.value)
+            stats.save_model_eval_stat(stage.duration_key, "-")
+
         # Run the build
         try:
             for stage in self.stages:
+                # Set status as incomplete, since stage just started
+                stats.save_model_eval_stat(
+                    stage.status_key, Stage.Status.INCOMPLETE.value
+                )
+
                 # Collect telemetry about the stage
                 state.current_build_stage = stage.unique_name
                 start_time = time.time()
@@ -297,11 +315,11 @@ class Sequence(Stage):
                 # Collect telemetry about the stage
                 execution_time = time.time() - start_time
 
-                stats.save_model_eval_sub_stat(
-                    parent_key=fs.Keys.COMPLETED_BUILD_STAGES,
-                    key=stage.unique_name,
-                    value=execution_time,
+                # Set status as completed
+                stats.save_model_eval_stat(
+                    stage.status_key, Stage.Status.COMPLETED.value
                 )
+                stats.save_model_eval_stat(stage.duration_key, execution_time)
 
         except exp.StageError as e:
             # Advance the cursor below the monitor so

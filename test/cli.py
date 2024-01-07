@@ -151,7 +151,7 @@ def assert_success_of_builds(
                     build_state.config.build_name,
                     build_state.evaluation_id,
                 )
-                assert build_state.build_status == build.Status.SUCCESSFUL_BUILD
+                assert build_state.build_status == build.Status.COMPLETED_BUILD
                 script_build_found = True
                 builds_found += 1
 
@@ -555,7 +555,7 @@ class Testing(unittest.TestCase):
 
         # Ensure test failed
         build_state = build.load_state(state_path=filesystem.get_all(cache_dir)[0])
-        assert build_state.build_status != build.Status.SUCCESSFUL_BUILD
+        assert build_state.build_status != build.Status.COMPLETED_BUILD
 
         # Generate report
         testargs = [
