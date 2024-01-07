@@ -272,7 +272,7 @@ def explore_invocation(
             )
 
             stats.save_model_eval_stat(
-                fs.Keys.BUILD_STATUS, fs.FunctionStatus.SUCCESSFUL
+                fs.Keys.BUILD_STATUS, fs.FunctionStatus.COMPLETED
             )
 
             model_to_benchmark = build_state.results[0]
@@ -317,7 +317,7 @@ def explore_invocation(
                 )
 
             stats.save_model_eval_stat(
-                fs.Keys.BENCHMARK_STATUS, fs.FunctionStatus.SUCCESSFUL
+                fs.Keys.BENCHMARK_STATUS, fs.FunctionStatus.COMPLETED
             )
 
             invocation_info.status_message = "Model successfully benchmarked!"

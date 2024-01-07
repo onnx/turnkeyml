@@ -78,12 +78,6 @@ def summary_spreadsheets(args) -> None:
 
                         # Copy the build-specific stats
                         for key, value in build.items():
-                            # Break each value in "completed build stages" into its own column
-                            # to make analysis easier
-                            if key == fs.Keys.COMPLETED_BUILD_STAGES:
-                                for subkey, subvalue in value.items():
-                                    evaluation_stats[subkey] = subvalue
-
                             # If a build or benchmark is still marked as "running" at
                             # reporting time, it
                             # must have been killed by a time out, out-of-memory (OOM), or some
@@ -93,7 +87,8 @@ def summary_spreadsheets(args) -> None:
                             ) and value == fs.FunctionStatus.RUNNING:
                                 value = fs.FunctionStatus.KILLED
 
-                            evaluation_stats[key] = value
+                            # Add stats ensuring that those are all in lower case
+                            evaluation_stats[key.lower()] = value
 
                         all_evaluation_stats.append(evaluation_stats)
                 except yaml.scanner.ScannerError:
@@ -107,6 +102,9 @@ def summary_spreadsheets(args) -> None:
             for header in evaluation_stats.keys():
                 if header not in column_headers:
                     column_headers.append(header)
+
+        # Sort all columns alphabetically
+        column_headers = sorted(column_headers)
 
         # Add each build to the report
         for evaluation_stats in all_evaluation_stats:

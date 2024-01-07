@@ -3,6 +3,7 @@ import sys
 import time
 import os
 import copy
+import enum
 from typing import List, Tuple
 from multiprocessing import Process
 import psutil
@@ -50,6 +51,11 @@ def _name_is_file_safe(name: str):
 
 
 class Stage(abc.ABC):
+    class Status(enum.Enum):
+        NOT_STARTED = "not_started"
+        COMPLETED = "completed"
+        INCOMPLETE = "incomplete"
+
     def status_line(self, successful, verbosity):
         """
         Print a line of status information for this Stage into the monitor.
@@ -83,6 +89,8 @@ class Stage(abc.ABC):
         _name_is_file_safe(unique_name)
 
         self.unique_name = unique_name
+        self.status_key = f"stage_status:{unique_name}"
+        self.duration_key = f"stage_duration:{unique_name}"
         self.monitor_message = monitor_message
         self.progress = None
         self.logfile_path = None
@@ -137,12 +145,12 @@ class Stage(abc.ABC):
         else:
             self.status_line(successful=True, verbosity=state.monitor)
 
-            # Stages should not set build.Status.SUCCESSFUL_BUILD, as that is
+            # Stages should not set build.Status.COMPLETED_BUILD, as that is
             # reserved for Sequence.launch()
-            if state.build_status == build.Status.SUCCESSFUL_BUILD:
+            if state.build_status == build.Status.COMPLETED_BUILD:
                 raise exp.StageError(
                     "TurnkeyML Stages are not allowed to set "
-                    "`state.build_status == build.Status.SUCCESSFUL_BUILD`, "
+                    "`state.build_status == build.Status.COMPLETED_BUILD`, "
                     "however that has happened. If you are a plugin developer, "
                     "do not do this. If you are a user, please file an issue at "
                     "https://github.com/onnx/turnkeyml/issues."
@@ -268,7 +276,7 @@ class Sequence(Stage):
 
         if state.build_status == build.Status.NOT_STARTED:
             state.build_status = build.Status.PARTIAL_BUILD
-        elif state.build_status == build.Status.SUCCESSFUL_BUILD:
+        elif state.build_status == build.Status.COMPLETED_BUILD:
             msg = """
             build_model() is running a build on a model that already built successfully, which
             should not happen because the build should have loaded from cache or rebuilt from scratch.
@@ -280,13 +288,23 @@ class Sequence(Stage):
         # Collect telemetry for the build
         stats = fs.Stats(state.cache_dir, state.config.build_name, state.evaluation_id)
         stats.save_model_eval_stat(
-            fs.Keys.ALL_BUILD_STAGES,
+            fs.Keys.SELECTED_SEQUENCE_OF_STAGES,
             self.get_names(),
         )
+
+        # At the beginning of a sequence no stage has started
+        for stage in self.stages:
+            stats.save_model_eval_stat(stage.status_key, Stage.Status.NOT_STARTED.value)
+            stats.save_model_eval_stat(stage.duration_key, "-")
 
         # Run the build
         try:
             for stage in self.stages:
+                # Set status as incomplete, since stage just started
+                stats.save_model_eval_stat(
+                    stage.status_key, Stage.Status.INCOMPLETE.value
+                )
+
                 # Collect telemetry about the stage
                 state.current_build_stage = stage.unique_name
                 start_time = time.time()
@@ -297,17 +315,17 @@ class Sequence(Stage):
                 # Collect telemetry about the stage
                 execution_time = time.time() - start_time
 
-                stats.save_model_eval_sub_stat(
-                    parent_key=fs.Keys.COMPLETED_BUILD_STAGES,
-                    key=stage.unique_name,
-                    value=execution_time,
+                # Set status as completed
+                stats.save_model_eval_stat(
+                    stage.status_key, Stage.Status.COMPLETED.value
                 )
+                stats.save_model_eval_stat(stage.duration_key, execution_time)
 
         except exp.StageError as e:
             # Advance the cursor below the monitor so
             # we can print an error message
             stage_depth_in_sequence = self.get_depth() - self.get_names().index(
-                stage.unique_name
+                stage.unique_name  # pylint: disable=undefined-loop-variable
             )
             stdout_lines_to_advance = stage_depth_in_sequence - 2
             cursor_down = "\n" * stdout_lines_to_advance
@@ -319,7 +337,7 @@ class Sequence(Stage):
 
         else:
             state.current_build_stage = None
-            state.build_status = build.Status.SUCCESSFUL_BUILD
+            state.build_status = build.Status.COMPLETED_BUILD
 
             # We use a deepcopy here because the Stage framework supports
             # intermediate_results of any type, including model objects in memory.

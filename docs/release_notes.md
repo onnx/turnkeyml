@@ -8,6 +8,31 @@ We are tracking two types of major changes:
 
 If you are creating the release notes for a new version, please see the [template](#template-version-majorminorpatch). Release notes should capture all of the significant changes since the last numbered package release.
 
+# Version 1.1.0
+
+This version focuses on improving the clarity of the telemetry reported.
+
+## Users
+
+### User Improvements
+
+- Report splits `stages_completed` into stage status and duration.
+
+## User Breaking Changes
+
+None.
+
+## Developers
+
+### Developer Improvements
+
+None
+
+### Developer Breaking Changes
+
+- `build.Status.COMPLETED_BUILD` is now called `build.Status.COMPLETED_BUILD`
+- `COMPLETED_BUILD_STAGES` column in the report was removed.
+
 # Version 1.0.0
 
 This version focuses on cleaning up technical debts and most of the changes are not visible to users. It removes cumbersome requirements for developers, removes unused features to streamline the codebase, and also clarifying some API naming schemes.

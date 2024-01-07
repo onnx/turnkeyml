@@ -141,7 +141,7 @@ class Status(enum.Enum):
     NOT_STARTED = "not_started"
     PARTIAL_BUILD = "partial_build"
     BUILD_RUNNING = "build_running"
-    SUCCESSFUL_BUILD = "successful_build"
+    COMPLETED_BUILD = "completed_build"
     FAILED_BUILD = "failed_build"
 
 
