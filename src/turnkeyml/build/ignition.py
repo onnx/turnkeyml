@@ -324,7 +324,7 @@ def load_or_make_state(
 
             if (
                 model_type == build.ModelType.UNKNOWN
-                and state.build_status == build.Status.SUCCESSFUL_BUILD
+                and state.build_status == build.Status.COMPLETED_BUILD
             ):
                 msg = (
                     "Model caching is disabled for successful builds against custom Sequences. "

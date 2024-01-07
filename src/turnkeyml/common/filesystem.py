@@ -362,7 +362,7 @@ class Keys:
 
 class FunctionStatus:
     RUNNING = "running"
-    SUCCESSFUL = "successful"
+    COMPLETED = "completed"
     FAILED = "failed"
     KILLED = "killed"
 

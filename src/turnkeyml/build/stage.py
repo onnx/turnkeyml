@@ -137,12 +137,12 @@ class Stage(abc.ABC):
         else:
             self.status_line(successful=True, verbosity=state.monitor)
 
-            # Stages should not set build.Status.SUCCESSFUL_BUILD, as that is
+            # Stages should not set build.Status.COMPLETED_BUILD, as that is
             # reserved for Sequence.launch()
-            if state.build_status == build.Status.SUCCESSFUL_BUILD:
+            if state.build_status == build.Status.COMPLETED_BUILD:
                 raise exp.StageError(
                     "TurnkeyML Stages are not allowed to set "
-                    "`state.build_status == build.Status.SUCCESSFUL_BUILD`, "
+                    "`state.build_status == build.Status.COMPLETED_BUILD`, "
                     "however that has happened. If you are a plugin developer, "
                     "do not do this. If you are a user, please file an issue at "
                     "https://github.com/onnx/turnkeyml/issues."
@@ -268,7 +268,7 @@ class Sequence(Stage):
 
         if state.build_status == build.Status.NOT_STARTED:
             state.build_status = build.Status.PARTIAL_BUILD
-        elif state.build_status == build.Status.SUCCESSFUL_BUILD:
+        elif state.build_status == build.Status.COMPLETED_BUILD:
             msg = """
             build_model() is running a build on a model that already built successfully, which
             should not happen because the build should have loaded from cache or rebuilt from scratch.
@@ -319,7 +319,7 @@ class Sequence(Stage):
 
         else:
             state.current_build_stage = None
-            state.build_status = build.Status.SUCCESSFUL_BUILD
+            state.build_status = build.Status.COMPLETED_BUILD
 
             # We use a deepcopy here because the Stage framework supports
             # intermediate_results of any type, including model objects in memory.
