@@ -325,7 +325,7 @@ class Sequence(Stage):
             # Advance the cursor below the monitor so
             # we can print an error message
             stage_depth_in_sequence = self.get_depth() - self.get_names().index(
-                stage.unique_name
+                stage.unique_name  # pylint: disable=undefined-loop-variable
             )
             stdout_lines_to_advance = stage_depth_in_sequence - 2
             cursor_down = "\n" * stdout_lines_to_advance

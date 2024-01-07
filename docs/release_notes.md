@@ -30,7 +30,8 @@ None
 
 ### Developer Breaking Changes
 
-None
+- `build.Status.COMPLETED_BUILD` is now called `build.Status.COMPLETED_BUILD`
+- `COMPLETED_BUILD_STAGES` column in the report was removed.
 
 # Version 1.0.0
 
