@@ -292,23 +292,23 @@ class ExportPytorchModel(stage.Stage):
                 state.model,
                 tuple(state.inputs.values()),
                 opset_version=state.config.onnx_opset)
-            
+
             # `export_verification.has_mismatch()` returns True if a mismatch is found and
             # False otherwise. If no mismatch is found,# `is_export_valid` is set to "Valid",
             # indicating successful verification.
             # If a mismatch is found, `is_export_valid` is set to "Invalid", indicating
             # the verification failed.
             if not export_verification.has_mismatch():
-                is_export_valid = "Valid"
+                is_export_valid = "valid"
             else:
-                is_export_valid = "Invalid"
-        
+                is_export_valid = "invalid"
+
         # The except block catches any type of exception that might occur during the
-        # verification process. If any exception occurs,`is_export_valid` is set to 
+        # verification process. If any exception occurs,`is_export_valid` is set to
         # "Unverified", indicating that the verification process could not be completed,
         # and therefore the model's export status is unverified.
         except Exception:  # pylint: disable=broad-except
-            is_export_valid = "Unverified"
+            is_export_valid = "unverified"
 
         stats.save_model_eval_stat(
                 fs.Keys.TORCH_ONNX_EXPORT_VALIDITY,
