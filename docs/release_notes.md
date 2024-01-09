@@ -16,11 +16,39 @@ This version focuses on improving the clarity of the telemetry reported.
 
 ### User Improvements
 
-- Report splits `stages_completed` into stage status and duration.
+- Stats and report CSV files split `stages_completed` into stage status and duration.
+- Build, benchmark, and stage status values in the stat and report files now use the same terminology values:
+
+```
+class FunctionStatus(enum.Enum):
+    # INCOMPLETE indicates stage/build/benchmark is either running or was killed;
+    # if you know the process ended then it was killed;
+    # if the process is still running, stage/build/benchmark is still running.
+    INCOMPLETE = "incomplete"
+    # NOT_STARTED applies to stages that didnt start because
+    # the build errored out or was killed prior to stage starting.
+    NOT_STARTED = "not_started"
+    # SUCCESSFUL means the stage/build/benchmark completed successfully
+    SUCCESSFUL = "successful"
+    # ERROR means the stage/build/benchmark failed and threw some error that
+    # was caught by turnkey. You should proceed by looking at the build
+    # logs to see what happened.
+    ERROR = "error"
+    # KILLED means the build/benchmark failed because the system killed it. This can
+    # happen because of an out-of-memory (OOM), timeout, system shutdown, etc.
+    # You should proceed by re-running the build and keeping an eye on it to observe
+    # why it is being killed (e.g., watch the RAM utilization to diagnose an OOM).
+    KILLED = "killed"
+```
+
+- The CLI help page for the `benchmark` command has been reorganized for clarity (try `turnkey benchmark -h`).
+- The CLI now provides more helpful errors when the user provides arguments incorrectly.
+
 
 ## User Breaking Changes
 
-None.
+- Previous turnkey caches are not compatible with this version and must be rebuilt.
+- The status terminology changes documented above mean that stats/reports from pre-v1.1.0 builds are not directly comparable to post-v1.1.0 builds.
 
 ## Developers
 
@@ -30,8 +58,7 @@ None
 
 ### Developer Breaking Changes
 
-- `build.Status.COMPLETED_BUILD` is now called `build.Status.COMPLETED_BUILD`
-- `COMPLETED_BUILD_STAGES` column in the report was removed.
+- `build.Status` and `filesystem.FunctionStatus` have both been removed, and replaced with `build.FunctionStatus` which is the union of those two Enums.
 
 # Version 1.0.0
 
