@@ -356,13 +356,6 @@ class Keys:
     BENCHMARK_STATUS = "benchmark_status"
 
 
-class FunctionStatus:
-    RUNNING = "running"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    KILLED = "killed"
-
-
 class Stats:
     def __init__(self, cache_dir: str, build_name: str, evaluation_id: str = None):
         output_dir = build.output_dir(cache_dir, build_name)

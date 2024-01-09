@@ -42,7 +42,7 @@ class Testing(unittest.TestCase):
         _, build_state = common.get_stats_and_state(test_script, cache_dir)
 
         # Check if build was successful
-        assert build_state.build_status == build.Status.COMPLETED_BUILD
+        assert build_state.build_status == build.FunctionStatus.SUCCESSFUL
 
         # Check if default part and config were assigned
         expected_device = "example_family::part1::config1"

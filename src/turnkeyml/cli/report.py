@@ -7,6 +7,7 @@ import yaml
 import pandas as pd
 import turnkeyml.common.printing as printing
 import turnkeyml.common.filesystem as fs
+import turnkeyml.common.build as bd
 
 
 def get_report_name(prefix: str = "") -> str:
@@ -78,14 +79,14 @@ def summary_spreadsheets(args) -> None:
 
                         # Copy the build-specific stats
                         for key, value in build.items():
-                            # If a build or benchmark is still marked as "running" at
+                            # If a build or benchmark is still marked as "incomplete" at
                             # reporting time, it
                             # must have been killed by a time out, out-of-memory (OOM), or some
                             # other uncaught exception
                             if (
                                 key == fs.Keys.BUILD_STATUS or fs.Keys.BENCHMARK_STATUS
-                            ) and value == fs.FunctionStatus.RUNNING:
-                                value = fs.FunctionStatus.KILLED
+                            ) and value == bd.FunctionStatus.INCOMPLETE:
+                                value = bd.FunctionStatus.KILLED
 
                             # Add stats ensuring that those are all in lower case
                             evaluation_stats[key.lower()] = value

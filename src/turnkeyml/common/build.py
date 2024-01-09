@@ -137,12 +137,32 @@ def hash_model(model, model_type: ModelType, hash_params: bool = True):
         raise ValueError(msg)
 
 
-class Status(enum.Enum):
+class FunctionStatus(enum.Enum):
+    # INCOMPLETE indicates stage/build is either running or was killed;
+    # if you know the process ended then it was killed;
+    # if the process is still running, stage/build is still running
+    INCOMPLETE = "incomplete"
+    # NOT_STARTED applies to stages that didnt start because
+    # the build errored out or was killed prior to stage starting
     NOT_STARTED = "not_started"
-    PARTIAL_BUILD = "partial_build"
-    BUILD_RUNNING = "build_running"
-    COMPLETED_BUILD = "completed_build"
-    FAILED_BUILD = "failed_build"
+    # SUCCESSFUL means the build/stage completed successfully
+    SUCCESSFUL = "successful"
+    # ERROR means the build/stage failed and threw some error that
+    # was caught by turnkey. You should proceed by looking at the build
+    # logs to see what happened.
+    ERROR = "error"
+    # KILLED means the build failed because the system killed it. This can
+    # happen because of an out-of-memory (OOM), timeout, system shutdown, etc.
+    # You should proceed by re-running the build and keeping an eye on it to observe
+    # why it is being killed (e.g., watch the RAM utilization to diagnose an OOM).
+    KILLED = "killed"  # you should reproduce and observe
+
+    # TODO: REMOVE!
+    # NOT_STARTED = "not_started"
+    # PARTIAL_BUILD = "partial_build"
+    # BUILD_RUNNING = "build_running"
+    # COMPLETED_BUILD = "completed_build"
+    # FAILED_BUILD = "failed_build"
 
 
 # Create a unique ID from this run by hashing pid + process start time
@@ -242,7 +262,7 @@ class State:
     model_type: ModelType = ModelType.UNKNOWN
     uid: Optional[int] = None
     model_hash: Optional[int] = None
-    build_status: Status = Status.NOT_STARTED
+    build_status: FunctionStatus = FunctionStatus.NOT_STARTED
     expected_input_shapes: Optional[Dict[str, list]] = None
     expected_input_dtypes: Optional[Dict[str, list]] = None
     expected_output_names: Optional[List] = None
@@ -346,7 +366,7 @@ def load_state(
     try:
         # Special case for loading enums
         state_dict["model_type"] = ModelType(state_dict["model_type"])
-        state_dict["build_status"] = Status(state_dict["build_status"])
+        state_dict["build_status"] = FunctionStatus(state_dict["build_status"])
         state_dict["config"] = config_type(**state_dict["config"])
 
         state = state_type(**state_dict)
