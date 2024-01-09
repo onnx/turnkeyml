@@ -138,31 +138,24 @@ def hash_model(model, model_type: ModelType, hash_params: bool = True):
 
 
 class FunctionStatus(enum.Enum):
-    # INCOMPLETE indicates stage/build is either running or was killed;
+    # INCOMPLETE indicates stage/build/benchmark is either running or was killed;
     # if you know the process ended then it was killed;
-    # if the process is still running, stage/build is still running
+    # if the process is still running, stage/build/benchmark is still running.
     INCOMPLETE = "incomplete"
     # NOT_STARTED applies to stages that didnt start because
-    # the build errored out or was killed prior to stage starting
+    # the build errored out or was killed prior to stage starting.
     NOT_STARTED = "not_started"
-    # SUCCESSFUL means the build/stage completed successfully
+    # SUCCESSFUL means the stage/build/benchmark completed successfully
     SUCCESSFUL = "successful"
-    # ERROR means the build/stage failed and threw some error that
+    # ERROR means the stage/build/benchmark failed and threw some error that
     # was caught by turnkey. You should proceed by looking at the build
     # logs to see what happened.
     ERROR = "error"
-    # KILLED means the build failed because the system killed it. This can
+    # KILLED means the build/benchmark failed because the system killed it. This can
     # happen because of an out-of-memory (OOM), timeout, system shutdown, etc.
     # You should proceed by re-running the build and keeping an eye on it to observe
     # why it is being killed (e.g., watch the RAM utilization to diagnose an OOM).
-    KILLED = "killed"  # you should reproduce and observe
-
-    # TODO: REMOVE!
-    # NOT_STARTED = "not_started"
-    # PARTIAL_BUILD = "partial_build"
-    # BUILD_RUNNING = "build_running"
-    # COMPLETED_BUILD = "completed_build"
-    # FAILED_BUILD = "failed_build"
+    KILLED = "killed"
 
 
 # Create a unique ID from this run by hashing pid + process start time
