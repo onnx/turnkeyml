@@ -6,11 +6,11 @@ import sys
 import copy
 from typing import Union
 import torch
+import torch.onnx.verification
 import numpy as np
 import onnxruntime
 import onnxmltools
 import onnx
-import torch.onnx.verification
 import turnkeyml.build.stage as stage
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.build as build
@@ -286,11 +286,12 @@ class ExportPytorchModel(stage.Stage):
 
         # Verify if the exported model matches the input torch model
         try:
-            # The `torch.onnx.verification.find_mismatch()` the input arguments to the
+            # The `torch.onnx.verification.find_mismatch()` takes input arguments to the
             # model as `input_args (Tuple[Any, ...])`
-            export_verification = torch.onnx.verification.find_mismatch(state.model,
-                                                                        (first_input,),
-                                                                        opset_version=state.config.onnx_opset)
+            export_verification = torch.onnx.verification.find_mismatch(
+                state.model,
+                tuple(state.inputs.values()),
+                opset_version=state.config.onnx_opset)
             is_export_valid = not export_verification.has_mismatch()
         except Exception: # pylint: disable=broad-except
             is_export_valid = "Unverified"
