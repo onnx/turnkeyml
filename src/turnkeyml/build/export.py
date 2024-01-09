@@ -10,6 +10,7 @@ import numpy as np
 import onnxruntime
 import onnxmltools
 import onnx
+import torch.onnx.verification
 import turnkeyml.build.stage as stage
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.build as build
@@ -279,9 +280,22 @@ class ExportPytorchModel(stage.Stage):
         default_warnings = warnings.showwarning
         warnings.showwarning = _warn_to_stdout
 
+        stats = fs.Stats(
+            state.cache_dir, state.config.build_name, state.evaluation_id
+        )
+        export_verify = torch.onnx.verification.find_mismatch(state.model,
+                                                              (first_input,),
+                                                              opset_version=state.config.onnx_opset)
+
+        stats.save_model_eval_stat(
+                fs.Keys.TORCH_EXPORT_VERIFIED,
+                not export_verify.has_mismatch(),
+        )
+
         # Export the model to ONNX
         output_path = base_onnx_file(state)
         os.makedirs(onnx_dir(state), exist_ok=True)
+
         torch.onnx.export(
             state.model,
             dummy_inputs,
@@ -309,9 +323,6 @@ class ExportPytorchModel(stage.Stage):
         if check_model(output_path, success_msg, fail_msg):
             state.intermediate_results = [output_path]
 
-            stats = fs.Stats(
-                state.cache_dir, state.config.build_name, state.evaluation_id
-            )
             stats.save_model_eval_stat(
                 fs.Keys.ONNX_FILE,
                 output_path,
