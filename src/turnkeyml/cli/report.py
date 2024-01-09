@@ -85,8 +85,8 @@ def summary_spreadsheets(args) -> None:
                             # other uncaught exception
                             if (
                                 key == fs.Keys.BUILD_STATUS or fs.Keys.BENCHMARK_STATUS
-                            ) and value == bd.FunctionStatus.INCOMPLETE:
-                                value = bd.FunctionStatus.KILLED
+                            ) and value == bd.FunctionStatus.INCOMPLETE.value:
+                                value = bd.FunctionStatus.KILLED.value
 
                             # Add stats ensuring that those are all in lower case
                             evaluation_stats[key.lower()] = value

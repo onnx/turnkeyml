@@ -997,8 +997,8 @@ class Testing(unittest.TestCase):
             summary_csv_path,
             [
                 "selected_sequence_of_stages",
-                "stage_duration: export_pytorch",
-                "stage_status: export_pytorch",
+                "stage_duration:export_pytorch",
+                "stage_status:export_pytorch",
             ],
         )
         for result in result_dict.values():
