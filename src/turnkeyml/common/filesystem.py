@@ -360,7 +360,7 @@ class Keys:
     BENCHMARK_STATUS = "benchmark_status"
     # Indicates the match between the TorchScript IR graph and
     # the exported onnx model (verified with torch.onnx.verification)
-    TORCH_EXPORT_VERIFIED = "torch_export_verified"
+    TORCH_ONNX_EXPORT_VALIDITY = "torch_export_validity"
 
 class FunctionStatus:
     RUNNING = "running"
