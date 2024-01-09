@@ -283,13 +283,21 @@ class ExportPytorchModel(stage.Stage):
         stats = fs.Stats(
             state.cache_dir, state.config.build_name, state.evaluation_id
         )
-        export_verify = torch.onnx.verification.find_mismatch(state.model,
-                                                              (first_input,),
-                                                              opset_version=state.config.onnx_opset)
+
+        # Verify if the exported model matches the input torch model
+        try:
+            # The `torch.onnx.verification.find_mismatch()` the input arguments to the
+            # model as `input_args (Tuple[Any, ...])`
+            export_verification = torch.onnx.verification.find_mismatch(state.model,
+                                                                        (first_input,),
+                                                                        opset_version=state.config.onnx_opset)
+            is_export_valid = not export_verification.has_mismatch()
+        except Exception: # pylint: disable=broad-except
+            is_export_valid = "Unverified"
 
         stats.save_model_eval_stat(
                 fs.Keys.TORCH_EXPORT_VERIFIED,
-                not export_verify.has_mismatch(),
+                is_export_valid,
         )
 
         # Export the model to ONNX
