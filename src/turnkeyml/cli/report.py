@@ -95,29 +95,29 @@ def summary_spreadsheets(args) -> None:
                 except yaml.scanner.ScannerError:
                     continue
 
-        # Scan the build stats to determine the set of columns for the CSV file.
-        # The CSV will have one column for every key in any build stats dict.
-        column_headers = []
-        for evaluation_stats in all_evaluation_stats:
-            # Add any key that isn't already in column_headers
-            for header in evaluation_stats.keys():
-                if header not in column_headers:
-                    column_headers.append(header)
+    # Scan the build stats to determine the set of columns for the CSV file.
+    # The CSV will have one column for every key in any build stats dict.
+    column_headers = []
+    for evaluation_stats in all_evaluation_stats:
+        # Add any key that isn't already in column_headers
+        for header in evaluation_stats.keys():
+            if header not in column_headers:
+                column_headers.append(header)
 
-        # Sort all columns alphabetically
-        column_headers = sorted(column_headers)
+    # Sort all columns alphabetically
+    column_headers = sorted(column_headers)
 
-        # Add each build to the report
-        for evaluation_stats in all_evaluation_stats:
-            # Start with a dictionary where all of the values are "-". If a build
-            # has a value for each key we will fill it in, and otherwise the "-"
-            # will indicate that no value was available
-            result = {k: "-" for k in column_headers}
+    # Add each build to the report
+    for evaluation_stats in all_evaluation_stats:
+        # Start with a dictionary where all of the values are "-". If a build
+        # has a value for each key we will fill it in, and otherwise the "-"
+        # will indicate that no value was available
+        result = {k: "-" for k in column_headers}
 
-            for key in column_headers:
-                result[key] = _good_get(evaluation_stats, key)
+    for key in column_headers:
+        result[key] = _good_get(evaluation_stats, key)
 
-            report.append(result)
+    report.append(result)
 
     # Populate results spreadsheet
     with open(report_path, "w", newline="", encoding="utf8") as spreadsheet:
