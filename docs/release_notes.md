@@ -67,6 +67,7 @@ class FunctionStatus(enum.Enum):
 
 - The CLI help page for the `benchmark` command has been reorganized for clarity (try `turnkey benchmark -h`).
 - The CLI now provides more helpful errors when the user provides arguments incorrectly.
+- Fixed a bug where multi-cache reporting could repeat entries in the report CSV file.
 
 
 ## User Breaking Changes
