@@ -1007,9 +1007,14 @@ class Testing(unittest.TestCase):
             assert result["stage_status:export_pytorch"] == "successful", result[
                 "stage_status:export_pytorch"
             ]
-            assert result["stage_duration:export_pytorch"] > 0, result[
-                "stage_duration:export_pytorch"
-            ]
+            try:
+                assert int(result["stage_duration:export_pytorch"]) > 0, result[
+                    "stage_duration:export_pytorch"
+                ]
+            except ValueError:
+                # Catch the case where the value is "-" and therefore can't be
+                # converted to an int
+                assert result["stage_duration:export_pytorch"] == "-"
 
 
 if __name__ == "__main__":

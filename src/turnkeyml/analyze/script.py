@@ -252,6 +252,14 @@ def explore_invocation(
 
         return
 
+    # Initialize build and benchmark status to "not started"
+    stats.save_model_eval_stat(
+        fs.Keys.BUILD_STATUS, build.FunctionStatus.NOT_STARTED.value
+    )
+    stats.save_model_eval_stat(
+        fs.Keys.BENCHMARK_STATUS, build.FunctionStatus.NOT_STARTED.value
+    )
+
     build_state = None
     perf = None
     try:
