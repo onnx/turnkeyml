@@ -16,6 +16,7 @@ This version focuses on improving the clarity of the telemetry reported.
 
 ### User Improvements
 
+- ONNX files exported from PyTorch models now have a `torch_export_verified` key in their stats/report files that indicates whether the `torch.onnx.verification.find_mismatch()` API could find any issue with the exported ONNX file.
 - Stats and report CSV files split `stages_completed` into stage status and duration.
 - Build, benchmark, and stage status values in the stat and report files now use the same terminology values:
 
