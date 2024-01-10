@@ -16,30 +16,53 @@ This version focuses on improving the clarity of the telemetry reported.
 
 ### User Improvements
 
-- ONNX files exported from PyTorch models now have a `torch_export_verified` key in their stats/report files that indicates whether the `torch.onnx.verification.find_mismatch()` API could find any issue with the exported ONNX file.
+- ONNX files exported from PyTorch models now have a `torch_export_validity` key in their stats/report files that indicates whether the `torch.onnx.verification.find_mismatch()` API could find any issue with the exported ONNX file. Possible values:
+  - `valid`: passed verification.
+  - `invalid`: failed verification.
+  - `unverified`: turnkey was unable to complete the verification process.
 - Stats and report CSV files split `stages_completed` into stage status and duration.
 - Build, benchmark, and stage status values in the stat and report files now use the same terminology values:
 
 ```
 class FunctionStatus(enum.Enum):
-    # INCOMPLETE indicates stage/build/benchmark is either running or was killed;
-    # if you know the process ended then it was killed;
-    # if the process is still running, stage/build/benchmark is still running.
-    INCOMPLETE = "incomplete"
-    # NOT_STARTED applies to stages that didnt start because
-    # the build errored out or was killed prior to stage starting.
-    NOT_STARTED = "not_started"
-    # SUCCESSFUL means the stage/build/benchmark completed successfully
+    """
+    Status values that are assigned to stages, builds, benchmarks, and other
+    functionality to help the user understand whether that function completed
+    successfully or not.
+    """
+
+    # SUCCESSFUL means the stage/build/benchmark completed successfully.
     SUCCESSFUL = "successful"
+
     # ERROR means the stage/build/benchmark failed and threw some error that
     # was caught by turnkey. You should proceed by looking at the build
     # logs to see what happened.
+
     ERROR = "error"
+
     # KILLED means the build/benchmark failed because the system killed it. This can
     # happen because of an out-of-memory (OOM), timeout, system shutdown, etc.
     # You should proceed by re-running the build and keeping an eye on it to observe
     # why it is being killed (e.g., watch the RAM utilization to diagnose an OOM).
     KILLED = "killed"
+
+    # The NOT_STARTED status is applied to all stages/builds/benchmarks at startup.
+    # It will be replaced by one of the other status values if the stage/build/benchmark
+    # has a chance to start running.
+    # A value of NOT_STARTED in the report CSV indicates that the stage/build/benchmark
+    # never had a chance to start because turnkey exited before that functionality had
+    # a chance to start running.
+    NOT_STARTED = "not_started"
+
+    # INCOMPLETE indicates that a stage/build/benchmark started running and did not complete.
+    # Each stage, build, and benchmark are marked as INCOMPLETE when they start running.
+    # If you open the turnkey_stats.yaml file while the stage/build/benchmark
+    # is still running, the status will show as INCOMPLETE. If the stage/build/benchmark
+    # is killed without the chance to do any stats cleanup, the status will continue to
+    # show as INCOMPLETE in turnkey_stats.yaml.
+    # When the report CSV is created, any instance of an INCOMPLETE stage/build/benchmark
+    # status will be replaced by KILLED.
+    INCOMPLETE = "incomplete"
 ```
 
 - The CLI help page for the `benchmark` command has been reorganized for clarity (try `turnkey benchmark -h`).
