@@ -354,7 +354,9 @@ class Keys:
     BUILD_STATUS = "build_status"
     # Indicates status of the most recent benchmark tool run: FunctionStatus
     BENCHMARK_STATUS = "benchmark_status"
-
+    # Indicates the match between the TorchScript IR graph and
+    # the exported onnx model (verified with torch.onnx.verification)
+    TORCH_ONNX_EXPORT_VALIDITY = "torch_export_validity"
 
 class Stats:
     def __init__(self, cache_dir: str, build_name: str, evaluation_id: str = None):
