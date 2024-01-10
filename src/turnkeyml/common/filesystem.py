@@ -357,6 +357,13 @@ class Keys:
     # Indicates the match between the TorchScript IR graph and
     # the exported onnx model (verified with torch.onnx.verification)
     TORCH_ONNX_EXPORT_VALIDITY = "torch_export_validity"
+    # Prefix for reporting the execution duration of a stage
+    # In the report this will look like stage_duration:STAGE_NAME
+    STAGE_DURATION = "stage_duration"
+    # Prefix for reporting the execution status of a stage
+    # In the report this will look like stage_status:STAGE_NAME
+    STAGE_STATUS = "stage_status"
+
 
 class Stats:
     def __init__(self, cache_dir: str, build_name: str, evaluation_id: str = None):

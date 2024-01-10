@@ -83,8 +83,8 @@ class Stage(abc.ABC):
         _name_is_file_safe(unique_name)
 
         self.unique_name = unique_name
-        self.status_key = f"stage_status:{unique_name}"
-        self.duration_key = f"stage_duration:{unique_name}"
+        self.status_key = f"{fs.Keys.STAGE_STATUS}:{unique_name}"
+        self.duration_key = f"{fs.Keys.STAGE_DURATION}:{unique_name}"
         self.monitor_message = monitor_message
         self.progress = None
         self.logfile_path = None

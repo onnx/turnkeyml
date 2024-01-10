@@ -68,23 +68,26 @@ def summary_spreadsheets(args) -> None:
                     # load the yaml into a dict
                     model_stats = yaml.load(stream, Loader=yaml.FullLoader)
 
-                    # create a separate dict for each build
-                    for build in model_stats[fs.Keys.EVALUATIONS].values():
+                    # create a separate dict for each evaluation
+                    for evaluation in model_stats[fs.Keys.EVALUATIONS].values():
                         evaluation_stats = {}
 
-                        # Copy all of the stats for the model that are common across builds
+                        # Copy all of the stats for the model that are common across evaluation
                         for key, value in model_stats.items():
                             if key != fs.Keys.EVALUATIONS:
                                 evaluation_stats[key] = value
 
-                        # Copy the build-specific stats
-                        for key, value in build.items():
+                        # Copy the evaluation-specific stats
+                        for key, value in evaluation.items():
                             # If a build or benchmark is still marked as "incomplete" at
-                            # reporting time, it
-                            # must have been killed by a time out, out-of-memory (OOM), or some
-                            # other uncaught exception
+                            # reporting time, it must have been killed by a time out,
+                            # out-of-memory (OOM), or some other uncaught exception
                             if (
-                                key == fs.Keys.BUILD_STATUS or fs.Keys.BENCHMARK_STATUS
+                                (
+                                    key == fs.Keys.BUILD_STATUS
+                                    or fs.Keys.BENCHMARK_STATUS
+                                )
+                                or fs.Keys.STAGE_STATUS in key
                             ) and value == bd.FunctionStatus.INCOMPLETE.value:
                                 value = bd.FunctionStatus.KILLED.value
 
@@ -114,10 +117,10 @@ def summary_spreadsheets(args) -> None:
         # will indicate that no value was available
         result = {k: "-" for k in column_headers}
 
-    for key in column_headers:
-        result[key] = _good_get(evaluation_stats, key)
+        for key in column_headers:
+            result[key] = _good_get(evaluation_stats, key)
 
-    report.append(result)
+        report.append(result)
 
     # Populate results spreadsheet
     with open(report_path, "w", newline="", encoding="utf8") as spreadsheet:
