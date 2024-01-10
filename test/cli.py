@@ -1004,7 +1004,7 @@ class Testing(unittest.TestCase):
         for result in result_dict.values():
             # All of the models should have exported to ONNX
             assert "export_pytorch" in result["selected_sequence_of_stages"]
-            assert result["stage_status:export_pytorch"] == "COMPLETED"
+            assert result["stage_status:export_pytorch"] == "SUCCESSFUL"
             assert result["stage_duration:export_pytorch"] > 0
 
 
