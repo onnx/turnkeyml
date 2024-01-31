@@ -182,9 +182,8 @@ def get_total_onnx_flops(onnx_model) -> Union[int, None]:
             input_b = input_dims[1]
             current_op_flops = 2 * np.prod(input_a, dtype=np.int64) * input_b[-1]
         elif node.op_type == "Mul" or node.op_type == "Div" or node.op_type == "Add":
-            current_op_flops = 2 * (
-                np.prod(input_dims[0], dtype=np.int64)
-                + np.prod(input_dims[1], dtype=np.int64)
+            current_op_flops = np.prod(input_dims[0], dtype=np.int64) + np.prod(
+                input_dims[1], dtype=np.int64
             )
         elif node.op_type == "Gemm":
             mm_dims = [
