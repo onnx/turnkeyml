@@ -120,77 +120,97 @@ def attribute_to_dict(attr):
     return attr_dict
 
 
-def get_onnx_flops(onnx_model) -> Union[int, None]:
+def get_total_onnx_flops(onnx_model) -> Union[int, None]:
     """
-    Calculate FLOPs found in the onnx model
+    Calculate total number of FLOPs found in the onnx model (see list of unsupported
+    ops below). FLOP is defined as one floating-point operation. This distinguishes
+    from multiply-accumulates (MACs) where FLOPs == 2 * MACs.
     """
     try:
         model = onnx.shape_inference.infer_shapes(
             onnx.load(onnx_model), strict_mode=True, data_prop=True
         )
-        # onnx.save(model, "mymodel.onnx")
     except Exception as e:  # pylint: disable=broad-except
         printing.log_warning(f"Failed to get ONNX FLOPs from {onnx_model}: {str(e)}")
         return None
 
-    onnx_flops = np.int64(0)
+    # If the ONNX model contains one of the following unsupported ops, then this
+    # function will return None since the FLOP total is expected to be incorrect
+    unsupported_ops = [
+        "Einsum",
+        "RNN",
+        "GRU",
+        "ConvInteger",
+        "ConvTranspose",
+        "DeformConv",
+        "QLinearConv",
+        "QLinearMatMul",
+    ]
+
+    total_onnx_flops = np.int64(0)
     for node in model.graph.node:  # pylint: disable=E1101
-        inp_tensors = {tensor.name: tensor for tensor in model.graph.input}
-        val_tensors = {tensor.name: tensor for tensor in model.graph.value_info}
+        input_tensors = {tensor.name: tensor for tensor in model.graph.input}
+        value_tensors = {tensor.name: tensor for tensor in model.graph.value_info}
         init_tensors = {tensor.name: tensor for tensor in model.graph.initializer}
 
-        # inp_dims is a 2-dim array where the first dim indexes inputs
+        # input_dims is a 2-dim array where the first dim indexes inputs
         # and the second dim indexes dimensions
-        inp_dims = []
-        for inp in node.input:
-            inp_dims.append([])
-            if inp in inp_tensors or inp in val_tensors:
-                tensor = inp_tensors.get(inp) or val_tensors.get(inp)
-                inp_dims[-1].extend(
+        input_dims = []
+        for input in node.input:
+            input_dims.append([])
+            if input in input_tensors or input in value_tensors:
+                tensor = input_tensors.get(input) or value_tensors.get(input)
+                input_dims[-1].extend(
                     [
                         np.int64(dim.dim_value)
                         for dim in tensor.type.tensor_type.shape.dim
                     ]
                 )
-            elif inp in init_tensors:
-                inp_dims[-1].extend(
-                    [np.int64(dim) for dim in init_tensors.get(inp).dims]
-                )
+            elif input in init_tensors:
+                input_dims[-1].extend([dim for dim in init_tensors.get(input).dims])
 
-        attrs = {}
-        for attr in node.attribute:
-            attrs.update(attribute_to_dict(attr))
+        attributes = {}
+        for attribute in node.attribute:
+            attributes.update(attribute_to_dict(attribute))
 
-        if node.op_type == "MatMul":
+        current_op_flops = 0
+        if node.op_type in unsupported_ops:
+            return None
+        elif node.op_type == "MatMul":
             # MatMul is constrained to have 2 N-dimensional inputs
-            onnx_flops += (
-                np.int64(2)
-                * np.prod(inp_dims[0][:-1], dtype=np.int64)
-                * inp_dims[1][-1]
+            input_a = input_dims[0]
+            input_b = input_dims[1]
+            current_op_flops = 2 * np.prod(input_a, dtype=np.int64) * input_b[-1]
+        elif node.op_type == "Mul" or node.op_type == "Div" or node.op_type == "Add":
+            current_op_flops = 2 * (
+                np.prod(input_dims[0], dtype=np.int64)
+                + np.prod(input_dims[1], dtype=np.int64)
             )
         elif node.op_type == "Gemm":
             mm_dims = [
-                inp_dims[0][0] if not attrs.get("transA", 0) else inp_dims[0][1],
-                inp_dims[0][1] if not attrs.get("transA", 0) else inp_dims[0][0],
-                inp_dims[1][1] if not attrs.get("transB", 0) else inp_dims[1][0],
+                input_dims[0][0]
+                if not attributes.get("transA", 0)
+                else input_dims[0][1],
+                input_dims[0][1]
+                if not attributes.get("transA", 0)
+                else input_dims[0][0],
+                input_dims[1][1]
+                if not attributes.get("transB", 0)
+                else input_dims[1][0],
             ]
-
+            current_op_flops = 2 * np.prod(mm_dims, dtype=np.int64)
             if len(mm_dims) == 3:  # if there is a bias input
-                onnx_flops += np.prod(inp_dims[2], dtype=np.int64)
-
-            onnx_flops += np.int64(2) * np.prod(mm_dims, dtype=np.int64)
+                current_op_flops += np.prod(input_dims[2], dtype=np.int64)
 
         elif node.op_type == "Conv":
-            x_shape = inp_dims[0]  # N, C, d1, ..., dn
-            w_shape = inp_dims[1]  # M, C/group, k1, ..., kn
+            x_shape = input_dims[0]  # N, C, d1, ..., dn
+            w_shape = input_dims[1]  # M, C/group, k1, ..., kn
             num_dims = len(x_shape) - 2
-            pads = attrs.get("pads", [0] * num_dims * 2)
-            strides = attrs.get("strides", [1] * num_dims)
-            dilation = attrs.get("dilations", [1] * num_dims)
+            pads = attributes.get("pads", [0] * num_dims * 2)
+            strides = attributes.get("strides", [1] * num_dims)
+            dilation = attributes.get("dilations", [1] * num_dims)
             kernel_shape = w_shape[2:]
-            bias_ops = 0 if len(inp_dims) < 3 else inp_dims[2][0]
             batch_size = x_shape[0]
-            inp_channels = x_shape[1]
             out_channels = w_shape[0]
             out_dims = [batch_size, out_channels]
             for i in range(num_dims):
@@ -203,24 +223,26 @@ def get_onnx_flops(onnx_model) -> Union[int, None]:
                     - 1
                 ) // strides[i] + 1
                 out_dims.append(out_dim)
-            kernel_flops = np.prod(kernel_shape, dtype=np.int64) * inp_channels
+            kernel_flops = np.prod(kernel_shape, dtype=np.int64) * w_shape[1]
             output_points = np.prod(out_dims, dtype=np.int64)
-            onnx_flops += np.int64(2) * kernel_flops * output_points + bias_ops
-        elif node.op_type == "Lstm":
-            hidden_size = attrs.get("hidden_size")
+            bias_ops = output_points if len(input_dims) == 3 else 0
+            current_op_flops = 2 * kernel_flops * output_points + bias_ops
+        elif node.op_type == "LSTM":
+            hidden_size = attributes.get("hidden_size")
             direction = (
-                np.int64(2)
-                if attrs.get("direction") == "bidirectional"
-                else np.int64(1)
+                2 if attributes.get("direction") == "bidirectional".encode() else 1
             )
-            seq_length, batch_size, input_dim = inp_dims[0]
-            gate_inp_flops = np.int64(2) * input_dim * hidden_size
+            bias_ops = 0 if not input_dims[3] else input_dims[3][1]
+            seq_length, batch_size, input_dim = input_dims[0]
+            num_gates = 4
+            gate_input_flops = np.int64(2) * input_dim * hidden_size
             gate_hid_flops = np.int64(2) * hidden_size * hidden_size
-            num_gates = np.int64(4)
-            unit_flops = num_gates * gate_inp_flops * gate_hid_flops
-            onnx_flops += batch_size * seq_length * direction * unit_flops
+            unit_flops = num_gates * (gate_input_flops + gate_hid_flops) + bias_ops
+            current_op_flops = batch_size * seq_length * direction * unit_flops
 
-    return int(onnx_flops)
+        total_onnx_flops += current_op_flops
+
+    return int(total_onnx_flops)
 
 
 def populate_onnx_model_info(onnx_model) -> Dict:
@@ -271,9 +293,9 @@ def onnx_input_dimensions(onnx_model) -> Dict:
     except Exception as e:  # pylint: disable=broad-except
         printing.log_warning(f"Failed to get ONNX ops list from {onnx_model}: {str(e)}")
         return input_shape
-    for inp in model.graph.input:  # pylint: disable=E1101
-        shape = str(inp.type.tensor_type.shape.dim)
-        input_shape[inp.name] = [int(s) for s in shape.split() if s.isdigit()]
+    for input in model.graph.input:  # pylint: disable=E1101
+        shape = str(input.type.tensor_type.shape.dim)
+        input_shape[input.name] = [int(s) for s in shape.split() if s.isdigit()]
     return input_shape
 
 
@@ -300,7 +322,7 @@ def analyze_onnx(build_name: str, cache_dir: str, stats: fs.Stats):
         )
 
         onnx_ops_counter = get_onnx_ops_list(final_onnx_file)
-        onnx_flops_counter = get_onnx_flops(final_onnx_file)
+        onnx_total_flops = get_onnx_total_flops(final_onnx_file)
         onnx_model_info = populate_onnx_model_info(final_onnx_file)
         input_dimensions = onnx_input_dimensions(final_onnx_file)
 
@@ -309,8 +331,8 @@ def analyze_onnx(build_name: str, cache_dir: str, stats: fs.Stats):
             onnx_ops_counter,
         )
         stats.save_model_stat(
-            fs.Keys.ONNX_FLOPS_COUNTER,
-            onnx_flops_counter,
+            fs.Keys.ONNX_TOTAL_FLOPS,
+            onnx_total_flops,
         )
         stats.save_model_stat(
             fs.Keys.ONNX_MODEL_INFO,
