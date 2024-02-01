@@ -120,7 +120,7 @@ def attribute_to_dict(attr):
     return attr_dict
 
 
-def get_total_onnx_flops(onnx_model) -> Union[int, None]:
+def get_onnx_total_flops(onnx_model) -> Union[int, None]:
     """
     Calculate total number of FLOPs found in the onnx model (see list of unsupported
     ops below). FLOP is defined as one floating-point operation. This distinguishes
@@ -140,16 +140,13 @@ def get_total_onnx_flops(onnx_model) -> Union[int, None]:
         "Einsum",
         "RNN",
         "GRU",
-        "ConvInteger",
-        "ConvTranspose",
         "DeformConv",
-        "QLinearConv",
-        "QLinearMatMul",
     ]
 
-    total_onnx_flops = np.int64(0)
+    total_flops = np.int64(0)
     for node in model.graph.node:  # pylint: disable=E1101
         input_tensors = {tensor.name: tensor for tensor in model.graph.input}
+        output_tensors = {tensor.name: tensor for tensor in model.graph.output}
         value_tensors = {tensor.name: tensor for tensor in model.graph.value_info}
         init_tensors = {tensor.name: tensor for tensor in model.graph.initializer}
 
@@ -158,8 +155,16 @@ def get_total_onnx_flops(onnx_model) -> Union[int, None]:
         input_dims = []
         for input in node.input:
             input_dims.append([])
-            if input in input_tensors or input in value_tensors:
-                tensor = input_tensors.get(input) or value_tensors.get(input)
+            if (
+                input in input_tensors
+                or input in value_tensors
+                or input in output_tensors
+            ):
+                tensor = (
+                    input_tensors.get(input)
+                    or value_tensors.get(input)
+                    or output_tensors.get(input)
+                )
                 input_dims[-1].extend(
                     [
                         np.int64(dim.dim_value)
@@ -174,58 +179,109 @@ def get_total_onnx_flops(onnx_model) -> Union[int, None]:
             attributes.update(attribute_to_dict(attribute))
 
         current_op_flops = 0
+
         if node.op_type in unsupported_ops:
             return None
-        elif node.op_type == "MatMul":
-            # MatMul is constrained to have 2 N-dimensional inputs
+
+        elif (
+            node.op_type == "MatMul"
+            or node.op_type == "MatMulInteger"
+            or node.op_type == "QLinearMatMul"
+        ):
             input_a = input_dims[0]
-            input_b = input_dims[1]
+            input_b = (
+                input_dims[3] if node.op_type == "QLinearMatMul" else input_dims[1]
+            )
             current_op_flops = 2 * np.prod(input_a, dtype=np.int64) * input_b[-1]
+
         elif node.op_type == "Mul" or node.op_type == "Div" or node.op_type == "Add":
             current_op_flops = np.prod(input_dims[0], dtype=np.int64) + np.prod(
                 input_dims[1], dtype=np.int64
             )
-        elif node.op_type == "Gemm":
+
+        elif node.op_type == "Gemm" or node.op_type == "QGemm":
+            x_shape = input_dims[0]
+            w_shape = input_dims[1] if node.op_type == "Gemm" else input_dims[3]
             mm_dims = [
-                input_dims[0][0]
-                if not attributes.get("transA", 0)
-                else input_dims[0][1],
-                input_dims[0][1]
-                if not attributes.get("transA", 0)
-                else input_dims[0][0],
-                input_dims[1][1]
-                if not attributes.get("transB", 0)
-                else input_dims[1][0],
+                x_shape[0] if not attributes.get("transA", 0) else x_shape[1],
+                x_shape[1] if not attributes.get("transA", 0) else x_shape[0],
+                w_shape[1] if not attributes.get("transB", 0) else w_shape[0],
             ]
             current_op_flops = 2 * np.prod(mm_dims, dtype=np.int64)
             if len(mm_dims) == 3:  # if there is a bias input
                 current_op_flops += np.prod(input_dims[2], dtype=np.int64)
 
-        elif node.op_type == "Conv":
+        # Note that there is currently no support for ConvTranspose Integer or Q variants
+        elif (
+            node.op_type == "Conv"
+            or node.op_type == "ConvInteger"
+            or node.op_type == "QLinearConv"
+            or node.op_type == "ConvTranspose"
+        ):
             x_shape = input_dims[0]  # N, C, d1, ..., dn
-            w_shape = input_dims[1]  # M, C/group, k1, ..., kn
+            w_shape = (
+                input_dims[3] if node.op_type == "QLinearConv" else input_dims[1]
+            )  # M, C/group, k1, ..., kn. Note C and M are swapped for ConvTranspose
+
+            has_bias = False  # Note, ConvInteger has no bias
+            if node.op_type == "Conv" and len(input_dims) == 3:
+                has_bias = True
+            elif node.op_type == "QLinearConv" and len(input_dims) == 9:
+                has_bias = True
+
             num_dims = len(x_shape) - 2
-            pads = attributes.get("pads", [0] * num_dims * 2)
             strides = attributes.get("strides", [1] * num_dims)
             dilation = attributes.get("dilations", [1] * num_dims)
             kernel_shape = w_shape[2:]
             batch_size = x_shape[0]
             out_channels = w_shape[0]
             out_dims = [batch_size, out_channels]
-            for i in range(num_dims):
-                dim_in = x_shape[i + 2]
-                out_dim = (
-                    dim_in
-                    + pads[i]
-                    + pads[i + num_dims]
-                    - dilation[i] * (kernel_shape[i] - 1)
-                    - 1
-                ) // strides[i] + 1
-                out_dims.append(out_dim)
+            output_shape = attributes.get("output_shape", [])
+
+            # If output_shape is given then we do not need to compute it ourselves
+            # The output_shape attribute does not include batch_size or channels and
+            # is only valid for ConvTranspose
+            if output_shape:
+                out_dims.extend(output_shape)
+            else:
+                auto_pad = attributes.get("auto_pad", "NOTSET".encode()).decode()
+                # SAME expects padding so that the output_shape = CEIL(input_shape / stride)
+                if auto_pad == "SAME_UPPER" or auto_pad == "SAME_LOWER":
+                    out_dims.extend([x * s for x, s in zip(x_shape[2:], strides)])
+                else:
+                    # NOTSET means just use pads attribute
+                    if auto_pad == "NOTSET":
+                        pads = attributes.get("pads", [0] * num_dims * 2)
+                    # VALID essentially means no padding
+                    elif auto_pad == "VALID":
+                        pads = [0] * num_dims * 2
+
+                    for i in range(num_dims):
+                        dim_in = x_shape[i + 2]
+
+                        if node.op_type == "ConvTranspose":
+                            out_dim = (
+                                strides[i] * (dim_in - 1)
+                                + ((kernel_shape[i] - 1) * dilation[i] + 1)
+                                - pads[i]
+                                - pads[i + num_dims]
+                            )
+                        else:
+                            out_dim = (
+                                dim_in
+                                + pads[i]
+                                + pads[i + num_dims]
+                                - dilation[i] * (kernel_shape[i] - 1)
+                                - 1
+                            ) // strides[i] + 1
+
+                        out_dims.append(out_dim)
+
             kernel_flops = np.prod(kernel_shape, dtype=np.int64) * w_shape[1]
             output_points = np.prod(out_dims, dtype=np.int64)
-            bias_ops = output_points if len(input_dims) == 3 else 0
+            bias_ops = output_points if has_bias else 0
             current_op_flops = 2 * kernel_flops * output_points + bias_ops
+
         elif node.op_type == "LSTM":
             hidden_size = attributes.get("hidden_size")
             direction = (
@@ -239,9 +295,9 @@ def get_total_onnx_flops(onnx_model) -> Union[int, None]:
             unit_flops = num_gates * (gate_input_flops + gate_hid_flops) + bias_ops
             current_op_flops = batch_size * seq_length * direction * unit_flops
 
-        total_onnx_flops += current_op_flops
+        total_flops += current_op_flops
 
-    return int(total_onnx_flops)
+    return int(total_flops)
 
 
 def populate_onnx_model_info(onnx_model) -> Dict:
