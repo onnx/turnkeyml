@@ -292,9 +292,10 @@ class Sequence(Stage):
             stats.save_model_eval_stat(stage.duration_key, "-")
 
         # Run the build
-        start_time = time.time()
         try:
             for stage in self.stages:
+                start_time = time.time()
+
                 # Set status as incomplete, since stage just started
                 stats.save_model_eval_stat(
                     stage.status_key, build.FunctionStatus.INCOMPLETE.value
@@ -311,6 +312,10 @@ class Sequence(Stage):
                     stage.status_key, build.FunctionStatus.SUCCESSFUL.value
                 )
 
+                # Collect telemetry about the stage
+                execution_time = time.time() - start_time
+                stats.save_model_eval_stat(stage.duration_key, execution_time)
+
         except exp.StageError as e:
             # Advance the cursor below the monitor so
             # we can print an error message
@@ -324,9 +329,12 @@ class Sequence(Stage):
 
             printing.log_error(e)
 
+            # Keep track of status and duration even when errors occur
             stats.save_model_eval_stat(
                 stage.status_key, build.FunctionStatus.ERROR.value
             )
+            execution_time = time.time() - start_time
+            stats.save_model_eval_stat(stage.duration_key, execution_time)
 
             raise
 
@@ -341,11 +349,6 @@ class Sequence(Stage):
             state.results = copy.deepcopy(state.intermediate_results)
 
             return state
-
-        finally:
-            # Collect telemetry about the stage
-            execution_time = time.time() - start_time
-            stats.save_model_eval_stat(stage.duration_key, execution_time)
 
     def status_line(self, successful, verbosity):
         """
