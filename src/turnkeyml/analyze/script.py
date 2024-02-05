@@ -544,7 +544,6 @@ def explore_frame(
             # error if the compiled model actually tries to execute within TurnkeyML.
             torch._dynamo.config.suppress_errors = True
 
-
             return
 
         if model_type == build.ModelType.PYTORCH:
