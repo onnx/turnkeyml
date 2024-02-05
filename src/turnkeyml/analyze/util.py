@@ -52,9 +52,9 @@ class ModelInfo:
     hash: Union[str, None] = None
     parent_hash: Union[str, None] = None
     old_forward: Union[Callable, None] = None
-    unique_invocations: Union[
-        Dict[str, UniqueInvocationInfo], None
-    ] = dataclasses.field(default_factory=dict)
+    unique_invocations: Union[Dict[str, UniqueInvocationInfo], None] = (
+        dataclasses.field(default_factory=dict)
+    )
     last_unique_invocation_executed: Union[str, None] = None
     build_model: bool = False
     model_type: build.ModelType = build.ModelType.PYTORCH
@@ -100,30 +100,30 @@ def get_onnx_ops_list(onnx_model) -> Dict:
     return onnx_ops_counter
 
 
-def attribute_to_dict(attr):
+def attribute_to_dict(attribute):
     """
     Helper function that returns a dictionary containing node attributes
     """
-    attr_dict = {}
+    attribute_dict = {}
     for field in ["f", "i", "s"]:
-        if attr.HasField(field):
-            attr_dict[attr.name] = getattr(attr, field)
-            return attr_dict
-    if attr.ints:
-        attr_dict[attr.name] = list(attr.ints)
-    elif attr.floats:
-        attr_dict[attr.name] = list(attr.floats)
-    elif attr.strings:
-        attr_dict[attr.name] = list(attr.strings)
+        if attribute.HasField(field):
+            attribute_dict[attribute.name] = getattr(attribute, field)
+            return attribute_dict
+    if attribute.ints:
+        attribute_dict[attribute.name] = list(attribute.ints)
+    elif attribute.floats:
+        attribute_dict[attribute.name] = list(attribute.floats)
+    elif attribute.strings:
+        attribute_dict[attribute.name] = list(attribute.strings)
     else:
-        attr_dict[attr.name] = "unknown_type"
-    return attr_dict
+        attribute_dict[attribute.name] = "unknown_type"
+    return attribute_dict
 
 
 def get_onnx_total_flops(onnx_model) -> Union[int, None]:
     """
-    Calculate total number of FLOPs found in the onnx model (see list of unsupported
-    ops below). FLOP is defined as one floating-point operation. This distinguishes
+    Calculate total number of FLOPs found in the onnx model.
+    FLOP is defined as one floating-point operation. This distinguishes
     from multiply-accumulates (MACs) where FLOPs == 2 * MACs.
     """
     try:
@@ -150,8 +150,8 @@ def get_onnx_total_flops(onnx_model) -> Union[int, None]:
         value_tensors = {tensor.name: tensor for tensor in model.graph.value_info}
         init_tensors = {tensor.name: tensor for tensor in model.graph.initializer}
 
-        # input_dims is a 2-dim array where the first dim indexes inputs
-        # and the second dim indexes dimensions
+        # input_dims is a 2 dimensional array where the first dimension indexes inputs
+        # and the second dimension indexes dimensions
         input_dims = []
         for input in node.input:
             input_dims.append([])
@@ -211,7 +211,6 @@ def get_onnx_total_flops(onnx_model) -> Union[int, None]:
             if len(mm_dims) == 3:  # if there is a bias input
                 current_op_flops += np.prod(input_dims[2], dtype=np.int64)
 
-        # Note that there is currently no support for ConvTranspose Integer or Q variants
         elif (
             node.op_type == "Conv"
             or node.op_type == "ConvInteger"
@@ -282,7 +281,7 @@ def get_onnx_total_flops(onnx_model) -> Union[int, None]:
             bias_ops = output_points if has_bias else 0
             current_op_flops = 2 * kernel_flops * output_points + bias_ops
 
-        elif node.op_type == "LSTM":
+        elif node.op_type == "LSTM" or node.op_type == "DynamicQuantizeLSTM":
             hidden_size = attributes.get("hidden_size")
             direction = (
                 2 if attributes.get("direction") == "bidirectional".encode() else 1
