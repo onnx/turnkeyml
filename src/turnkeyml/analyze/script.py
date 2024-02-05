@@ -542,7 +542,7 @@ def explore_frame(
             # while tracing frames, which conflicts with TurnkeML's analysis. Here,
             # we supress errors caused by those callback wrappers and only raise an
             # error if the compiled model actually tries to execute within TurnkeyML.
-            torch._dynamo.config.suppress_errors = True
+            torch._dynamo.config.suppress_errors = True # pylint: disable=protected-access
 
             return
 
