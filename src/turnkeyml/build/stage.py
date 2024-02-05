@@ -293,8 +293,9 @@ class Sequence(Stage):
 
         # Run the build
         for stage in self.stages:
+            start_time = time.time()
+
             try:
-                start_time = time.time()
 
                 # Set status as incomplete, since stage just started
                 stats.save_model_eval_stat(
