@@ -316,7 +316,9 @@ class Sequence(Stage):
                 execution_time = time.time() - start_time
                 stats.save_model_eval_stat(stage.duration_key, execution_time)
 
-        except exp.StageError as e:
+        # Broad exception is desirable as we want to capture
+        # all exceptions (including those we can't anticipate)
+        except Exception as e: # pylint: disable=broad-except
             # Advance the cursor below the monitor so
             # we can print an error message
             stage_depth_in_sequence = self.get_depth() - self.get_names().index(
