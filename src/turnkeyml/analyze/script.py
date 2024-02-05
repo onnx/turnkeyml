@@ -537,6 +537,14 @@ def explore_frame(
                 tracer_args.models_found[
                     local_var.turnkey_hash
                 ].model_type = build.ModelType.PYTORCH_COMPILED
+
+            # Starting in version 2.2.0, torch dynamo added wrappers to callbacks
+            # while tracing frames, which conflicts with TurnkeML's analysis. Here,
+            # we supress errors caused by those callback wrappers and only raise an
+            # error if the compiled model actually tries to execute within TurnkeyML.
+            torch._dynamo.config.suppress_errors = True
+
+
             return
 
         if model_type == build.ModelType.PYTORCH:
