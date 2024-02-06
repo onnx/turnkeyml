@@ -175,12 +175,37 @@ def run_turnkey(
 
         # Launch a subprocess for turnkey to evaluate the script
         try:
-            subprocess.check_call(command, stderr=subprocess.STDOUT, timeout=timeout)
+
+            process_output = []
+            with subprocess.Popen(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True,
+            ) as p:
+                for line in p.stdout:
+                    print(line, end="")
+                    process_output.append(line)
+
+                p.wait(timeout=timeout)
+
+                if p.returncode != 0:
+                    raise subprocess.CalledProcessError(p.returncode, p.args)
+
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
             printing.log_error(
                 "Process was terminated with the error shown below. "
                 f"turnkey will move on to the next input.\n{e}"
             )
+
+            failed_build = None
+            for line in process_output:
+                if 'Building "' in line:
+                    failed_build = line.split('"')[1]
+                    print("Detected failed build:", failed_build)
+
+            if failed_build and "--lean-cache" in command:
+                print("we need to clean cache!")
 
             if "Signals.SIGKILL: 9" in str(e):
                 printing.log_info(
