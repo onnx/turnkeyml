@@ -542,7 +542,10 @@ def explore_frame(
             # while tracing frames, which conflicts with TurnkeML's analysis. Here,
             # we supress errors caused by those callback wrappers and only raise an
             # error if the compiled model actually tries to execute within TurnkeyML.
-            torch._dynamo.config.suppress_errors = True # pylint: disable=protected-access
+            td = torch._dynamo # pylint: disable=protected-access
+            td.config.suppress_errors = True
+            if hasattr(td.eval_frame, "guarded_backend_cache"):
+                td.eval_frame.guarded_backend_cache.skip_backend_check_for_run_only_mode = True
 
             return
 
