@@ -228,7 +228,42 @@ def explore_invocation(
         ).replace("\\", "/")
         stats.save_model_stat(fs.Keys.MODEL_SCRIPT, relative_path)
 
-    # Build-specific stats
+    # Evaluation-specific stats
+
+    # Save all of the turnkey arguments into a single key to help
+    # with reproducability
+    for field in dataclasses.fields(TracerArgs):
+        arg_value = getattr(tracer_args, field.name)
+        saved_value = None
+        print(field.name)
+
+        if field.name == "models_found":
+            # Do not include "models_found" because that spans multiple
+            # invocations
+            continue
+
+        if isinstance(arg_value, Sequence):
+            # TODO COMMENT
+            saved_value = arg_value.sequence.__class__.__name__
+        elif isinstance(arg_value, list) and any(
+            isinstance(arg_sub_value, Action) for arg_sub_value in arg_value
+        ):
+            # TODO COMMENT
+            saved_value = [arg_sub_value.value for arg_sub_value in arg_value]
+        else:
+            # All other field types can be saved directly
+
+            saved_value = arg_value
+
+        # print([isinstance(arg_sub_value, Action) for arg_sub_value in arg_value])
+        if saved_value:
+            stats.save_model_eval_sub_stat(
+                fs.Keys.EVALUATION_ARGS,
+                field.name,
+                saved_value,
+            )
+
+    # Save specific information into its own key for easier access
     stats.save_model_eval_stat(
         fs.Keys.DEVICE_TYPE,
         tracer_args.device,
@@ -534,18 +569,20 @@ def explore_frame(
             # A previously-found model might have been compiled
             # Update that information if needed
             if model_type == build.ModelType.PYTORCH_COMPILED:
-                tracer_args.models_found[
-                    local_var.turnkey_hash
-                ].model_type = build.ModelType.PYTORCH_COMPILED
+                tracer_args.models_found[local_var.turnkey_hash].model_type = (
+                    build.ModelType.PYTORCH_COMPILED
+                )
 
             # Starting in version 2.2.0, torch dynamo added wrappers to callbacks
             # while tracing frames, which conflicts with TurnkeML's analysis. Here,
             # we supress errors caused by those callback wrappers and only raise an
             # error if the compiled model actually tries to execute within TurnkeyML.
-            td = torch._dynamo # pylint: disable=protected-access
+            td = torch._dynamo  # pylint: disable=protected-access
             td.config.suppress_errors = True
             if hasattr(td.eval_frame, "guarded_backend_cache"):
-                td.eval_frame.guarded_backend_cache.skip_backend_check_for_run_only_mode = True
+                td.eval_frame.guarded_backend_cache.skip_backend_check_for_run_only_mode = (
+                    True
+                )
 
             return
 
@@ -632,14 +669,14 @@ def explore_frame(
             model_info = tracer_args.models_found[model_hash]
 
             if invocation_hash not in model_info.unique_invocations:
-                model_info.unique_invocations[
-                    invocation_hash
-                ] = util.UniqueInvocationInfo(
-                    hash=invocation_hash,
-                    is_target=invocation_hash in tracer_args.targets
-                    or len(tracer_args.targets) == 0,
-                    input_shapes=input_shapes,
-                    parent_hash=parent_invocation_hash,
+                model_info.unique_invocations[invocation_hash] = (
+                    util.UniqueInvocationInfo(
+                        hash=invocation_hash,
+                        is_target=invocation_hash in tracer_args.targets
+                        or len(tracer_args.targets) == 0,
+                        input_shapes=input_shapes,
+                        parent_hash=parent_invocation_hash,
+                    )
                 )
             model_info.last_unique_invocation_executed = invocation_hash
 

@@ -365,6 +365,9 @@ class Keys:
     # Prefix for reporting the execution status of a stage
     # In the report this will look like stage_status:STAGE_NAME
     STAGE_STATUS = "stage_status"
+    # Parent key that holds all of the arguments to turnkey's
+    # evaluate_file() API
+    EVALUATION_ARGS = "args"
 
 
 class Stats:
