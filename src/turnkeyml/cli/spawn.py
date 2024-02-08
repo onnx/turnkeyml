@@ -51,6 +51,47 @@ class WatchdogTimer(Thread):
         self.cancelled.set()
 
 
+def parse_evaluation_id(line: str, current_value: str):
+    """
+    Parse the evaluation ID from a line of turnkey process output.
+    Used to clean up after a turnkey subprocess is killed.
+    """
+
+    if "Capturing statistics in turnkey_stats.yaml" in line:
+        # This indicates a stats file was created for this evaluation
+        # Expected phrase: "Capturing statistics in turnkey_stats.yaml
+        #   under evaluation ID: {evaluation_id}"
+        return line.split("ID: ")[1].rstrip()
+    else:
+        # Don't replace a previously-parsed value with None
+        # if we have already found one
+        if current_value is not None:
+            return current_value
+        return None
+
+
+def parse_build_name(line: str, current_value: str):
+    """
+    Parse the build directory from a line of turnkey process output.
+    Used to clean up after a turnkey subprocess is killed.
+    """
+
+    if "Build dir:" in line:
+        # This declares the name of the build directory
+        # 'Build' directories are created for any evaluation, even
+        # if there is not actually a build (e.g., torch-eager runtime benchmark),
+        # which is why we use this line to find the build directory.
+        # Expected phrase:
+        #   "Build dir:      {cache_dir}/{build_name}"
+        return os.path.basename(os.path.normpath(line.split(":")[1].rstrip()))
+    else:
+        # Don't replace a previously-parsed value with None
+        # if we have already found one
+        if current_value is not None:
+            return current_value
+        return None
+
+
 if os.environ.get("TURNKEY_TIMEOUT_SECONDS"):
     timeout_env_var = os.environ.get("TURNKEY_TIMEOUT_SECONDS")
     SECONDS_IN_A_DAY = 60 * 60 * 24
@@ -155,6 +196,10 @@ def run_turnkey(
 
     invocation_args = f"{op} {file_name}"
 
+    # Add cache_dir to kwargs so that it gets processed
+    # with the other arguments
+    kwargs["cache_dir"] = cache_dir
+
     for key, value in kwargs.items():
         if value is not None:
             arg_str = type_to_formatter[type(value)](arg_format(key), value)
@@ -255,21 +300,8 @@ def run_turnkey(
             build_name = None
             evaluation_id = None
             for line in process_output:
-                if "Capturing statistics in turnkey_stats.yaml" in line:
-                    # This indicates a stats file was created for this evaluation
-                    # Expected phrase: "Capturing statistics in turnkey_stats.yaml
-                    #   under evaluation ID: {evaluation_id}"
-                    evaluation_id = line.split("ID: ")[1].rstrip()
-                if "Build dir:" in line:
-                    # This declares the name of the build directory
-                    # 'Build' directories are created for any evaluation, even
-                    # if there is not actually a build (e.g., torch-eager runtime benchmark),
-                    # which is why we use this line to find the build directory.
-                    # Expected phrase:
-                    #   "Build dir:      {cache_dir}/{build_name}"
-                    build_name = os.path.basename(
-                        os.path.normpath(line.split(":")[1].rstrip())
-                    )
+                evaluation_id = parse_evaluation_id(line, evaluation_id)
+                build_name = parse_build_name(line, build_name)
 
             if build_name:
                 printing.log_info(
