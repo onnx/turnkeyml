@@ -8,12 +8,48 @@ import pathlib
 import time
 import shlex
 import platform
+from threading import Event, Lock, Thread
+from time import monotonic
 import getpass
 from typing import List, Optional, Dict, Union
 from enum import Enum
 import turnkeyml.common.filesystem as filesystem
 import turnkeyml.common.printing as printing
+import turnkeyml.common.build as build
 from turnkeyml.cli.parser_helpers import encode_args
+
+
+class WatchdogTimer(Thread):
+    """Run *callback* in *timeout* seconds unless the timer is restarted."""
+
+    def __init__(self, timeout, callback, *args, timer=monotonic, **kwargs):
+        super().__init__(**kwargs)
+        self.timeout = timeout
+        self.callback = callback
+        self.args = args
+        self.timer = timer
+        self.cancelled = Event()
+        self.blocked = Lock()
+        self.timeout_reached = False
+
+    def run(self):
+        self.restart()  # don't start timer until `.start()` is called
+        # wait until timeout happens or the timer is canceled
+        while not self.cancelled.wait(self.deadline - self.timer()):
+            # don't test the timeout while something else holds the lock
+            # allow the timer to be restarted while blocked
+            with self.blocked:
+                if self.deadline <= self.timer() and not self.cancelled.is_set():
+                    self.timeout_reached = True
+                    return self.callback(*self.args)  # on timeout
+
+    def restart(self):
+        """Restart the watchdog timer."""
+        self.deadline = self.timer() + self.timeout
+
+    def cancel(self):
+        self.cancelled.set()
+
 
 if os.environ.get("TURNKEY_TIMEOUT_SECONDS"):
     timeout_env_var = os.environ.get("TURNKEY_TIMEOUT_SECONDS")
@@ -94,6 +130,7 @@ def run_turnkey(
     op: str,
     file_name: str,
     target: Target,
+    cache_dir: str,
     timeout: Optional[int] = DEFAULT_TIMEOUT_SECONDS,
     working_dir: str = os.getcwd(),
     ml_cache_dir: Optional[str] = os.environ.get("SLURM_ML_CACHE"),
@@ -183,35 +220,95 @@ def run_turnkey(
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
             ) as p:
+                watchdog = WatchdogTimer(timeout, callback=p.kill, daemon=True)
+                watchdog.start()
+
                 for line in p.stdout:
                     print(line, end="")
                     process_output.append(line)
 
-                p.wait(timeout=timeout)
+                p.wait()
+                watchdog.cancel()
+
+                if watchdog.timeout_reached:
+                    raise subprocess.TimeoutExpired(p.args, timeout)
 
                 if p.returncode != 0:
                     raise subprocess.CalledProcessError(p.returncode, p.args)
 
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
+            # Print some newlines so that our error messages don't end up in the
+            # middle of the status monitor
+            print("\n\n")
             printing.log_error(
-                "Process was terminated with the error shown below. "
-                f"turnkey will move on to the next input.\n{e}"
+                "The turnkey subprocess was terminated with the error shown below. "
+                f"turnkey will move on to the next input.\n\n{e}"
             )
 
-            failed_build = None
+            if isinstance(e, subprocess.TimeoutExpired):
+                evaluation_status = build.FunctionStatus.TIMEOUT
+            else:
+                evaluation_status = build.FunctionStatus.KILLED
+
+            # If a build failed, it will be the last build mentioned in the
+            # subprocess's stdout
+            build_name = None
+            evaluation_id = None
             for line in process_output:
-                if 'Building "' in line:
-                    failed_build = line.split('"')[1]
-                    print("Detected failed build:", failed_build)
+                if "Capturing statistics in turnkey_stats.yaml" in line:
+                    # This indicates a stats file was created for this evaluation
+                    # Expected phrase: "Capturing statistics in turnkey_stats.yaml
+                    #   under evaluation ID: {evaluation_id}"
+                    evaluation_id = line.split("ID: ")[1].rstrip()
+                if "Build dir:" in line:
+                    # This declares the name of the build directory
+                    # 'Build' directories are created for any evaluation, even
+                    # if there is not actually a build (e.g., torch-eager runtime benchmark),
+                    # which is why we use this line to find the build directory.
+                    # Expected phrase:
+                    #   "Build dir:      {cache_dir}/{build_name}"
+                    build_name = os.path.basename(
+                        os.path.normpath(line.split(":")[1].rstrip())
+                    )
 
-            if failed_build and "--lean-cache" in command:
-                print("we need to clean cache!")
-
-            if "Signals.SIGKILL: 9" in str(e):
+            if build_name:
                 printing.log_info(
-                    "It is possible your computer ran out of memory while attempting to evaluate "
-                    f"{file_name}. You can check this by repeating the experiment "
-                    "while using `top` to monitor memory utilization."
+                    f"Detected failed build {build_name}. The parent process will attempt to clean up."
                 )
+                if "--lean-cache" in command:
+                    printing.log_info("Removing build artifacts...")
+                    filesystem.clean_output_dir(cache_dir, build_name)
+
+                # Update the stats file for the build, if it exists
+                if (
+                    os.path.isfile(filesystem.stats_file(cache_dir, build_name))
+                    and evaluation_id
+                ):
+                    try:
+                        stats = filesystem.Stats(
+                            cache_dir,
+                            build_name,
+                            evaluation_id,
+                        )
+
+                        for key in stats.evaluation_stats.keys():
+                            if (
+                                stats.evaluation_stats[key]
+                                == build.FunctionStatus.INCOMPLETE.value
+                            ):
+                                stats.save_model_eval_stat(key, evaluation_status.value)
+
+                    except Exception as stats_exception:  # pylint: disable=broad-except
+                        printing.log_info(
+                            "Stats file found, but unable to perform cleanup due to "
+                            f"exception: {stats_exception}"
+                        )
+
+            else:
+                printing.log_info(
+                    "Turnkey subprocess was killed before any "
+                    "build or benchmark could start."
+                )
+
     else:
         raise ValueError(f"Unsupported value for target: {target}.")

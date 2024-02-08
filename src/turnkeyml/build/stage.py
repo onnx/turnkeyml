@@ -14,7 +14,7 @@ import turnkeyml.common.filesystem as fs
 
 def _spinner(message):
     parent_process = psutil.Process(pid=os.getppid())
-    while parent_process.status == psutil.STATUS_RUNNING:
+    while parent_process.status() == psutil.STATUS_RUNNING:
         for cursor in ["   ", ".  ", ".. ", "..."]:
             time.sleep(0.5)
             status = f"      {message}{cursor}\r"
