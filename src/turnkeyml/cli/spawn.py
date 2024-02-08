@@ -31,6 +31,7 @@ class WatchdogTimer(Thread):
         self.cancelled = Event()
         self.blocked = Lock()
         self.timeout_reached = False
+        self.deadline = None
 
     def run(self):
         self.restart()  # don't start timer until `.start()` is called
@@ -305,7 +306,8 @@ def run_turnkey(
 
             if build_name:
                 printing.log_info(
-                    f"Detected failed build {build_name}. The parent process will attempt to clean up."
+                    f"Detected failed build {build_name}. "
+                    "The parent process will attempt to clean up."
                 )
                 if "--lean-cache" in command:
                     printing.log_info("Removing build artifacts...")
