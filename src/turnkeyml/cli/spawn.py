@@ -20,7 +20,15 @@ from turnkeyml.cli.parser_helpers import encode_args
 
 
 class WatchdogTimer(Thread):
-    """Run *callback* in *timeout* seconds unless the timer is restarted."""
+    """
+    Run *callback* in *timeout* seconds unless the timer is restarted.
+
+    This is needed because Popen natively supports streaming output to the terminal,
+    checking that output, and timeouts--but not all 3 at the same time.
+
+    We use this function to provide a timeout while leveraging Popen's native ability
+    to stream and check output.
+    """
 
     def __init__(self, timeout, callback, *args, timer=monotonic, **kwargs):
         super().__init__(**kwargs)
@@ -34,18 +42,16 @@ class WatchdogTimer(Thread):
         self.deadline = None
 
     def run(self):
-        self.restart()  # don't start timer until `.start()` is called
-        # wait until timeout happens or the timer is canceled
+        # Don't start the timer until `.start()` is called
+        self.restart()
+        # Wait until timeout happens or the timer is canceled
         while not self.cancelled.wait(self.deadline - self.timer()):
-            # don't test the timeout while something else holds the lock
-            # allow the timer to be restarted while blocked
             with self.blocked:
                 if self.deadline <= self.timer() and not self.cancelled.is_set():
                     self.timeout_reached = True
-                    return self.callback(*self.args)  # on timeout
+                    return self.callback(*self.args)
 
     def restart(self):
-        """Restart the watchdog timer."""
         self.deadline = self.timer() + self.timeout
 
     def cancel(self):
@@ -258,17 +264,22 @@ def run_turnkey(
 
         # Launch a subprocess for turnkey to evaluate the script
         try:
-
             process_output = []
             with subprocess.Popen(
                 command,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 universal_newlines=True,
             ) as p:
+                # Create our own watchdog timer in a thread
+                # This is needed because the `for line in p.stdout` is a blocking
+                # call that is incompatible with Popen's native timeout features
                 watchdog = WatchdogTimer(timeout, callback=p.kill, daemon=True)
                 watchdog.start()
 
+                # Print the subprocess's output to the command line as it comes in,
+                # while also storing it in a variable so that we can analyze it
+                # in the event that the subprocess is killed
                 for line in p.stdout:
                     print(line, end="")
                     process_output.append(line)
@@ -276,13 +287,21 @@ def run_turnkey(
                 p.wait()
                 watchdog.cancel()
 
+                # If the subprocess was killed, raise an exception that provides more
+                # detail about why it was killed
                 if watchdog.timeout_reached:
+                    evaluation_status = build.FunctionStatus.TIMEOUT
                     raise subprocess.TimeoutExpired(p.args, timeout)
 
                 if p.returncode != 0:
+                    evaluation_status = build.FunctionStatus.KILLED
                     raise subprocess.CalledProcessError(p.returncode, p.args)
 
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
+            # If the subprocess was killed, we will attempt to figure out what happened,
+            # provide helpful error messages and information, and clean up the
+            # turnkey cache as much as possible.
+
             # Print some newlines so that our error messages don't end up in the
             # middle of the status monitor
             print("\n\n")
@@ -291,34 +310,47 @@ def run_turnkey(
                 f"turnkey will move on to the next input.\n\n{e}"
             )
 
-            if isinstance(e, subprocess.TimeoutExpired):
-                evaluation_status = build.FunctionStatus.TIMEOUT
-            else:
-                evaluation_status = build.FunctionStatus.KILLED
-
-            # If a build failed, it will be the last build mentioned in the
-            # subprocess's stdout
+            # If an evaluation failed, it will be the last build mentioned in the
+            # subprocess's stdout. We look for the last instance because sometimes
+            # a single input file will contain multiple models, and therefore multiple
+            # builds.
+            # NOTE: the turnkey status outputs use the term "build" to refer to both
+            # builds and benchmarks, we collectively we refer to as evaluations here
             build_name = None
             evaluation_id = None
             for line in process_output:
                 evaluation_id = parse_evaluation_id(line, evaluation_id)
                 build_name = parse_build_name(line, build_name)
 
+            # Perform fault handling if we found a failed evaluation
             if build_name:
                 printing.log_info(
                     f"Detected failed build {build_name}. "
                     "The parent process will attempt to clean up."
                 )
+
+                # Cleaning the cache is the last step in evaluation
+                # If a "lean cache" evaluation was killed, it is safe to assume we still
+                # need to clean the cache
+                # It is also harmless to run clean_output_dir() again even if the subprocess
+                # did have a chance to run it before the subprocess was killed
                 if "--lean-cache" in command:
                     printing.log_info("Removing build artifacts...")
                     filesystem.clean_output_dir(cache_dir, build_name)
 
-                # Update the stats file for the build, if it exists
+                # Perform fault handling within the stats file if there is a stats
+                # file and we know the evaluation ID of the failed evaluation
                 if (
                     os.path.isfile(filesystem.stats_file(cache_dir, build_name))
                     and evaluation_id
                 ):
                     try:
+                        # Amend the stats with a specific function status if possible
+                        if isinstance(e, subprocess.TimeoutExpired):
+                            evaluation_status = build.FunctionStatus.TIMEOUT
+                        else:
+                            evaluation_status = build.FunctionStatus.KILLED
+
                         stats = filesystem.Stats(
                             cache_dir,
                             build_name,
