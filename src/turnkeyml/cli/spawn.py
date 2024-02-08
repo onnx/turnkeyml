@@ -68,7 +68,9 @@ def parse_evaluation_id(line: str, current_value: str):
         # This indicates a stats file was created for this evaluation
         # Expected phrase: "Capturing statistics in turnkey_stats.yaml
         #   under evaluation ID: {evaluation_id}"
-        return line.split("ID: ")[1].rstrip()
+        return line.replace(
+            "Capturing statistics in turnkey_stats.yaml under evaluation ID: ", ""
+        ).rstrip()
     else:
         # Don't replace a previously-parsed value with None
         # if we have already found one
@@ -90,7 +92,9 @@ def parse_build_name(line: str, current_value: str):
         # which is why we use this line to find the build directory.
         # Expected phrase:
         #   "Build dir:      {cache_dir}/{build_name}"
-        return os.path.basename(os.path.normpath(line.split(":")[1].rstrip()))
+        return os.path.basename(
+            os.path.normpath(line.replace("Build dir:", "").rstrip())
+        )
     else:
         # Don't replace a previously-parsed value with None
         # if we have already found one
