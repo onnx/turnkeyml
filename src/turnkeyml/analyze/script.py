@@ -69,6 +69,69 @@ class TracerArgs:
         act += tf_helpers.get_transformers_activations()
         return act
 
+    @property
+    def saveable_dict(self):
+        """
+        Convert TracerArgs data into a dictionary that is safe to save to YAML format.
+        All members must be str, List[str], or Dict[str]
+        """
+
+        args_dict = {}
+
+        # Save all of the turnkey arguments into a single key to help
+        # with reproducibility
+
+        for field in dataclasses.fields(self):
+            # Get each value from the TracerArgs dataclass, which contains
+            # all of the turnkey API/CLI args we want to save
+            arg_value = getattr(self, field.name)
+            # Some of the args have types that are compatible with the YML
+            # format, so we will need to ignore them or process them before saving
+            saved_value = None
+
+            if field.name == "models_found":
+                # Do not include "models_found" because
+                # 1. It spans multiple invocations
+                # 2. Includes all the weights of all the models
+                continue
+
+            if isinstance(arg_value, Sequence):
+                # `sequence` can be a str or Sequence
+                # If we receive an instance of Sequence, we need to convert it
+                # to a string to record it as a stat
+                saved_value = arg_value.sequence.__class__.__name__
+            elif isinstance(arg_value, list) and any(
+                isinstance(arg_sub_value, Action) for arg_sub_value in arg_value
+            ):
+                # The --build-only and --analyze-only args are gone by this point in
+                # the code and are replaced by a list of Actions. We need to convert each Action
+                # enum into a str to record the stats.
+                saved_value = [arg_sub_value.value for arg_sub_value in arg_value]
+            else:
+                # All other field types can be saved directly
+                saved_value = arg_value
+
+            if saved_value:
+                args_dict[field.name] = saved_value
+
+        return args_dict
+
+    def __str__(self):
+        result = ""
+        for key, value in self.saveable_dict.items():
+            result = result + f"{key} {value} "
+
+        return result
+
+    @property
+    def hash(self):
+        """
+        Returns a unique hash representing the arguments. Useful for distinguishing
+        between evaluations of the same model that have different arguments.
+        """
+
+        return hashlib.sha256(self.__str__().encode()).hexdigest()[:8]
+
 
 def _store_traceback(invocation_info: util.UniqueInvocationInfo):
     """
@@ -172,7 +235,7 @@ def explore_invocation(
     # We don't need more info in the evaluation_id because changes to build_model()
     # arguments (e.g., sequence) will trigger a rebuild, which is intended to replace the
     # build stats so long as the device and runtime have not changed.
-    evaluation_id = f"{tracer_args.device}_{selected_runtime}"
+    evaluation_id = tracer_args.hash
 
     stats = fs.Stats(
         tracer_args.cache_dir,
@@ -237,43 +300,11 @@ def explore_invocation(
     # Evaluation-specific stats
 
     # Save all of the turnkey arguments into a single key to help
-    # with reproducability
-    for field in dataclasses.fields(TracerArgs):
-        # Get each value from the TracerArgs dataclass, which contains
-        # all of the turnkey API/CLI args we want to save
-        arg_value = getattr(tracer_args, field.name)
-        # Some of the args have types that are compatible with the YML
-        # format, so we will need to ignore them or process them before saving
-        saved_value = None
-
-        if field.name == "models_found":
-            # Do not include "models_found" because
-            # 1. It spans multiple invocations
-            # 2. Includes all the weights of all the models
-            continue
-
-        if isinstance(arg_value, Sequence):
-            # `sequence` can be a str or Sequence
-            # If we recieve an instance of Sequence, we need to convert it
-            # to a string to record it as a stat
-            saved_value = arg_value.sequence.__class__.__name__
-        elif isinstance(arg_value, list) and any(
-            isinstance(arg_sub_value, Action) for arg_sub_value in arg_value
-        ):
-            # The --build-only and --analyze-only args are gone by this point in
-            # the code and are replaced by a list of Actions. We need to convert each Action
-            # enum into a str to record the stats.
-            saved_value = [arg_sub_value.value for arg_sub_value in arg_value]
-        else:
-            # All other field types can be saved directly
-            saved_value = arg_value
-
-        if saved_value:
-            stats.save_model_eval_sub_stat(
-                fs.Keys.EVALUATION_ARGS,
-                field.name,
-                saved_value,
-            )
+    # with reproducibility
+    stats.save_model_eval_stat(
+        fs.Keys.EVALUATION_ARGS,
+        tracer_args.saveable_dict,
+    )
 
     # Save a timestamp so that we know the order of evaluations within a cache
     stats.save_model_eval_stat(
