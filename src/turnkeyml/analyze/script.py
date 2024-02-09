@@ -70,22 +70,21 @@ class TracerArgs:
         return act
 
     @property
-    def saveable_dict(self):
+    def saveable_dict(self) -> Dict:
         """
         Convert TracerArgs data into a dictionary that is safe to save to YAML format.
         All members must be str, List[str], or Dict[str]
         """
 
-        args_dict = {}
+        result = {}
 
-        # Save all of the turnkey arguments into a single key to help
-        # with reproducibility
-
+        # Get each field from this dataclass, which corresponds
+        # all of the turnkey API/CLI args we want to save
         for field in dataclasses.fields(self):
-            # Get each value from the TracerArgs dataclass, which contains
-            # all of the turnkey API/CLI args we want to save
+            # Get the value corresponding to each field
             arg_value = getattr(self, field.name)
-            # Some of the args have types that are compatible with the YML
+
+            # Some of the args have types that are compatible with the YAML
             # format, so we will need to ignore them or process them before saving
             saved_value = None
 
@@ -98,25 +97,25 @@ class TracerArgs:
             if isinstance(arg_value, Sequence):
                 # `sequence` can be a str or Sequence
                 # If we receive an instance of Sequence, we need to convert it
-                # to a string to record it as a stat
+                # to a string to save it to YAML
                 saved_value = arg_value.sequence.__class__.__name__
             elif isinstance(arg_value, list) and any(
                 isinstance(arg_sub_value, Action) for arg_sub_value in arg_value
             ):
                 # The --build-only and --analyze-only args are gone by this point in
                 # the code and are replaced by a list of Actions. We need to convert each Action
-                # enum into a str to record the stats.
+                # enum into a str to save it to YAML
                 saved_value = [arg_sub_value.value for arg_sub_value in arg_value]
             else:
                 # All other field types can be saved directly
                 saved_value = arg_value
 
             if saved_value:
-                args_dict[field.name] = saved_value
+                result[field.name] = saved_value
 
-        return args_dict
+        return result
 
-    def __str__(self):
+    def __str__(self) -> str:
         result = ""
         for key, value in self.saveable_dict.items():
             result = result + f"{key} {value} "
@@ -124,13 +123,13 @@ class TracerArgs:
         return result
 
     @property
-    def hash(self):
+    def hash(self) -> str:
         """
         Returns a unique hash representing the arguments. Useful for distinguishing
         between evaluations of the same model that have different arguments.
         """
 
-        return hashlib.sha256(self.__str__().encode()).hexdigest()[:8]
+        return hashlib.sha256(str(self).encode()).hexdigest()[:8]
 
 
 def _store_traceback(invocation_info: util.UniqueInvocationInfo):
