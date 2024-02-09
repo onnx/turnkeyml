@@ -180,6 +180,11 @@ def explore_invocation(
     )
     invocation_info.stats = stats
 
+    # Print the evaluation ID so that we can access it in case this process is killed
+    print(
+        f"Capturing statistics in turnkey_stats.yaml under evaluation ID: {evaluation_id}"
+    )
+
     # Stats that apply to the model, regardless of build
     stats.save_model_stat(
         fs.Keys.HASH,
