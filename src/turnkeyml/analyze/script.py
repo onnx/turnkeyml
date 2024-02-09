@@ -9,6 +9,7 @@ import functools
 import dataclasses
 import traceback
 import hashlib
+from datetime import datetime
 from typing import Union, List, Dict, Tuple, Optional
 from types import FrameType, TracebackType
 from enum import Enum
@@ -238,35 +239,47 @@ def explore_invocation(
     # Save all of the turnkey arguments into a single key to help
     # with reproducability
     for field in dataclasses.fields(TracerArgs):
+        # Get each value from the TracerArgs dataclass, which contains
+        # all of the turnkey API/CLI args we want to save
         arg_value = getattr(tracer_args, field.name)
+        # Some of the args have types that are compatible with the YML
+        # format, so we will need to ignore them or process them before saving
         saved_value = None
-        print(field.name)
 
         if field.name == "models_found":
-            # Do not include "models_found" because that spans multiple
-            # invocations
+            # Do not include "models_found" because
+            # 1. It spans multiple invocations
+            # 2. Includes all the weights of all the models
             continue
 
         if isinstance(arg_value, Sequence):
-            # TODO COMMENT
+            # `sequence` can be a str or Sequence
+            # If we recieve an instance of Sequence, we need to convert it
+            # to a string to record it as a stat
             saved_value = arg_value.sequence.__class__.__name__
         elif isinstance(arg_value, list) and any(
             isinstance(arg_sub_value, Action) for arg_sub_value in arg_value
         ):
-            # TODO COMMENT
+            # The --build-only and --analyze-only args are gone by this point in
+            # the code and are replaced by a list of Actions. We need to convert each Action
+            # enum into a str to record the stats.
             saved_value = [arg_sub_value.value for arg_sub_value in arg_value]
         else:
             # All other field types can be saved directly
-
             saved_value = arg_value
 
-        # print([isinstance(arg_sub_value, Action) for arg_sub_value in arg_value])
         if saved_value:
             stats.save_model_eval_sub_stat(
                 fs.Keys.EVALUATION_ARGS,
                 field.name,
                 saved_value,
             )
+
+    # Save a timestamp so that we know the order of evaluations within a cache
+    stats.save_model_eval_stat(
+        fs.Keys.TIMESTAMP,
+        datetime.now(),
+    )
 
     # Save specific information into its own key for easier access
     stats.save_model_eval_stat(
