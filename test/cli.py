@@ -885,8 +885,6 @@ class Testing(unittest.TestCase):
          - the timeout kills the process before it has a chance to create a stats.yaml file
         """
 
-        print(cache_dir)
-
         testargs = [
             "turnkey",
             "benchmark",

@@ -58,7 +58,7 @@ class WatchdogTimer(Thread):
         self.cancelled.set()
 
 
-def parse_evaluation_id(line: str, current_value: str):
+def parse_evaluation_id(line: str, current_value: str)  -> Optional[str]:
     """
     Parse the evaluation ID from a line of turnkey process output.
     Used to clean up after a turnkey subprocess is killed.
@@ -79,7 +79,7 @@ def parse_evaluation_id(line: str, current_value: str):
         return None
 
 
-def parse_build_name(line: str, current_value: str):
+def parse_build_name(line: str, current_value: str) -> Optional[str]:
     """
     Parse the build directory from a line of turnkey process output.
     Used to clean up after a turnkey subprocess is killed.
