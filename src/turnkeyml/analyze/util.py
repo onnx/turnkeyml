@@ -133,7 +133,7 @@ def get_onnx_total_flops(onnx_model) -> Union[int, None]:
             strict_mode=True,
             data_prop=True,
         )
-        model = onnx.load(onnx_model)
+        model = onnx.load(onnx_model, load_external_data=False)
     except Exception as e:  # pylint: disable=broad-except
         printing.log_warning(f"Failed to get ONNX FLOPs from {onnx_model}: {str(e)}")
         return None
