@@ -260,25 +260,16 @@ def explore_invocation(
 
         return
 
-    # Initialize build and benchmark status to "not started" or
-    # "not applicable" depending on whether that action is part of the
-    # evaluation
+    # Initialize build and benchmark status to "not started" if
+    # that action is part of the evaluation
     if runtime_info["build_required"]:
         stats.save_model_eval_stat(
             fs.Keys.BUILD_STATUS, build.FunctionStatus.NOT_STARTED.value
-        )
-    else:
-        stats.save_model_eval_stat(
-            fs.Keys.BUILD_STATUS, build.FunctionStatus.NOT_APPLICABLE.value
         )
 
     if Action.BENCHMARK in tracer_args.actions:
         stats.save_model_eval_stat(
             fs.Keys.BENCHMARK_STATUS, build.FunctionStatus.NOT_STARTED.value
-        )
-    else:
-        stats.save_model_eval_stat(
-            fs.Keys.BENCHMARK_STATUS, build.FunctionStatus.NOT_APPLICABLE.value
         )
 
     build_state = None
