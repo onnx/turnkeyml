@@ -367,7 +367,7 @@ class Keys:
     STAGE_STATUS = "stage_status"
     # Parent key that holds all of the arguments to turnkey's
     # evaluate_file() API
-    EVALUATION_ARGS = "args"
+    EVALUATION_ARGS = "turnkey_args"
     # Records the date and time of the evaluation after analysis but before
     # build and benchmark
     TIMESTAMP = "timestamp"
