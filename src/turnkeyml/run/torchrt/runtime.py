@@ -68,6 +68,8 @@ class TorchRT(BaseRT):
             self.model = torch.compile(self.model)
 
     def benchmark(self) -> MeasuredPerformance:
+        # FIXME DONT COMMIT
+        raise Exception
         per_iteration_latency = [0] * self.iterations
         for idx in range(self.iterations):
             start_time = time.perf_counter()

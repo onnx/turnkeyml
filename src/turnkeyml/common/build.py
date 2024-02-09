@@ -144,6 +144,9 @@ class FunctionStatus(enum.Enum):
     successfully or not.
     """
 
+    # NOT_APPLICABLE means the stage/build/benchmark was not requested.
+    NOT_APPLICABLE = "not_applicable"
+
     # SUCCESSFUL means the stage/build/benchmark completed successfully.
     SUCCESSFUL = "successful"
 
