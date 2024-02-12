@@ -379,7 +379,7 @@ def _clean_logfile(logfile_lines: List[str]) -> List[str]:
     """
     Remove the whitespace and empty lines from an array of logfile lines
     """
-    return [line.rstrip() for line in logfile_lines if line.rstrip()]
+    return "\n".join([line.rstrip() for line in logfile_lines if line.rstrip()])
 
 
 def stats_file(cache_dir: str, build_name: str):
@@ -471,10 +471,10 @@ class Stats:
                         "NOTICE: This copy of the log has been truncated to the first "
                         f"{start_cutoff} and last {abs(end_cutoff)} lines "
                         f"to save space. Please see {logfile_path} "
-                        "to see the full log."
+                        "to see the full log.\n"
                     )
 
-                    stats_log = log_start + [truncation_notice] + log_end
+                    stats_log = log_start + truncation_notice + log_end
                 else:
                     stats_log = _clean_logfile(full_log)
 
