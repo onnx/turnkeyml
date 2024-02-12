@@ -371,6 +371,8 @@ class Keys:
     # Records the date and time of the evaluation after analysis but before
     # build and benchmark
     TIMESTAMP = "timestamp"
+    # Records the logfile of any failed stage/benchmark
+    ERROR_LOG = "error_log"
 
 
 def stats_file(cache_dir: str, build_name: str):
@@ -442,6 +444,40 @@ class Stats:
     @property
     def evaluation_stats(self):
         return self.stats[Keys.EVALUATIONS][self.evaluation_id]
+
+    def save_eval_error_log(self, logfile_path):
+        if os.path.exists(logfile_path):
+            with open(logfile_path, "r", encoding="utf-8") as f:
+                full_log = f.readlines()
+
+                if len(full_log) > 50:
+                    # Log files can be quite large, so we will just record the first
+                    # 5 and last 25 lines. Users can always open the log file if they
+                    # want to see the full log.
+                    start_cutoff = 5
+                    end_cutoff = -25
+
+                    # Remove all of the extra whitespace to make the YAML/CSV files more
+                    # human-readable
+                    log_start = [
+                        line.rstrip()
+                        for line in full_log[:start_cutoff]
+                        if line.rstrip()
+                    ]
+                    log_end = [
+                        line.rstrip() for line in full_log[end_cutoff:] if line.rstrip()
+                    ]
+                    truncation_notice = (
+                        "NOTICE: This copy of the log has been truncated "
+                        f"to save space. Please see {logfile_path} "
+                        "to see the full log."
+                    )
+
+                    stats_log = log_start + [truncation_notice] + log_end
+                else:
+                    stats_log = [line.rstrip() for line in full_log if line.rstrip()]
+
+                self.save_model_eval_stat(Keys.ERROR_LOG, stats_log)
 
 
 def print_cache_dir(_=None):
