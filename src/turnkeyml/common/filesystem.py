@@ -375,6 +375,13 @@ class Keys:
     ERROR_LOG = "error_log"
 
 
+def _clean_logfile(logfile_lines: List[str]) -> List[str]:
+    """
+    Remove the whitespace and empty lines from an array of logfile lines
+    """
+    return [line.rstrip() for line in logfile_lines if line.rstrip()]
+
+
 def stats_file(cache_dir: str, build_name: str):
     """
     Returns the expected location of the turnkey stats file
@@ -450,32 +457,26 @@ class Stats:
             with open(logfile_path, "r", encoding="utf-8") as f:
                 full_log = f.readlines()
 
-                if len(full_log) > 50:
-                    # Log files can be quite large, so we will just record the first
-                    # 5 and last 25 lines. Users can always open the log file if they
-                    # want to see the full log.
-                    start_cutoff = 5
-                    end_cutoff = -25
+                # Log files can be quite large, so we will just record the first
+                # 5 and last 25 lines. Users can always open the log file if they
+                # want to see the full log.
+                start_cutoff = 5
+                end_cutoff = -30
+                max_full_length = start_cutoff + abs(end_cutoff)
 
-                    # Remove all of the extra whitespace to make the YAML/CSV files more
-                    # human-readable
-                    log_start = [
-                        line.rstrip()
-                        for line in full_log[:start_cutoff]
-                        if line.rstrip()
-                    ]
-                    log_end = [
-                        line.rstrip() for line in full_log[end_cutoff:] if line.rstrip()
-                    ]
+                if len(full_log) > max_full_length:
+                    log_start = _clean_logfile(full_log[:start_cutoff])
+                    log_end = _clean_logfile(full_log[end_cutoff:])
                     truncation_notice = (
-                        "NOTICE: This copy of the log has been truncated "
+                        "NOTICE: This copy of the log has been truncated to the first "
+                        f"{start_cutoff} and last {abs(end_cutoff)} lines "
                         f"to save space. Please see {logfile_path} "
                         "to see the full log."
                     )
 
                     stats_log = log_start + [truncation_notice] + log_end
                 else:
-                    stats_log = [line.rstrip() for line in full_log if line.rstrip()]
+                    stats_log = _clean_logfile(full_log)
 
                 self.save_model_eval_stat(Keys.ERROR_LOG, stats_log)
 
