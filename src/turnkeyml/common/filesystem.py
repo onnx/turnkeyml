@@ -457,8 +457,8 @@ class Stats:
             with open(logfile_path, "r", encoding="utf-8") as f:
                 full_log = f.readlines()
 
-                # Log files can be quite large, so we will just record the first
-                # 5 and last 25 lines. Users can always open the log file if they
+                # Log files can be quite large, so we will just record the beginning
+                # and ending lines. Users can always open the log file if they
                 # want to see the full log.
                 start_cutoff = 5
                 end_cutoff = -30
