@@ -1,11 +1,12 @@
 from typing import List, Dict, Optional
-from multiprocessing import Process, ProcessError, TimeoutError
+from multiprocessing import Process, TimeoutError
 import turnkeyml.common.build as build
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.filesystem as fs
 import turnkeyml.common.printing as printing
 from turnkeyml.analyze.script import set_status_on_exception
 from turnkeyml.run.devices import SUPPORTED_RUNTIMES, apply_default_runtime
+import turnkeyml.cli.parser_helpers as parser_helpers
 
 
 def benchmark_build(
@@ -109,6 +110,8 @@ def benchmark_cache_cli(args):
     Wrapper function for benchmark_cache() that passes in the CLI arguments
     """
 
+    rt_args = parser_helpers.decode_args(args.rt_args)
+
     benchmark_cache(
         cache_dir=args.cache_dir,
         build_names=args.build_names,
@@ -117,7 +120,7 @@ def benchmark_cache_cli(args):
         runtime=args.runtime,
         iterations=args.iterations,
         timeout=args.timeout,
-        rt_args=args.rt_args,
+        rt_args=rt_args,
     )
 
 
