@@ -152,7 +152,11 @@ def benchmark_cache(
         stats = fs.Stats(cache_dir, build_name, state.evaluation_id)
 
         eval_stats = stats.evaluation_stats
-        if fs.Keys.BENCHMARK_STATUS in eval_stats:
+        if (
+            fs.Keys.BENCHMARK_STATUS in eval_stats
+            and eval_stats[fs.Keys.BENCHMARK_STATUS]
+            != build.FunctionStatus.NOT_STARTED.value
+        ):
             if skip_policy == "attempted":
                 printing.log_warning(
                     f"Skipping because it was previously attempted: {build_name}"
