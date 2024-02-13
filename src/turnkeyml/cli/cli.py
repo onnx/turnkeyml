@@ -487,6 +487,20 @@ def main():
         action="store_true",
     )
 
+    skip_policy_default = "attempted"
+    cache_benchmark_parser.add_argument(
+        "--skip",
+        choices=[skip_policy_default, "failed", "successful", "none"],
+        dest="skip_policy",
+        help=f"Sets the policy for skipping benchmark attempts (defaults to {skip_policy_default})."
+        "`attempted` means to skip any previously-attempted benchmark, whether it succeeded or failed."
+        "`failed` skips benchmarks that have already failed once."
+        "`successful` skips benchmarks that have already succeeded."
+        "`none` will attempt all benchmarks, regardless of whether they were previously attempted.",
+        required=False,
+        default=skip_policy_default,
+    )
+
     cache_benchmark_parser.add_argument(
         "--timeout",
         type=int,
@@ -506,7 +520,7 @@ def main():
         default=None,
     )
 
-    cache_benchmark_group.add_argument(
+    cache_benchmark_parser.add_argument(
         "--iterations",
         dest="iterations",
         type=int,
@@ -515,7 +529,7 @@ def main():
               the benchmarking performance (e.g., mean latency)",
     )
 
-    cache_benchmark_group.add_argument(
+    cache_benchmark_parser.add_argument(
         "--rt-args",
         dest="rt_args",
         type=str,

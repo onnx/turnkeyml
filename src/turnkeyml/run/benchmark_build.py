@@ -113,6 +113,7 @@ def benchmark_cache_cli(args):
         cache_dir=args.cache_dir,
         build_names=args.build_names,
         benchmark_all=args.benchmark_all,
+        skip_policy=args.skip_policy,
         runtime=args.runtime,
         iterations=args.iterations,
         timeout=args.timeout,
@@ -124,6 +125,7 @@ def benchmark_cache(
     cache_dir: str,
     build_names: List[str],
     benchmark_all: bool,
+    skip_policy: str,
     runtime: str,
     iterations: int = 100,
     timeout: Optional[int] = None,
@@ -143,6 +145,39 @@ def benchmark_cache(
         builds = build_names
 
     for build_name in builds:
+        state = build.load_state(cache_dir, build_name)
+        stats = fs.Stats(cache_dir, build_name, state.evaluation_id)
+
+        eval_stats = stats.evaluation_stats
+        if fs.Keys.BENCHMARK_STATUS in eval_stats:
+            if skip_policy == "attempted":
+                printing.log_warning(
+                    f"Skipping because it was previously attempted: {build_name}"
+                )
+                continue
+            elif (
+                skip_policy == "successful"
+                and eval_stats[fs.Keys.BENCHMARK_STATUS]
+                == build.FunctionStatus.SUCCESSFUL.value
+            ):
+                printing.log_warning(
+                    f"Skipping because it was already successfully benchmarked: {build_name}"
+                )
+                continue
+            elif (
+                skip_policy == "failed"
+                and eval_stats[fs.Keys.BENCHMARK_STATUS]
+                != build.FunctionStatus.SUCCESSFUL.value
+            ):
+                printing.log_warning(
+                    f"Skipping because it was previously attempted and failed: {build_name}"
+                )
+                continue
+            elif skip_policy == "none":
+                pass
+            else:
+                raise ValueError(f"skip_policy has unsupported value {skip_policy}")
+
         printing.log_info(f"Attempting to benchmark: {build_name}")
 
         p = Process(
@@ -155,8 +190,6 @@ def benchmark_cache(
             p.join(timeout=timeout)
         except TimeoutError as e:
             # Set the timeout stat
-            state = build.load_state(cache_dir, build_name)
-            stats = fs.Stats(cache_dir, build_name, state.evaluation_id)
             stats.save_model_eval_stat(
                 fs.Keys.BENCHMARK_STATUS, build.FunctionStatus.TIMEOUT.value
             )
