@@ -258,7 +258,7 @@ def clean_builds(args):
     if args.clean_all:
         builds = get_available_builds(args.cache_dir)
     else:
-        builds = [args.build_name]
+        builds = args.build_names
 
     for build in builds:
         if is_build_dir(args.cache_dir, build):
