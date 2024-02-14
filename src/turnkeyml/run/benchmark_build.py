@@ -1,5 +1,9 @@
 from typing import List, Dict, Optional
-from multiprocessing import Process, TimeoutError
+import concurrent.futures
+import multiprocessing
+import traceback
+import subprocess
+import tqdm
 import turnkeyml.common.build as build
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.filesystem as fs
@@ -9,7 +13,34 @@ from turnkeyml.run.devices import SUPPORTED_RUNTIMES, apply_default_runtime
 import turnkeyml.cli.parser_helpers as parser_helpers
 
 
+class Process(multiprocessing.Process):
+    """
+    Standardized way to make it possible to catch exceptions from a
+    multiprocessing.Process.
+    """
+
+    def __init__(self, *args, **kwargs):
+        multiprocessing.Process.__init__(self, *args, **kwargs)
+        self._pconn, self._cconn = multiprocessing.Pipe()
+        self._exception = None
+
+    def run(self):
+        try:
+            multiprocessing.Process.run(self)
+            self._cconn.send(None)
+        except Exception as e:  # pylint: disable=broad-except
+            tb = traceback.format_exc()
+            self._cconn.send((e, tb))
+
+    @property
+    def exception(self):
+        if self._pconn.poll():
+            self._exception = self._pconn.recv()
+        return self._exception
+
+
 def benchmark_build(
+    first: bool,
     cache_dir: str,
     build_name: str,
     runtime: str,
@@ -28,6 +59,14 @@ def benchmark_build(
         2. Pass the build state directly into an instance of BaseRT and
             run the benchmark method
         3. Save stats to the same evaluation entry from the original build
+
+    Args:
+        first: whether this is the first benchmark in the job
+        cache_dir: same as turnkey
+        build_name: same as turnkey
+        runtime: same as turnkey
+        iterations: same as turnkey
+        rt_args: same as turnkey
     """
 
     build_path = build.output_dir(cache_dir, build_name)
@@ -50,12 +89,19 @@ def benchmark_build(
 
     try:
         runtime_info = SUPPORTED_RUNTIMES[selected_runtime]
-    except KeyError:
+    except KeyError as e:
         # User should never get this far without hitting an actionable error message,
         # but let's raise an exception just in case.
         raise exp.BenchmarkException(
             f"Selected runtime is not supported: {selected_runtime}"
-        )
+        ) from e
+
+    # Check whether the device and runtime are ready for use prior to
+    # running the first benchmark in the job
+    # NOTE: we perform this check here, instead of in the outer loop,
+    # because this is where we know `runtime_info`
+    if first and "requirement_check" in runtime_info:
+        runtime_info["requirement_check"]()
 
     # Load the stats file using the same evaluation ID used in the original build.
     # This allows us to augment those stats with more data instead of starting a new
@@ -104,6 +150,10 @@ def benchmark_build(
 
         raise e
 
+    # Check whether this benchmark left the device and runtime in a good state
+    if first and "requirement_check" in runtime_info:
+        runtime_info["requirement_check"]()
+
 
 def benchmark_cache_cli(args):
     """
@@ -121,6 +171,7 @@ def benchmark_cache_cli(args):
         iterations=args.iterations,
         timeout=args.timeout,
         rt_args=rt_args,
+        # process_isolation=True,
     )
 
 
@@ -133,6 +184,7 @@ def benchmark_cache(
     iterations: int = 100,
     timeout: Optional[int] = None,
     rt_args: Optional[Dict] = None,
+    # process_isolation: bool = False,
 ):
     """
     Benchmark one or more builds in a cache using the benchmark_build()
@@ -147,10 +199,17 @@ def benchmark_cache(
     else:
         builds = build_names
 
-    for build_name in builds:
+    # Keep track of whether this is the first build we are benchmarking
+    first = True
+
+    # Iterate over all of the selected builds and benchmark them
+    for build_name in tqdm.tqdm(builds):
         state = build.load_state(cache_dir, build_name)
         stats = fs.Stats(cache_dir, build_name, state.evaluation_id)
 
+        # Apply the skip policy by skipping over this iteration of the
+        # loop if the evaluation's pre-existing benchmark status doesn't
+        # meet certain criteria
         eval_stats = stats.evaluation_stats
         if (
             fs.Keys.BENCHMARK_STATUS in eval_stats
@@ -181,26 +240,48 @@ def benchmark_cache(
                 )
                 continue
             elif skip_policy == "none":
+                # Skip policy of "none" means we should never skip over a build
                 pass
-            else:
-                raise ValueError(f"skip_policy has unsupported value {skip_policy}")
 
         printing.log_info(f"Attempting to benchmark: {build_name}")
 
         p = Process(
             target=benchmark_build,
-            args=[cache_dir, build_name, runtime, iterations, rt_args],
+            args=[first, cache_dir, build_name, runtime, iterations, rt_args],
         )
         p.start()
+        p.join(timeout=timeout)
 
-        try:
-            p.join(timeout=timeout)
-        except TimeoutError as e:
-            # Set the timeout stat
+        if p.is_alive():
+            # Handle the timeout, which is needed if the process is still alive after
+            # waiting `timeout` seconds
+            p.terminate()
             stats.save_model_eval_stat(
                 fs.Keys.BENCHMARK_STATUS, build.FunctionStatus.TIMEOUT.value
             )
 
-            print(e)
+            printing.log_warning(
+                f"Benchmarking {build_name} canceled because it exceeded the {timeout} "
+                "seconds timeout"
+            )
+        elif p.exception:
+            # Handle any exception raised by the child process. In most cases, we should
+            # move on to the next benchmark. However, if the exception was a
+            # HardwareError that means the underlying runtime or device
+            # is not able to conduct any more benchmarking. In this case the program
+            # should exit and the user should follow the suggestion in the exception
+            # message (e.g., restart their computer).
+            stats.save_model_eval_stat(
+                fs.Keys.BENCHMARK_STATUS, build.FunctionStatus.ERROR.value
+            )
 
-        printing.log_success(f"Done benchmarking: {build_name}")
+            if isinstance(p.exception[0], exp.HardwareError):
+                stats.save_model_eval_stat(fs.Keys.ERROR_LOG, p.exception[1])
+                raise p.exception[0]
+            else:
+                printing.log_warning("Benchmarking failed with exception:")
+                print(p.exception[1])
+        else:
+            printing.log_success(f"Done benchmarking: {build_name}")
+
+        first = False
