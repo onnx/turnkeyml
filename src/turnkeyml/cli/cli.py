@@ -493,7 +493,8 @@ def main():
         choices=[skip_policy_default, "failed", "successful", "none"],
         dest="skip_policy",
         help=f"Sets the policy for skipping benchmark attempts (defaults to {skip_policy_default})."
-        "`attempted` means to skip any previously-attempted benchmark, whether it succeeded or failed."
+        "`attempted` means to skip any previously-attempted benchmark, "
+        "whether it succeeded or failed."
         "`failed` skips benchmarks that have already failed once."
         "`successful` skips benchmarks that have already succeeded."
         "`none` will attempt all benchmarks, regardless of whether they were previously attempted.",
@@ -506,7 +507,7 @@ def main():
         type=int,
         default=None,
         help="Benchmark timeout, in seconds, after which each benchmark will be canceled "
-        f"(default={DEFAULT_TIMEOUT_SECONDS}).",
+        "(default: no timeout).",
     )
 
     cache_benchmark_parser.add_argument(

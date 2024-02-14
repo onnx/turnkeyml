@@ -1,8 +1,6 @@
 from typing import List, Dict, Optional
-import concurrent.futures
 import multiprocessing
 import traceback
-import subprocess
 import tqdm
 import turnkeyml.common.build as build
 import turnkeyml.common.exceptions as exp
@@ -69,14 +67,12 @@ def benchmark_build(
         rt_args: same as turnkey
     """
 
-    build_path = build.output_dir(cache_dir, build_name)
-
     state = build.load_state(cache_dir, build_name)
 
     if state.build_status != build.FunctionStatus.SUCCESSFUL:
         raise exp.BenchmarkException(
             "Only successful builds can be benchmarked with this "
-            f"function, however selected build at {build_path} "
+            f"function, however selected build at {build_name} "
             f"has state: {state.build_status}"
         )
 
@@ -140,6 +136,9 @@ def benchmark_build(
                 value=value,
             )
 
+        # Inform the user of the result
+        perf.print()
+
         stats.save_model_eval_stat(
             fs.Keys.BENCHMARK_STATUS, build.FunctionStatus.SUCCESSFUL.value
         )
@@ -171,7 +170,6 @@ def benchmark_cache_cli(args):
         iterations=args.iterations,
         timeout=args.timeout,
         rt_args=rt_args,
-        # process_isolation=True,
     )
 
 
@@ -184,7 +182,6 @@ def benchmark_cache(
     iterations: int = 100,
     timeout: Optional[int] = None,
     rt_args: Optional[Dict] = None,
-    # process_isolation: bool = False,
 ):
     """
     Benchmark one or more builds in a cache using the benchmark_build()
