@@ -151,7 +151,7 @@ def benchmark_build(
         raise e
 
     # Check whether this benchmark left the device and runtime in a good state
-    if first and "requirement_check" in runtime_info:
+    if "requirement_check" in runtime_info:
         runtime_info["requirement_check"]()
 
 
