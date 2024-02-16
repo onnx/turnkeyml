@@ -217,7 +217,7 @@ def benchmark_cache(
     first = True
 
     # Iterate over all of the selected builds and benchmark them
-    for build_name in tqdm.tqdm(builds):
+    for build_name in tqdm(builds):
         if not fs.is_build_dir(cache_dir, build_name):
             raise exp.CacheError(
                 f"No build found with name: {build_name}. "
