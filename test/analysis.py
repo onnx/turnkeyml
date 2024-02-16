@@ -31,128 +31,6 @@ except ImportError as e:
     )
 
 
-# We generate a corpus on to the filesystem during the test
-# to get around how weird bake tests are when it comes to
-# filesystem access
-
-test_scripts_dot_py = {
-    "linear_pytorch.py": """# labels: test_group::selftest license::mit framework::pytorch tags::selftest,small
-import torch
-import argparse
-
-torch.manual_seed(0)
-
-# Receive command line arg
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    "-m",
-    "--my-arg",
-)
-args = parser.parse_args()
-print(f"Received arg {args.my_arg}")
-
-class LinearTestModel(torch.nn.Module):
-    def __init__(self, input_features, output_features):
-        super(LinearTestModel, self).__init__()
-        self.fc = torch.nn.Linear(input_features, output_features)
-
-    def forward(self, x):
-        output = self.fc(x)
-        return output
-
-input_features = 10
-output_features = 10
-
-# Model and input configurations
-model = LinearTestModel(input_features, output_features)
-unexecuted_model = LinearTestModel(input_features+1, output_features)
-inputs = {"x": torch.rand(input_features)}
-output = model(**inputs)
-
-""",
-    "pipeline.py": """
-import os
-from transformers import (
-    TextClassificationPipeline,
-    BertForSequenceClassification,
-    BertConfig,
-    PreTrainedTokenizerFast,
-)
-
-tokenizer_file = os.path.join(os.path.dirname(__file__),"tokenizer.json")
-class MyPipeline(TextClassificationPipeline):
-    def __init__(self, **kwargs):
-        configuration = BertConfig()
-        tokenizer = PreTrainedTokenizerFast(tokenizer_file=tokenizer_file)
-        super().__init__(
-            model=BertForSequenceClassification(configuration), tokenizer=tokenizer
-        )
-
-
-my_pipeline = MyPipeline()
-my_pipeline("This restaurant is awesome")
-""",
-    "activation.py": """
-import torch
-m = torch.nn.GELU()
-input = torch.randn(2)
-output = m(input)
-""",
-    "turnkey_parser.py": """
-from turnkeyml.parser import parse
-
-parsed_args = parse(["height", "width", "num_channels"])
-
-print(parsed_args)
-
-""",
-    "two_executions.py": """
-import torch
-import timm
-from turnkeyml.parser import parse
-
-# Creating model and set it to evaluation mode
-model = timm.create_model("mobilenetv2_035", pretrained=False)
-model.eval()
-
-# Creating inputs
-inputs1 = torch.rand((1, 3, 28, 28))
-inputs2 = torch.rand((1, 3, 224, 224))
-
-# Calling model
-model(inputs1)
-model(inputs2)
-model(inputs1)
-""",
-}
-minimal_tokenizer = """
-{
-  "version": "1.0",
-  "truncation": null,
-  "padding": null,
-  "added_tokens": [],
-  "normalizer": null,
-  "pre_tokenizer": null,
-  "post_processor": null,
-  "decoder": null,
-  "model": {
-    "type": "WordPiece",
-    "unk_token": "[UNK]",
-    "continuing_subword_prefix": "##",
-    "max_input_chars_per_word": 100,
-    "vocab": {
-      "[UNK]": 0
-    }
-  }
-}"""
-
-# Create a test directory
-cache_dir, corpus_dir = common.create_test_dir("analysis", test_scripts_dot_py)
-
-with open(os.path.join(corpus_dir, "tokenizer.json"), "w", encoding="utf") as f:
-    f.write(minimal_tokenizer)
-
-
 def cache_is_lean(cache_dir, build_name):
     files = list(glob.glob(f"{cache_dir}/{build_name}/**/*", recursive=True))
     is_lean = len([x for x in files if ".onnx" in x]) == 0
@@ -379,4 +257,125 @@ class Testing(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    # We generate a corpus on to the filesystem during the test
+    # to get around how weird bake tests are when it comes to
+    # filesystem access
+
+    test_scripts_dot_py = {
+        "linear_pytorch.py": """# labels: test_group::selftest license::mit framework::pytorch tags::selftest,small
+    import torch
+    import argparse
+
+    torch.manual_seed(0)
+
+    # Receive command line arg
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-m",
+        "--my-arg",
+    )
+    args = parser.parse_args()
+    print(f"Received arg {args.my_arg}")
+
+    class LinearTestModel(torch.nn.Module):
+        def __init__(self, input_features, output_features):
+            super(LinearTestModel, self).__init__()
+            self.fc = torch.nn.Linear(input_features, output_features)
+
+        def forward(self, x):
+            output = self.fc(x)
+            return output
+
+    input_features = 10
+    output_features = 10
+
+    # Model and input configurations
+    model = LinearTestModel(input_features, output_features)
+    unexecuted_model = LinearTestModel(input_features+1, output_features)
+    inputs = {"x": torch.rand(input_features)}
+    output = model(**inputs)
+
+    """,
+        "pipeline.py": """
+    import os
+    from transformers import (
+        TextClassificationPipeline,
+        BertForSequenceClassification,
+        BertConfig,
+        PreTrainedTokenizerFast,
+    )
+
+    tokenizer_file = os.path.join(os.path.dirname(__file__),"tokenizer.json")
+    class MyPipeline(TextClassificationPipeline):
+        def __init__(self, **kwargs):
+            configuration = BertConfig()
+            tokenizer = PreTrainedTokenizerFast(tokenizer_file=tokenizer_file)
+            super().__init__(
+                model=BertForSequenceClassification(configuration), tokenizer=tokenizer
+            )
+
+
+    my_pipeline = MyPipeline()
+    my_pipeline("This restaurant is awesome")
+    """,
+        "activation.py": """
+    import torch
+    m = torch.nn.GELU()
+    input = torch.randn(2)
+    output = m(input)
+    """,
+        "turnkey_parser.py": """
+    from turnkeyml.parser import parse
+
+    parsed_args = parse(["height", "width", "num_channels"])
+
+    print(parsed_args)
+
+    """,
+        "two_executions.py": """
+    import torch
+    import timm
+    from turnkeyml.parser import parse
+
+    # Creating model and set it to evaluation mode
+    model = timm.create_model("mobilenetv2_035", pretrained=False)
+    model.eval()
+
+    # Creating inputs
+    inputs1 = torch.rand((1, 3, 28, 28))
+    inputs2 = torch.rand((1, 3, 224, 224))
+
+    # Calling model
+    model(inputs1)
+    model(inputs2)
+    model(inputs1)
+    """,
+    }
+    minimal_tokenizer = """
+    {
+    "version": "1.0",
+    "truncation": null,
+    "padding": null,
+    "added_tokens": [],
+    "normalizer": null,
+    "pre_tokenizer": null,
+    "post_processor": null,
+    "decoder": null,
+    "model": {
+        "type": "WordPiece",
+        "unk_token": "[UNK]",
+        "continuing_subword_prefix": "##",
+        "max_input_chars_per_word": 100,
+        "vocab": {
+        "[UNK]": 0
+        }
+    }
+    }"""
+
+    # Create a test directory
+    cache_dir, corpus_dir = common.create_test_dir("analysis", test_scripts_dot_py)
+
+    with open(os.path.join(corpus_dir, "tokenizer.json"), "w", encoding="utf") as f:
+        f.write(minimal_tokenizer)
+
     unittest.main()

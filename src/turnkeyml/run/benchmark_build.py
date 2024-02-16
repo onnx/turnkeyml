@@ -1,7 +1,6 @@
 from typing import List, Dict, Optional
 import multiprocessing
 import traceback
-import tqdm
 import turnkeyml.common.build as build
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.filesystem as fs
@@ -9,6 +8,17 @@ import turnkeyml.common.printing as printing
 from turnkeyml.analyze.script import set_status_on_exception
 from turnkeyml.run.devices import SUPPORTED_RUNTIMES, apply_default_runtime
 import turnkeyml.cli.parser_helpers as parser_helpers
+
+# The licensing for tqdm is confusing. Pending a legal scan,
+# the following code provides tqdm to users who have installed
+# it already, while being transparent to users who do not
+# have tqdm installed.
+try:
+    from tqdm import tqdm
+except ImportError:
+
+    def tqdm(iterable, **kwargs):  # pylint: disable=unused-argument
+        return iterable
 
 
 class Process(multiprocessing.Process):
@@ -192,7 +202,7 @@ def benchmark_cache(
     """
 
     printing.log_warning(
-        "This is an experimental feature. Our plan is to deprecate it"
+        "This is an experimental feature. Our plan is to deprecate it "
         "in favor of a new command, `turnkey benchmark cache/*`, ASAP. "
         "Please see https://github.com/onnx/turnkeyml/issues/115 "
         "for more info."
