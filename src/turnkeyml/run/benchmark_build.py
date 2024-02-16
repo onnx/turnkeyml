@@ -191,6 +191,13 @@ def benchmark_cache(
     of this function is to quickly iterate over many builds.
     """
 
+    printing.log_warning(
+        "This is an experimental feature. Our plan is to deprecate it"
+        "in favor of a new command, `turnkey benchmark cache/*`, ASAP. "
+        "Please see https://github.com/onnx/turnkeyml/issues/115 "
+        "for more info."
+    )
+
     if benchmark_all:
         builds = fs.get_available_builds(cache_dir)
     else:
@@ -201,6 +208,12 @@ def benchmark_cache(
 
     # Iterate over all of the selected builds and benchmark them
     for build_name in tqdm.tqdm(builds):
+        if not fs.is_build_dir(cache_dir, build_name):
+            raise exp.CacheError(
+                f"No build found with name: {build_name}. "
+                "Try running `turnkey cache list` to see the builds in your build cache."
+            )
+
         state = build.load_state(cache_dir, build_name)
         stats = fs.Stats(cache_dir, build_name, state.evaluation_id)
 

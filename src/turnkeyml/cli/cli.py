@@ -429,9 +429,9 @@ def main():
     clean_group = clean_parser.add_mutually_exclusive_group(required=True)
 
     clean_group.add_argument(
-        "build_names",
+        "build_name",
         nargs="?",
-        help="Name of the specific build(s) to be cleaned, within the cache directory",
+        help="Name of the specific build to be cleaned, within the cache directory",
     )
 
     clean_group.add_argument(
