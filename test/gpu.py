@@ -41,29 +41,29 @@ class Testing(unittest.TestCase):
 if __name__ == "__main__":
     test_scripts_dot_py = {
         "linear.py": """# labels: name::linear author::turnkey license::mit test_group::a
-    import torch
+import torch
 
-    torch.manual_seed(0)
-
-
-    class LinearTestModel(torch.nn.Module):
-        def __init__(self, input_features, output_features):
-            super(LinearTestModel, self).__init__()
-            self.fc = torch.nn.Linear(input_features, output_features)
-
-        def forward(self, x):
-            output = self.fc(x)
-            return output
+torch.manual_seed(0)
 
 
-    input_features = 10
-    output_features = 10
+class LinearTestModel(torch.nn.Module):
+    def __init__(self, input_features, output_features):
+        super(LinearTestModel, self).__init__()
+        self.fc = torch.nn.Linear(input_features, output_features)
 
-    # Model and input configurations
-    model = LinearTestModel(input_features, output_features)
-    inputs = {"x": torch.rand(input_features)}
+    def forward(self, x):
+        output = self.fc(x)
+        return output
 
-    output = model(**inputs)
+
+input_features = 10
+output_features = 10
+
+# Model and input configurations
+model = LinearTestModel(input_features, output_features)
+inputs = {"x": torch.rand(input_features)}
+
+output = model(**inputs)
 
     """
     }

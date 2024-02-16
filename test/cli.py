@@ -997,64 +997,65 @@ if __name__ == "__main__":
 
     extras_dot_py = {
         "compiled.py": """
-    # labels: name::linear author::selftest test_group::selftest task::test
-    import torch
+# labels: name::linear author::selftest test_group::selftest task::test
+import torch
 
-    torch.manual_seed(0)
-
-
-    class LinearTestModel(torch.nn.Module):
-        def __init__(self, input_features, output_features):
-            super(LinearTestModel, self).__init__()
-            self.fc = torch.nn.Linear(input_features, output_features)
-
-        def forward(self, x):
-            output = self.fc(x)
-            return output
+torch.manual_seed(0)
 
 
-    input_features = 10
-    output_features = 10
+class LinearTestModel(torch.nn.Module):
+    def __init__(self, input_features, output_features):
+        super(LinearTestModel, self).__init__()
+        self.fc = torch.nn.Linear(input_features, output_features)
 
-    # Compiled model
-    model = LinearTestModel(input_features, output_features)
-    model = torch.compile(model)
-    inputs = {"x": torch.rand(input_features)}
-    model(**inputs)
+    def forward(self, x):
+        output = self.fc(x)
+        return output
 
-    # Non-compiled model
-    model2 = LinearTestModel(input_features * 2, output_features)
-    inputs2 = {"x": torch.rand(input_features * 2)}
-    model2(**inputs2)
+
+input_features = 10
+output_features = 10
+
+# Compiled model
+model = LinearTestModel(input_features, output_features)
+model = torch.compile(model)
+inputs = {"x": torch.rand(input_features)}
+model(**inputs)
+
+# Non-compiled model
+model2 = LinearTestModel(input_features * 2, output_features)
+inputs2 = {"x": torch.rand(input_features * 2)}
+model2(**inputs2)
     """,
         "selected_models.txt": f"""
     {os.path.join(corpus_dir,"linear.py")}
     {os.path.join(corpus_dir,"linear2.py")}
     """,
-        "timeout.py": """# labels: name::timeout author::turnkey license::mit test_group::a task::test
-    import torch
+        "timeout.py": """
+# labels: name::timeout author::turnkey license::mit test_group::a task::test
+import torch
 
-    torch.manual_seed(0)
-
-
-    class LinearTestModel(torch.nn.Module):
-        def __init__(self, input_features, output_features):
-            super(LinearTestModel, self).__init__()
-            self.fc = torch.nn.Linear(input_features, output_features)
-
-        def forward(self, x):
-            output = self.fc(x)
-            return output
+torch.manual_seed(0)
 
 
-    input_features = 500000
-    output_features = 1000
+class LinearTestModel(torch.nn.Module):
+    def __init__(self, input_features, output_features):
+        super(LinearTestModel, self).__init__()
+        self.fc = torch.nn.Linear(input_features, output_features)
 
-    # Model and input configurations
-    model = LinearTestModel(input_features, output_features)
-    inputs = {"x": torch.rand(input_features)}
+    def forward(self, x):
+        output = self.fc(x)
+        return output
 
-    output = model(**inputs)
+
+input_features = 500000
+output_features = 1000
+
+# Model and input configurations
+model = LinearTestModel(input_features, output_features)
+inputs = {"x": torch.rand(input_features)}
+
+output = model(**inputs)
 
     """,
     }
