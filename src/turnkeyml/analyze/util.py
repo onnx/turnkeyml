@@ -124,21 +124,19 @@ class UniqueInvocationInfo(BasicInfo):
         self.skip.file_name = True
         self.skip.model_name = True
 
-    def _print_model_type(
-        self,
-        model_visited: bool,
-    ):
+    def _print_model_type(self):
+        if self.skip.type:
+            return
 
-        if (self.depth == 0 and not model_visited) or (self.depth != 0):
-            if self.depth == 0:
-                if self.model_type == build.ModelType.PYTORCH:
-                    print(f"{self.indent}\tModel Type:\tPytorch (torch.nn.Module)")
-                elif self.model_type == build.ModelType.KERAS:
-                    print(f"{self.indent}\tModel Type:\tKeras (tf.keras.Model)")
-                elif self.model_type == build.ModelType.ONNX_FILE:
-                    print(f"{self.indent}\tModel Type:\tONNX File (.onnx)")
+        if self.depth == 0:
+            if self.model_type == build.ModelType.PYTORCH:
+                print(f"{self.indent}\tModel Type:\tPytorch (torch.nn.Module)")
+            elif self.model_type == build.ModelType.KERAS:
+                print(f"{self.indent}\tModel Type:\tKeras (tf.keras.Model)")
+            elif self.model_type == build.ModelType.ONNX_FILE:
+                print(f"{self.indent}\tModel Type:\tONNX File (.onnx)")
 
-            self.skip.type = True
+        self.skip.type = True
 
     def _print_class(self):
         if self.skip.class_name:
@@ -303,10 +301,12 @@ class UniqueInvocationInfo(BasicInfo):
             model_visited,
             multiple_unique_invocations,
         )
-        self._print_model_type(model_visited)
-        self._print_class()
-        self._print_location()
-        self._print_parameters()
+        if (self.depth == 0 and not model_visited) or (self.depth != 0):
+            # Print this information only once per model
+            self._print_model_type()
+            self._print_class()
+            self._print_location()
+            self._print_parameters()
         self._print_unique_input_shape(
             exec_time_formatted, invocation_idx, multiple_unique_invocations
         )

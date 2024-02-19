@@ -319,6 +319,11 @@ def benchmark_files(
                 #       in the event of any errors
                 #  - Most other values can be left as default
                 invocation_info = UniqueInvocationInfo(
+                    name=onnx_name,
+                    script_name=onnx_name,
+                    file=file_path_absolute,
+                    build_model=not build_only,
+                    model_type=build.ModelType.ONNX_FILE,
                     executed=1,
                     input_shapes=input_shapes,
                     hash=onnx_hash,
