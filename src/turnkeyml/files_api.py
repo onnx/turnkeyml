@@ -172,6 +172,7 @@ def benchmark_files(
     benchmarking_args.pop("labels")
     benchmarking_args.pop("use_slurm")
     benchmarking_args.pop("process_isolation")
+    benchmarking_args.pop("verbosity")
 
     # Make sure the cache directory exists
     filesystem.make_cache_dir(cache_dir)
@@ -242,14 +243,6 @@ def benchmark_files(
     # Use this data structure to keep a running index of all models
     models_found: Dict[str, ModelInfo] = {}
 
-    # Override the verbosity default if many (>4) files
-    # are being evaluated
-    if len(input_files_expanded) > 4:
-        benchmarking_args["verbosity"] = Verbosity.SIMPLE
-        status_bar_enable = True
-    else:
-        status_bar_enable = False
-
     # Fork the args for analysis since they have differences from the spawn args:
     # build_only and analyze_only are encoded into actions
     analysis_args = copy.deepcopy(benchmarking_args)
@@ -257,6 +250,14 @@ def benchmark_files(
     analysis_args.pop("analyze_only")
     analysis_args["actions"] = actions
     analysis_args.pop("timeout")
+
+    # Override the verbosity default if many (>4) files
+    # are being evaluated
+    if len(input_files_expanded) > 4:
+        analysis_args["verbosity"] = Verbosity.SIMPLE
+        status_bar_enable = True
+    else:
+        status_bar_enable = False
 
     for file_path_encoded in tqdm(input_files_expanded, disable=not status_bar_enable):
         # Check runtime requirements if needed. All benchmarking will be halted

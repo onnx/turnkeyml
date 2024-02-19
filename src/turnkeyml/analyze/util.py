@@ -220,7 +220,7 @@ class UniqueInvocationInfo(BasicInfo):
         if self.skip.hash:
             return
 
-        print(f"{self.indent}\tHash:\t\t" + self.hash)
+        print(f"{self.indent}\tModel Hash:\t" + self.hash)
 
         self.skip.hash = True
 
