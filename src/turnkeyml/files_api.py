@@ -38,7 +38,7 @@ except ImportError:
 
 def _select_verbosity(
     verbosity: str, input_files_expanded: List[str], process_isolation: bool
-) -> Verbosity:
+) -> Tuple[Verbosity, bool]:
     """
     Choose verbosity based on the following policies:
         1. The explicit verbosity argument takes priority over AUTO and the env var
@@ -72,7 +72,12 @@ def _select_verbosity(
         else:
             verbosity_selected = Verbosity.APP
 
-    return verbosity_selected
+    # Use a progress bar in SIMPLE mode if there is more than 1 input
+    use_progress_bar = (
+        verbosity_selected == Verbosity.SIMPLE and len(input_files_expanded) > 1
+    )
+
+    return verbosity_selected, use_progress_bar
 
 
 def decode_input_arg(input: str) -> Tuple[str, List[str], str]:
@@ -281,7 +286,7 @@ def benchmark_files(
     # Use this data structure to keep a running index of all models
     models_found: Dict[str, ModelInfo] = {}
 
-    verbosity_policy = _select_verbosity(
+    verbosity_policy, use_progress_bar = _select_verbosity(
         verbosity, input_files_expanded, process_isolation
     )
     benchmarking_args["verbosity"] = verbosity_policy
@@ -294,9 +299,7 @@ def benchmark_files(
     analysis_args["actions"] = actions
     analysis_args.pop("timeout")
 
-    for file_path_encoded in tqdm(
-        input_files_expanded, disable=verbosity_policy != Verbosity.SIMPLE
-    ):
+    for file_path_encoded in tqdm(input_files_expanded, disable=not use_progress_bar):
         # Check runtime requirements if needed. All benchmarking will be halted
         # if requirements are not met. This happens regardless of whether
         # process-isolation is used or not.
