@@ -52,6 +52,7 @@ class TracerArgs:
     script_name: Optional[str] = None
     sequence: Optional[Sequence] = None
     rt_args: Optional[Dict] = None
+    verbosity: util.Verbosity = util.Verbosity.APP
 
     @functools.cached_property
     def labels(self) -> Dict[str, str]:
@@ -93,8 +94,7 @@ class TracerArgs:
                 # 1. It spans multiple invocations
                 # 2. Includes all the weights of all the models
                 continue
-
-            if isinstance(arg_value, Sequence):
+            elif isinstance(arg_value, Sequence):
                 # `sequence` can be a str or Sequence
                 # If we receive an instance of Sequence, we need to convert it
                 # to a string to save it to YAML
@@ -191,9 +191,15 @@ def explore_invocation(
     invocation_info.status_message_color = printing.Colors.OKBLUE
 
     build_name = fs.get_build_name(
-        tracer_args.script_name, tracer_args.labels, invocation_info.hash
+        tracer_args.script_name, tracer_args.labels, invocation_info.invocation_hash
     )
-    status.update(tracer_args.models_found, build_name, tracer_args.cache_dir)
+    status.update(
+        tracer_args.models_found,
+        build_name,
+        tracer_args.cache_dir,
+        invocation_info,
+        tracer_args.verbosity,
+    )
 
     # Organize the inputs to python model instances
     # Not necessary for ONNX models
@@ -504,7 +510,13 @@ def explore_invocation(
         # Ensure that stdout/stderr is not being forwarded before updating status
         util.stop_logger_forward()
 
-        status.update(tracer_args.models_found, build_name, tracer_args.cache_dir)
+        status.update(
+            tracer_args.models_found,
+            build_name,
+            tracer_args.cache_dir,
+            invocation_info,
+            tracer_args.verbosity,
+        )
 
         if tracer_args.lean_cache:
             printing.log_info("Removing build artifacts...")
@@ -758,7 +770,8 @@ def explore_frame(
                         build_model=model_info.build_model,
                         model_type=model_info.model_type,
                         model_class=type(model_info.model),
-                        hash=invocation_hash,
+                        invocation_hash=invocation_hash,
+                        hash=model_info.hash,
                         is_target=invocation_hash in tracer_args.targets
                         or len(tracer_args.targets) == 0,
                         input_shapes=input_shapes,
@@ -795,9 +808,17 @@ def explore_frame(
                 model_info.executed = 1
 
             build_name = fs.get_build_name(
-                tracer_args.script_name, tracer_args.labels, invocation_info.hash
+                tracer_args.script_name,
+                tracer_args.labels,
+                invocation_info.invocation_hash,
             )
-            status.update(tracer_args.models_found, build_name, tracer_args.cache_dir)
+            status.update(
+                tracer_args.models_found,
+                build_name,
+                tracer_args.cache_dir,
+                invocation_info,
+                tracer_args.verbosity,
+            )
 
             # Turn tracing on again after computing the outputs
             sys.setprofile(tracer)

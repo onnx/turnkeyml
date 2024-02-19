@@ -20,7 +20,7 @@ from turnkeyml.analyze.script import (
     explore_invocation,
     get_model_hash,
 )
-from turnkeyml.analyze.util import ModelInfo, UniqueInvocationInfo
+from turnkeyml.analyze.util import ModelInfo, UniqueInvocationInfo, Verbosity
 import turnkeyml.common.build as build
 import turnkeyml.build.onnx_helpers as onnx_helpers
 
@@ -110,6 +110,7 @@ def benchmark_files(
     timeout: Optional[int] = None,
     sequence: Union[str, stage.Sequence] = None,
     rt_args: Optional[Dict] = None,
+    verbosity: str = Verbosity.SIMPLE,
 ):
     # Capture the function arguments so that we can forward them
     # to downstream APIs

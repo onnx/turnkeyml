@@ -13,6 +13,7 @@ from turnkeyml.version import __version__ as turnkey_version
 from turnkeyml.run.devices import SUPPORTED_DEVICES, SUPPORTED_RUNTIMES
 from turnkeyml.build.sequences import SUPPORTED_SEQUENCES
 from turnkeyml.cli.spawn import DEFAULT_TIMEOUT_SECONDS
+from turnkeyml.analyze.util import Verbosity
 
 
 class MyParser(argparse.ArgumentParser):
@@ -57,7 +58,7 @@ def benchmark_command(args):
     # Decode CLI arguments before calling the API
     api_args["rt_args"] = parser_helpers.decode_args(api_args["rt_args"])
 
-    benchmark_files(**api_args)
+    benchmark_files(verbosity=Verbosity.APP, **api_args)
 
 
 def main():

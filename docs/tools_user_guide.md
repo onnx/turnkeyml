@@ -595,14 +595,33 @@ For example:
 export TURNKEY_TRACEBACK=False
 ```
 
-### Preserve Terminal Outputs
+### Change Status Verbosity
 
-By default, `turnkey` and `benchmark_files()` will erase the contents of the terminal in order to present a clean status update for each script and model evaluated. 
+By default, `turnkey` will erase the contents of the terminal in order to present a clean status update for each script and model evaluated. We call this the "app" verbosity mode. The "app" mode engages as long as 4 or fewer input files are provided. Additionally, there is an "app_low" verbosity mode that prints a reduces amount of information.
 
-However, you may want to see everything that is being printed to the terminal. You can accomplish this by setting the `TURNKEY_DEBUG` environment variable to `True`. For example:
+There is also a "simple" verbosity mode that does not clear the terminal. `turnkey` defaults to the "simple" mode when 5 or more input files are provided. `benchmark_files()` defaults to the "simple" verbosity mode regardless of the number of input files.
+
+You may override these default values by setting the `TURNKEY_STATUS` environment variable. For example:
 
 ```
-export TURNKEY_DEBUG=True
+# Use the "simple" verbosity mode
+export TURNKEY_VERBOSITY=simple
+
+# Use the "app" verbosity mode
+export TURNKEY_VERBOSITY=app
+
+# Use the "app_low" verbosity mode
+export TURNKEY_VERBOSITY=app_low
+```
+
+### Print Less Status
+
+By default, `turnkey` and `benchmark_files()` print a large amount of 
+
+However, you may want to see everything that is being printed to the terminal. You can accomplish this by setting the `TURNKEY_STATUS` environment variable to `debug`. For example:
+
+```
+export TURNKEY_STATUS=debug
 ```
 
 ### Set the ONNX Opset

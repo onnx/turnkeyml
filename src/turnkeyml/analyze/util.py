@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Callable, List, Union, Dict, Optional
 import dataclasses
 import os
+from enum import Enum
 import math
 import numpy as np
 import torch
@@ -37,6 +38,12 @@ def parameters_to_size(parameters: int, byte_per_parameter: int = 4) -> str:
     return "%s %s" % (s, size_name[i])
 
 
+class Verbosity:
+    APP = "app"
+    APP_LOW = "app_low"
+    SIMPLE = "simple"
+
+
 @dataclass
 class BasicInfo:
     name: str
@@ -49,6 +56,8 @@ class BasicInfo:
     build_model: bool = False
     model_type: build.ModelType = build.ModelType.PYTORCH
     model_class: type = None
+    # This is the "model hash", not to be confused with the
+    # "invocation hash"
     hash: Union[str, None] = None
 
 
@@ -63,7 +72,7 @@ class SkipFields:
 
     file_name: bool = False
     model_name: bool = False
-    type: bool = False
+    model_type: bool = False
     parameters: bool = False
     class_name: bool = False
     location: bool = False
@@ -72,6 +81,7 @@ class SkipFields:
     build_dir: bool = False
     outcome: bool = False
     unique_input_shape: bool = False
+    previous_status_message: Optional[str] = None
 
 
 @dataclass
@@ -81,6 +91,7 @@ class UniqueInvocationInfo(BasicInfo):
     (i.e. models executed with unique input shapes)
     """
 
+    invocation_hash: Union[str, None] = None
     performance: MeasuredPerformance = None
     traceback: List[str] = None
     inputs: Union[dict, None] = None
@@ -106,6 +117,9 @@ class UniqueInvocationInfo(BasicInfo):
         model_visited: bool,
         multiple_unique_invocations: bool,
     ):
+        if self.skip.file_name or self.skip.model_name:
+            return
+
         if print_file_name:
             print(f"{self.script_name}{self.extension}:")
 
@@ -125,7 +139,7 @@ class UniqueInvocationInfo(BasicInfo):
         self.skip.model_name = True
 
     def _print_model_type(self):
-        if self.skip.type:
+        if self.skip.model_type:
             return
 
         if self.depth == 0:
@@ -136,7 +150,7 @@ class UniqueInvocationInfo(BasicInfo):
             elif self.model_type == build.ModelType.ONNX_FILE:
                 print(f"{self.indent}\tModel Type:\tONNX File (.onnx)")
 
-        self.skip.type = True
+        self.skip.model_type = True
 
     def _print_class(self):
         if self.skip.class_name:
@@ -217,9 +231,16 @@ class UniqueInvocationInfo(BasicInfo):
 
         self.skip.build_dir = True
 
-    def _print_outcome(self):
-        if self.skip.outcome:
-            return
+    def _print_status(self):
+        if self.skip.previous_status_message:
+            if self.skip.previous_status_message == self.status_message:
+                # This is a special case for skipping: we only want to skip
+                # printing the outcome if we have already printed that
+                # exact message already.
+                return
+            else:
+                # Print some whitespace to help the status stand out
+                print()
 
         # Print turnkey results if turnkey was run
         if self.performance:
@@ -268,7 +289,7 @@ class UniqueInvocationInfo(BasicInfo):
                 else:
                     print()
 
-        self.skip.outcome = True
+        self.skip.previous_status_message = self.status_message
 
     def print(
         self,
@@ -313,7 +334,7 @@ class UniqueInvocationInfo(BasicInfo):
         self._print_input_shape()
         self._print_hash()
         self._print_build_dir(cache_dir=cache_dir, build_name=build_name)
-        self._print_outcome()
+        self._print_status()
 
         print()
 
