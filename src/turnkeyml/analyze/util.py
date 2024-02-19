@@ -101,9 +101,10 @@ class UniqueInvocationInfo(BasicInfo):
 
     def _print_heading(
         self,
+        exec_time_formatted: str,
         print_file_name: bool,
         model_visited: bool,
-        multiple_unique_invocations: bool = False,
+        multiple_unique_invocations: bool,
     ):
         if print_file_name:
             print(f"{self.script_name}{self.extension}:")
@@ -116,7 +117,7 @@ class UniqueInvocationInfo(BasicInfo):
             else:
                 printing.log(f"{self.indent}{self.name}")
                 printing.logn(
-                    f" (executed {self.executed}x{self.exec_time})",
+                    f" (executed {self.executed}x{exec_time_formatted})",
                     c=printing.Colors.OKGREEN,
                 )
 
@@ -171,14 +172,19 @@ class UniqueInvocationInfo(BasicInfo):
 
         self.skip.parameters = True
 
-    def _print_unique_input_shape(self, invocation_idx, multiple_unique_invocations):
+    def _print_unique_input_shape(
+        self,
+        exec_time_formatted: str,
+        invocation_idx: int,
+        multiple_unique_invocations: bool,
+    ):
         if self.skip.unique_input_shape:
             return
 
         if self.depth == 0 and multiple_unique_invocations:
             printing.logn(
                 f"\n{self.indent}\tWith input shape {invocation_idx+1} "
-                f"(executed {self.executed}x{self.exec_time})",
+                f"(executed {self.executed}x{exec_time_formatted})",
                 c=printing.Colors.OKGREEN,
             )
 
@@ -287,16 +293,23 @@ class UniqueInvocationInfo(BasicInfo):
             self.indent = "\t" * (2 * self.depth + 1)
 
         if self.exec_time == 0 or self.build_model:
-            self.exec_time = ""
+            exec_time_formatted = ""
         else:
-            self.exec_time = f" - {self.exec_time:.2f}s"
+            exec_time_formatted = f" - {self.exec_time:.2f}s"
 
-        self._print_heading(print_file_name, model_visited, multiple_unique_invocations)
+        self._print_heading(
+            exec_time_formatted,
+            print_file_name,
+            model_visited,
+            multiple_unique_invocations,
+        )
         self._print_model_type(model_visited)
         self._print_class()
         self._print_location()
         self._print_parameters()
-        self._print_unique_input_shape(invocation_idx, multiple_unique_invocations)
+        self._print_unique_input_shape(
+            exec_time_formatted, invocation_idx, multiple_unique_invocations
+        )
         self._print_input_shape()
         self._print_hash()
         self._print_build_dir(cache_dir=cache_dir, build_name=build_name)

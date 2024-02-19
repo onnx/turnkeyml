@@ -1,11 +1,8 @@
 import os
-import dataclasses
-import math
 import platform
 from typing import Dict, Union, List
 from turnkeyml.common import printing
-import turnkeyml.common.build as build
-from turnkeyml.analyze.util import ModelInfo, BasicInfo
+from turnkeyml.analyze.util import ModelInfo, SkipFields
 
 
 def update(
@@ -61,6 +58,9 @@ def recursive_print(
                     if model_info.depth == 0:
                         print_file_name = True
 
+                # In this verbosity mode we want to print all of the information
+                # every time, so reset SkipFields
+                unique_invocation.skip = SkipFields()
                 unique_invocation.print(
                     build_name=build_name,
                     cache_dir=cache_dir,
