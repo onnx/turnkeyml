@@ -493,15 +493,14 @@ Also available as API arguments:
 
 The following verbosity settings for `turnkey` tool are:
 
+- `auto` verbosity: select one of the following, according to the policies below.
 - `app` verbosity: take over the terminal, erasing its contents, and displaying a clean status update summarizing the results for each script and model evaluated.
 - `app_low` verbosity: similar to `app`, but prints less information about each evaluation. Useful for demos.
 - `simple` verbosity: print each piece of evaluation information as it becomes available. Never erase the terminal. Useful for scripted environments and mass-evaluation of many files.
 
-By default, verbosity is automatically determined based on the following policies:
-- When using the CLI...
-  - with 4 or fewer input files: `app`
-  - with more than 4 input files, and/or when process isolation is enabled: `simple`
-- When using the API: `simple`
+In `auto` mode, verbosity is automatically determined based on the following policies:
+- with 4 or fewer input files: `app`
+- with more than 4 input files, and/or when process isolation is enabled: `simple`
 
 The defaults can be overridden with the `--verbosity` option. Usage:
 - `turnkey benchmark INPUT_FILES --verbosity VERBOSITY`
