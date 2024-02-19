@@ -36,6 +36,45 @@ except ImportError:
         return iterable
 
 
+def _select_verbosity(
+    verbosity: str, input_files_expanded: List[str], process_isolation: bool
+) -> Verbosity:
+    """
+    Choose verbosity based on the following policies:
+        1. The explicit verbosity argument takes priority over AUTO and the env var
+        2. The env var takes priority over AUTO
+        3. Use SIMPLE when there are many inputs, or in process isolation mode,
+            and use APP otherwise
+
+    Returns the selected verbosity.
+    """
+
+    verbosity_choices = {
+        field.value: field for field in Verbosity if field != Verbosity.AUTO
+    }
+    verbosity_env_var = os.environ.get("TURNKEY_VERBOSITY")
+
+    if verbosity != Verbosity.AUTO.value:
+        # Specific verbosity argument takes priority over env var
+        verbosity_selected = verbosity_choices[verbosity]
+    elif verbosity_env_var in verbosity_choices.keys():
+        # Env var takes priority over AUTO
+        verbosity_selected = verbosity_choices[verbosity_env_var]
+    else:
+        # Verbosity.AUTO and no env var
+        if len(input_files_expanded) > 4 or process_isolation:
+            # Automatically select SIMPLE if:
+            # - There are many evaluations (>4), since APP mode works
+            #       best when all results fit on one screen
+            # - Process isolation mode is active, since APP mode is
+            #       incompatible with process isolation
+            verbosity_selected = Verbosity.SIMPLE
+        else:
+            verbosity_selected = Verbosity.APP
+
+    return verbosity_selected
+
+
 def decode_input_arg(input: str) -> Tuple[str, List[str], str]:
     # Parse the targets out of the file name
     # Targets use the format:
@@ -242,14 +281,10 @@ def benchmark_files(
     # Use this data structure to keep a running index of all models
     models_found: Dict[str, ModelInfo] = {}
 
-    # Override the verbosity default if many (>4) files
-    # are being evaluated. Also override in process_isolation mode,
-    # since it is incompatible with "app" mode.
-    if len(input_files_expanded) > 4 or process_isolation:
-        benchmarking_args["verbosity"] = Verbosity.SIMPLE
-        status_bar_enable = True
-    else:
-        status_bar_enable = False
+    verbosity_policy = _select_verbosity(
+        verbosity, input_files_expanded, process_isolation
+    )
+    benchmarking_args["verbosity"] = verbosity_policy
 
     # Fork the args for analysis since they have differences from the spawn args:
     # build_only and analyze_only are encoded into actions
@@ -259,7 +294,9 @@ def benchmark_files(
     analysis_args["actions"] = actions
     analysis_args.pop("timeout")
 
-    for file_path_encoded in tqdm(input_files_expanded, disable=not status_bar_enable):
+    for file_path_encoded in tqdm(
+        input_files_expanded, disable=verbosity_policy != Verbosity.SIMPLE
+    ):
         # Check runtime requirements if needed. All benchmarking will be halted
         # if requirements are not met. This happens regardless of whether
         # process-isolation is used or not.

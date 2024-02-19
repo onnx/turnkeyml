@@ -99,6 +99,8 @@ class TracerArgs:
                 # If we receive an instance of Sequence, we need to convert it
                 # to a string to save it to YAML
                 saved_value = arg_value.sequence.__class__.__name__
+            elif isinstance(arg_value, util.Verbosity):
+                saved_value = arg_value.value
             elif isinstance(arg_value, list) and any(
                 isinstance(arg_sub_value, Action) for arg_sub_value in arg_value
             ):

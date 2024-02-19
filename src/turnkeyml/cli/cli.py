@@ -285,13 +285,13 @@ def main():
         "applies when --process-isolation or --use-slurm is also used.",
     )
 
-    default_verbosity = Verbosity.APP
+    default_verbosity = Verbosity.AUTO.value
     all_toolflows_group.add_argument(
         "--verbosity",
-        type=str,
+        choices=[field.value for field in Verbosity],
         default=default_verbosity,
         help="Verbosity of the status updates printed to the command line "
-        f"(default={default_verbosity}). 'app': take over the terminal. 'app_low': "
+        f"(default={default_verbosity}, which automatically chooses one of the following). 'app': take over the terminal. 'app_low': "
         "less verbose version of 'app'. 'simple': print each evaluation "
         "as it takes place.",
     )

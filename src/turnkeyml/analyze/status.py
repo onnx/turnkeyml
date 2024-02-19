@@ -22,18 +22,7 @@ def update(
     Prints all models and submodels found
     """
 
-    # Override the default verbosity setting if the user has
-    # set an environment variable
-    if os.environ.get("TURNKEY_VERBOSITY") == "simple":
-        verbosity_selected = Verbosity.SIMPLE
-    elif os.environ.get("TURNKEY_VERBOSITY") == "app_low":
-        verbosity_selected = Verbosity.APP_LOW
-    elif os.environ.get("TURNKEY_VERBOSITY") == "app":
-        verbosity_selected = Verbosity.APP
-    else:
-        verbosity_selected = verbosity
-
-    if verbosity_selected == Verbosity.APP or verbosity_selected == Verbosity.APP_LOW:
+    if verbosity == Verbosity.APP or verbosity == Verbosity.APP_LOW:
         if platform.system() != "Windows":
             os.system("clear")
         else:
@@ -50,7 +39,7 @@ def update(
             parent_model_hash=None,
             parent_invocation_hash=None,
             script_names_visited=[],
-            demo_mode=verbosity_selected == Verbosity.APP_LOW,
+            demo_mode=verbosity == Verbosity.APP_LOW,
         )
     else:  # Verbosity.simple
         if invocation_info.model_type == build.ModelType.ONNX_FILE:

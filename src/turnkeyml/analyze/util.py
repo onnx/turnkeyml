@@ -4,6 +4,7 @@ from typing import Callable, List, Union, Dict, Optional
 import dataclasses
 import os
 import math
+from enum import Enum
 import numpy as np
 import torch
 import onnx
@@ -37,7 +38,8 @@ def parameters_to_size(parameters: int, byte_per_parameter: int = 4) -> str:
     return "%s %s" % (s, size_name[i])
 
 
-class Verbosity:
+class Verbosity(Enum):
+    AUTO = "auto"
     APP = "app"
     APP_LOW = "app_low"
     SIMPLE = "simple"

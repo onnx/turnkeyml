@@ -68,12 +68,7 @@ jobs:
           # E2E tests
           cd test/
           python cli.py
-
-          # The analysis test relies on a literal interpretation
-          # of the output in "app" verbosity
-          export TURNKEY_VERBOSITY=app
           python analysis.py
-          export TURNKEY_VERBOSITY=simple
       - name: Test example plugins
         shell: bash -el {0}
         run: |
