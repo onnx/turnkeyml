@@ -375,8 +375,6 @@ class Testing(unittest.TestCase):
             build_name,
             "--cache-dir",
             cache_dir,
-            "--verbosity",
-            Verbosity.APP.value,
         ]
         subprocess.run(cmd, check=True)
 
