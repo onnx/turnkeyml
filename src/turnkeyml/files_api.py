@@ -165,7 +165,7 @@ def benchmark_files(
     timeout: Optional[int] = None,
     sequence: Union[str, stage.Sequence] = None,
     rt_args: Optional[Dict] = None,
-    verbosity: str = Verbosity.SIMPLE,
+    verbosity: str = Verbosity.SIMPLE.value,
 ):
 
     # Capture the function arguments so that we can forward them
