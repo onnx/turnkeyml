@@ -489,6 +489,26 @@ None of the built-in runtimes support such arguments, however plugin contributor
 Also available as API arguments:
 - `benchmark_files(rt_args=Dict)` (default None)
 
+### Verbosity
+
+The following verbosity settings for `turnkey` tool are:
+
+- `app` verbosity: take over the terminal, erasing its contents, and displaying a clean status update summarizing the results for each script and model evaluated.
+- `app_low` verbosity: similar to `app`, but prints less information about each evaluation. Useful for demos.
+- `simple` verbosity: print each piece of evaluation information as it becomes available. Never erase the terminal. Useful for scripted environments and mass-evaluation of many files.
+
+By default, verbosity is automatically determined based on the following policies:
+- When using the CLI...
+  - with 4 or fewer input files: `app`
+  - with more than 4 input files, and/or when process isolation is enabled: `simple`
+- When using the API: `simple`
+
+The defaults can be overridden with the `--verbosity` option. Usage:
+- `turnkey benchmark INPUT_FILES --verbosity VERBOSITY`
+
+Also available as an API argument:
+- `benchmark_files(verbosity=...)`
+
 ## Cache Commands
 
 The `cache` commands help you manage the `turnkey cache` and get information about the builds and benchmarks within it.
@@ -597,11 +617,7 @@ export TURNKEY_TRACEBACK=False
 
 ### Change Status Verbosity
 
-By default, `turnkey` will erase the contents of the terminal in order to present a clean status update for each script and model evaluated. We call this the "app" verbosity mode. The "app" mode engages as long as 4 or fewer input files are provided. Additionally, there is an "app_low" verbosity mode that prints a reduces amount of information.
-
-There is also a "simple" verbosity mode that does not clear the terminal. `turnkey` defaults to the "simple" mode when 5 or more input files are provided. Additionally, `benchmark_files()` defaults to the "simple" verbosity mode regardless of the number of input files.
-
-You may override these default values by setting the `TURNKEY_STATUS` environment variable. For example:
+By default, `turnkey` will automatically apply a verbosity policy.  You may override these default values by setting the `TURNKEY_STATUS` environment variable. For example:
 
 ```
 # Use the "simple" verbosity mode
@@ -613,8 +629,6 @@ export TURNKEY_VERBOSITY=app
 # Use the "app_low" verbosity mode
 export TURNKEY_VERBOSITY=app_low
 ```
-
-Finally, API developers can set the verbosity level with the `benchmark_files(verbosity=...)` argument.
 
 ### Set the ONNX Opset
 

@@ -58,7 +58,7 @@ def benchmark_command(args):
     # Decode CLI arguments before calling the API
     api_args["rt_args"] = parser_helpers.decode_args(api_args["rt_args"])
 
-    benchmark_files(verbosity=Verbosity.APP, **api_args)
+    benchmark_files(**api_args)
 
 
 def main():
@@ -283,6 +283,17 @@ def main():
         help="Build timeout, in seconds, after which a build will be canceled "
         f"(default={DEFAULT_TIMEOUT_SECONDS}). Only "
         "applies when --process-isolation or --use-slurm is also used.",
+    )
+
+    default_verbosity = Verbosity.APP
+    all_toolflows_group.add_argument(
+        "--verbosity",
+        type=str,
+        default=default_verbosity,
+        help="Verbosity of the status updates printed to the command line "
+        f"(default={default_verbosity}). 'app': take over the terminal. 'app_low': "
+        "less verbose version of 'app'. 'simple': print each evaluation "
+        "as it takes place.",
     )
 
     #######################################
