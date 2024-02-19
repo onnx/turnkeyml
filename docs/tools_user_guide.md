@@ -614,16 +614,6 @@ export TURNKEY_VERBOSITY=app
 export TURNKEY_VERBOSITY=app_low
 ```
 
-### Print Less Status
-
-By default, `turnkey` and `benchmark_files()` print a large amount of 
-
-However, you may want to see everything that is being printed to the terminal. You can accomplish this by setting the `TURNKEY_STATUS` environment variable to `debug`. For example:
-
-```
-export TURNKEY_STATUS=debug
-```
-
 ### Set the ONNX Opset
 
 By default, `turnkey`, `benchmark_files()`, and `build_model()` will use the default ONNX opset defined in `turnkey.common.build.DEFAULT_ONNX_OPSET`. You can set a different default ONNX opset by setting the `TURNKEY_ONNX_OPSET` environment variable.
