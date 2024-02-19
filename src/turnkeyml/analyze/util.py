@@ -79,7 +79,6 @@ class SkipFields:
     input_shape: bool = False
     hash: bool = False
     build_dir: bool = False
-    outcome: bool = False
     unique_input_shape: bool = False
     previous_status_message: Optional[str] = None
 
@@ -106,9 +105,12 @@ class UniqueInvocationInfo(BasicInfo):
     stats: fs.Stats = None
 
     # Fields specific to printing status
-    skip: SkipFields = SkipFields()
+    skip: SkipFields = None
     extension: str = None
     indent: str = None
+
+    def __post_init__(self):
+        self.skip = SkipFields()
 
     def _print_heading(
         self,

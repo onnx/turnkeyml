@@ -24,6 +24,17 @@ from turnkeyml.analyze.util import ModelInfo, UniqueInvocationInfo, Verbosity
 import turnkeyml.common.build as build
 import turnkeyml.build.onnx_helpers as onnx_helpers
 
+# The licensing for tqdm is confusing. Pending a legal scan,
+# the following code provides tqdm to users who have installed
+# it already, while being transparent to users who do not
+# have tqdm installed.
+try:
+    from tqdm import tqdm
+except ImportError:
+
+    def tqdm(iterable, **kwargs):  # pylint: disable=unused-argument
+        return iterable
+
 
 def decode_input_arg(input: str) -> Tuple[str, List[str], str]:
     # Parse the targets out of the file name
@@ -112,6 +123,7 @@ def benchmark_files(
     rt_args: Optional[Dict] = None,
     verbosity: str = Verbosity.SIMPLE,
 ):
+
     # Capture the function arguments so that we can forward them
     # to downstream APIs
     benchmarking_args = copy.deepcopy(locals())
@@ -230,6 +242,14 @@ def benchmark_files(
     # Use this data structure to keep a running index of all models
     models_found: Dict[str, ModelInfo] = {}
 
+    # Override the verbosity default if many (>4) files
+    # are being evaluated
+    if len(input_files_expanded) > 4:
+        benchmarking_args["verbosity"] = Verbosity.SIMPLE
+        status_bar_enable = True
+    else:
+        status_bar_enable = False
+
     # Fork the args for analysis since they have differences from the spawn args:
     # build_only and analyze_only are encoded into actions
     analysis_args = copy.deepcopy(benchmarking_args)
@@ -238,7 +258,7 @@ def benchmark_files(
     analysis_args["actions"] = actions
     analysis_args.pop("timeout")
 
-    for file_path_encoded in input_files_expanded:
+    for file_path_encoded in tqdm(input_files_expanded, disable=not status_bar_enable):
         # Check runtime requirements if needed. All benchmarking will be halted
         # if requirements are not met. This happens regardless of whether
         # process-isolation is used or not.

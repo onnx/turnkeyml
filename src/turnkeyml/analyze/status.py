@@ -51,7 +51,7 @@ def update(
             script_names_visited=[],
             demo_mode=verbosity_selected == Verbosity.APP_LOW,
         )
-    else:  # Verbosity.MASS
+    else:  # Verbosity.simple
         multiple_unique_invocations = (
             len(models_found[invocation_info.hash].unique_invocations) > 1
         )
