@@ -5,7 +5,7 @@ import platform
 from typing import Dict, Union, List
 from turnkeyml.common import printing
 import turnkeyml.common.build as build
-from turnkeyml.analyze.util import ModelInfo
+from turnkeyml.analyze.util import ModelInfo, BasicInfo
 
 
 def update(
@@ -63,15 +63,13 @@ def recursive_print(
                     if model_info.depth == 0:
                         print_file_name = True
 
-                m = Monitor()
-                m.print(
-                    model_info,
-                    build_name,
-                    cache_dir,
-                    invocation_hash,
-                    print_file_name,
+                unique_invocation.print(
+                    build_name=build_name,
+                    cache_dir=cache_dir,
+                    print_file_name=print_file_name,
                     invocation_idx=invocation_idx,
                     model_visited=model_visited,
+                    multiple_unique_invocations=len(model_info.unique_invocations) > 1,
                 )
                 model_visited = True
                 invocation_idx += 1
@@ -316,7 +314,7 @@ class Monitor:
 
     def print(
         self,
-        model_info: ModelInfo,
+        model_info: BasicInfo,
         build_name: str,
         cache_dir: str,
         invocation_hash: Union[str, None],

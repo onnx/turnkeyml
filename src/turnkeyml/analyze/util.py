@@ -2,6 +2,8 @@ import sys
 from dataclasses import dataclass
 from typing import Callable, List, Union, Dict, Optional
 import dataclasses
+import os
+import math
 import numpy as np
 import torch
 import onnx
@@ -17,15 +19,68 @@ class AnalysisException(Exception):
     """
 
 
+def _pretty_print_key(key: str) -> str:
+    result = key.split("_")
+    result = [word.capitalize() for word in result]
+    result = " ".join(result)
+    return result
+
+
+def parameters_to_size(parameters: int, byte_per_parameter: int = 4) -> str:
+    size_bytes = parameters * byte_per_parameter
+    if size_bytes == 0:
+        return "0B"
+    size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+    i = int(math.floor(math.log(size_bytes, 1024)))
+    p = math.pow(1024, i)
+    s = round(size_bytes / p, 2)
+    return "%s %s" % (s, size_name[i])
+
+
 @dataclass
-class UniqueInvocationInfo:
+class BasicInfo:
+    name: str
+    script_name: str
+    file: str = ""
+    line: int = 0
+    params: int = 0
+    depth: int = 0
+    parent_hash: Union[str, None] = None
+    build_model: bool = False
+    model_type: build.ModelType = build.ModelType.PYTORCH
+    model_class: type = None
+    hash: Union[str, None] = None
+
+
+@dataclasses.dataclass
+class SkipFields:
+    """
+    Keep track of which fields of a model's status should be skipped
+    during printout. There are two use cases in mind:
+    - For incremental printout: fields that have already been printed.
+    - For low-verbosity: fields that should never be printed.
+    """
+
+    file_name: bool = False
+    model_name: bool = False
+    type: bool = False
+    parameters: bool = False
+    class_name: bool = False
+    location: bool = False
+    input_shape: bool = False
+    hash: bool = False
+    build_dir: bool = False
+    outcome: bool = False
+    unique_input_shape: bool = False
+
+
+@dataclass
+class UniqueInvocationInfo(BasicInfo):
     """
     Refers to unique static model invocations
     (i.e. models executed with unique input shapes)
     """
 
-    hash: Union[str, None] = None
-    parent_hash: Union[str, None] = None
     performance: MeasuredPerformance = None
     traceback: List[str] = None
     inputs: Union[dict, None] = None
@@ -39,25 +94,225 @@ class UniqueInvocationInfo:
     stats_keys: Optional[List[str]] = None
     stats: fs.Stats = None
 
+    # Fields specific to printing status
+    skip: SkipFields = SkipFields()
+    extension: str = None
+    indent: str = None
+
+    def _print_heading(
+        self,
+        print_file_name: bool,
+        model_visited: bool,
+        multiple_unique_invocations: bool = False,
+    ):
+        if print_file_name:
+            print(f"{self.script_name}{self.extension}:")
+
+        # Print invocation about the model (only applies to scripts, not ONNX files)
+        if self.model_type != build.ModelType.ONNX_FILE:
+            if self.depth == 0 and multiple_unique_invocations:
+                if not model_visited:
+                    printing.logn(f"{self.indent}{self.name}")
+            else:
+                printing.log(f"{self.indent}{self.name}")
+                printing.logn(
+                    f" (executed {self.executed}x{self.exec_time})",
+                    c=printing.Colors.OKGREEN,
+                )
+
+        self.skip.file_name = True
+        self.skip.model_name = True
+
+    def _print_model_type(
+        self,
+        model_visited: bool,
+    ):
+
+        if (self.depth == 0 and not model_visited) or (self.depth != 0):
+            if self.depth == 0:
+                if self.model_type == build.ModelType.PYTORCH:
+                    print(f"{self.indent}\tModel Type:\tPytorch (torch.nn.Module)")
+                elif self.model_type == build.ModelType.KERAS:
+                    print(f"{self.indent}\tModel Type:\tKeras (tf.keras.Model)")
+                elif self.model_type == build.ModelType.ONNX_FILE:
+                    print(f"{self.indent}\tModel Type:\tONNX File (.onnx)")
+
+            self.skip.type = True
+
+    def _print_class(self):
+        if self.skip.class_name:
+            return
+
+        # Display class of model and where it was found, if
+        # the an input script (and not an input onnx file) was used
+        if self.model_type != build.ModelType.ONNX_FILE:
+            print(
+                f"{self.indent}\tClass:\t\t{self.model_class.__name__} ({self.model_class})"
+            )
+            self.skip.class_name = True
+
+    def _print_location(self):
+        if self.skip.location:
+            return
+
+        if self.depth == 0:
+            print(f"{self.indent}\tLocation:\t{self.file}, line {self.line}")
+            self.skip.location = True
+
+    def _print_parameters(self):
+        if self.skip.parameters:
+            return
+
+        # Display number of parameters and size
+        parameters_size = parameters_to_size(self.params)
+        print(
+            f"{self.indent}\tParameters:\t{'{:,}'.format(self.params)} ({parameters_size})"
+        )
+
+        self.skip.parameters = True
+
+    def _print_unique_input_shape(self, invocation_idx, multiple_unique_invocations):
+        if self.skip.unique_input_shape:
+            return
+
+        if self.depth == 0 and multiple_unique_invocations:
+            printing.logn(
+                f"\n{self.indent}\tWith input shape {invocation_idx+1} "
+                f"(executed {self.executed}x{self.exec_time})",
+                c=printing.Colors.OKGREEN,
+            )
+
+        self.skip.unique_input_shape = True
+
+    def _print_input_shape(self):
+        if self.skip.input_shape:
+            return
+
+        # Prepare input shape to be printed
+        input_shape = dict(self.input_shapes)
+        input_shape = {key: value for key, value in input_shape.items() if value != ()}
+        input_shape = str(input_shape).replace("{", "").replace("}", "")
+
+        print(f"{self.indent}\tInput Shape:\t{input_shape}")
+
+        self.skip.input_shape = True
+
+    def _print_hash(self):
+        if self.skip.hash:
+            return
+
+        print(f"{self.indent}\tHash:\t\t" + self.hash)
+
+        self.skip.hash = True
+
+    def _print_build_dir(self, cache_dir: str, build_name: str):
+        if self.skip.build_dir:
+            return
+
+        print(f"{self.indent}\tBuild dir:\t {build.output_dir(cache_dir, build_name)}")
+
+        self.skip.build_dir = True
+
+    def _print_outcome(self):
+        if self.skip.outcome:
+            return
+
+        # Print turnkey results if turnkey was run
+        if self.performance:
+            printing.log(f"{self.indent}\tStatus:\t\t")
+            printing.logn(
+                f"Successfully benchmarked on {self.performance.device} "
+                f"({self.performance.runtime} "
+                f"v{self.performance.runtime_version}) ",
+                c=self.status_message_color,
+            )
+            printing.logn(
+                f"{self.indent}\t\t\tMean Latency:\t{self.performance.mean_latency:.3f}"
+                f"\t{self.performance.latency_units}"
+            )
+            printing.logn(
+                f"{self.indent}\t\t\tThroughput:\t{self.performance.throughput:.1f}"
+                f"\t{self.performance.throughput_units}"
+            )
+
+            if self.stats_keys is not None:
+                for key in self.stats_keys:
+                    nice_key = _pretty_print_key(key)
+                    value = self.stats.evaluation_stats[key]
+                    printing.logn(f"{self.indent}\t\t\t{nice_key}:\t{value}")
+            print()
+        else:
+            if self.is_target and self.build_model:
+                printing.log(f"{self.indent}\tStatus:\t\t")
+                printing.logn(
+                    f"{self.status_message}",
+                    c=self.status_message_color,
+                )
+
+                if self.traceback is not None:
+                    if os.environ.get("TURNKEY_TRACEBACK") != "False":
+                        for line in self.traceback:
+                            for subline in line.split("\n")[:-1]:
+                                print(f"{self.indent}\t{subline}")
+
+                    else:
+                        printing.logn(
+                            f"{self.indent}\t\t\tTo see the full stack trace, "
+                            "rerun with `export TURNKEY_TRACEBACK=True`.\n",
+                            c=self.status_message_color,
+                        )
+                else:
+                    print()
+
+        self.skip.outcome = True
+
+    def print(
+        self,
+        build_name: str,
+        cache_dir: str,
+        print_file_name: bool = False,
+        invocation_idx: int = 0,
+        model_visited: bool = False,
+        multiple_unique_invocations: bool = False,
+    ):
+        """
+        Print information about a given model or submodel.
+        """
+
+        if self.model_type == build.ModelType.ONNX_FILE:
+            self.extension = ".onnx"
+            self.indent = "\t" * (2 * self.depth)
+        else:
+            self.extension = ".py"
+            self.indent = "\t" * (2 * self.depth + 1)
+
+        if self.exec_time == 0 or self.build_model:
+            self.exec_time = ""
+        else:
+            self.exec_time = f" - {self.exec_time:.2f}s"
+
+        self._print_heading(print_file_name, model_visited, multiple_unique_invocations)
+        self._print_model_type(model_visited)
+        self._print_class()
+        self._print_location()
+        self._print_parameters()
+        self._print_unique_input_shape(invocation_idx, multiple_unique_invocations)
+        self._print_input_shape()
+        self._print_hash()
+        self._print_build_dir(cache_dir=cache_dir, build_name=build_name)
+        self._print_outcome()
+
+        print()
+
 
 @dataclass
-class ModelInfo:
-    model: torch.nn.Module
-    name: str
-    script_name: str
-    file: str = ""
-    line: int = 0
-    params: int = 0
-    depth: int = 0
-    hash: Union[str, None] = None
-    parent_hash: Union[str, None] = None
+class ModelInfo(BasicInfo):
+    model: torch.nn.Module = None
     old_forward: Union[Callable, None] = None
     unique_invocations: Union[Dict[str, UniqueInvocationInfo], None] = (
         dataclasses.field(default_factory=dict)
     )
     last_unique_invocation_executed: Union[str, None] = None
-    build_model: bool = False
-    model_type: build.ModelType = build.ModelType.PYTORCH
 
     def __post_init__(self):
         self.params = count_parameters(self.model, self.model_type)

@@ -749,6 +749,15 @@ def explore_frame(
             if invocation_hash not in model_info.unique_invocations:
                 model_info.unique_invocations[invocation_hash] = (
                     util.UniqueInvocationInfo(
+                        name=model_info.name,
+                        script_name=model_info.script_name,
+                        file=model_info.file,
+                        line=model_info.line,
+                        params=model_info.params,
+                        depth=model_info.depth,
+                        build_model=model_info.build_model,
+                        model_type=model_info.model_type,
+                        model_class=type(model_info.model),
                         hash=invocation_hash,
                         is_target=invocation_hash in tracer_args.targets
                         or len(tracer_args.targets) == 0,
