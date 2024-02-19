@@ -2,6 +2,7 @@ import os
 import platform
 from typing import Dict, Union, List
 from turnkeyml.common import printing
+import turnkeyml.common.build as build
 from turnkeyml.analyze.util import (
     ModelInfo,
     SkipFields,
@@ -52,9 +53,13 @@ def update(
             demo_mode=verbosity_selected == Verbosity.APP_LOW,
         )
     else:  # Verbosity.simple
-        multiple_unique_invocations = (
-            len(models_found[invocation_info.hash].unique_invocations) > 1
-        )
+        if invocation_info.model_type == build.ModelType.ONNX_FILE:
+            # We don't invoke the ONNX files, so they can't have multiple invocations
+            multiple_unique_invocations = False
+        else:
+            multiple_unique_invocations = (
+                len(models_found[invocation_info.hash].unique_invocations) > 1
+            )
 
         invocation_info.print(
             build_name=build_name,

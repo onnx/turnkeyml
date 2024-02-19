@@ -599,7 +599,7 @@ export TURNKEY_TRACEBACK=False
 
 By default, `turnkey` will erase the contents of the terminal in order to present a clean status update for each script and model evaluated. We call this the "app" verbosity mode. The "app" mode engages as long as 4 or fewer input files are provided. Additionally, there is an "app_low" verbosity mode that prints a reduces amount of information.
 
-There is also a "simple" verbosity mode that does not clear the terminal. `turnkey` defaults to the "simple" mode when 5 or more input files are provided. `benchmark_files()` defaults to the "simple" verbosity mode regardless of the number of input files.
+There is also a "simple" verbosity mode that does not clear the terminal. `turnkey` defaults to the "simple" mode when 5 or more input files are provided. Additionally, `benchmark_files()` defaults to the "simple" verbosity mode regardless of the number of input files.
 
 You may override these default values by setting the `TURNKEY_STATUS` environment variable. For example:
 
@@ -613,6 +613,8 @@ export TURNKEY_VERBOSITY=app
 # Use the "app_low" verbosity mode
 export TURNKEY_VERBOSITY=app_low
 ```
+
+Finally, API developers can set the verbosity level with the `benchmark_files(verbosity=...)` argument.
 
 ### Set the ONNX Opset
 
