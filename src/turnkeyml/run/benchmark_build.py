@@ -205,7 +205,7 @@ def benchmark_cache(
         "This is an experimental feature. Our plan is to deprecate it "
         "in favor of a new command, `turnkey benchmark cache/*`, ASAP. "
         "Please see https://github.com/onnx/turnkeyml/issues/115 "
-        "for more info."
+        "for more info.\n\n"
     )
 
     if benchmark_all:
