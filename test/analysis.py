@@ -19,6 +19,7 @@ import turnkeyml.common.labels as labels
 from turnkeyml.parser import parse
 import turnkeyml.common.filesystem as filesystem
 from helpers import common
+from turnkeyml.analyze.status import Verbosity
 
 try:
     # pylint: disable=unused-import
@@ -183,6 +184,8 @@ class Testing(unittest.TestCase):
                 "turnkey",
                 os.path.join(corpus_dir, "linear_pytorch.py"),
                 "--analyze-only",
+                "--verbosity",
+                Verbosity.DYNAMIC.value,
             ]
         )
         assert np.array_equal(pytorch_output, (1, 0, 0))
@@ -195,6 +198,8 @@ class Testing(unittest.TestCase):
                 "--max-depth",
                 "1",
                 "--analyze-only",
+                "--verbosity",
+                Verbosity.DYNAMIC.value,
             ]
         )
         assert np.array_equal(output, (2, 0, 0))
@@ -209,6 +214,8 @@ class Testing(unittest.TestCase):
                 "--build-only",
                 "--cache-dir",
                 cache_dir,
+                "--verbosity",
+                Verbosity.DYNAMIC.value,
             ]
         )
         assert np.array_equal(output, (2, 0, 1))
@@ -225,6 +232,8 @@ class Testing(unittest.TestCase):
                 cache_dir,
                 "--lean-cache",
                 "--build-only",
+                "--verbosity",
+                Verbosity.DYNAMIC.value,
             ]
         )
         build_name = f"linear_pytorch_{model_hash}"
@@ -243,6 +252,8 @@ class Testing(unittest.TestCase):
                 "--script-args",
                 "--my-arg test_arg",
                 "--analyze-only",
+                "--verbosity",
+                Verbosity.DYNAMIC.value,
             ]
         )
         assert "Received arg test_arg" in output
@@ -260,6 +271,8 @@ class Testing(unittest.TestCase):
             os.path.join(corpus_dir, "turnkey_parser.py"),
             "--script-args",
             f"--num_channels {num_channels+1}",
+            "--verbosity",
+            Verbosity.DYNAMIC.value,
         ]
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, _ = process.communicate()
@@ -273,6 +286,8 @@ class Testing(unittest.TestCase):
             os.path.join(corpus_dir, "turnkey_parser.py"),
             "--script-args",
             "--invalid_arg 123",
+            "--verbosity",
+            Verbosity.DYNAMIC.value,
         ]
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         _, stderr = process.communicate()
@@ -284,6 +299,8 @@ class Testing(unittest.TestCase):
                 "turnkey",
                 os.path.join(corpus_dir, "pipeline.py"),
                 "--analyze-only",
+                "--verbosity",
+                Verbosity.DYNAMIC.value,
             ]
         )
         assert np.array_equal(output, (1, 0, 0))
@@ -294,6 +311,8 @@ class Testing(unittest.TestCase):
                 "turnkey",
                 os.path.join(corpus_dir, "activation.py"),
                 "--analyze-only",
+                "--verbosity",
+                Verbosity.DYNAMIC.value,
             ]
         )
         assert np.array_equal(output, (0, 0, 0))
@@ -304,6 +323,8 @@ class Testing(unittest.TestCase):
                 "turnkey",
                 os.path.join(corpus_dir, "linear_pytorch.py"),
                 "--analyze-only",
+                "--verbosity",
+                Verbosity.DYNAMIC.value,
             ]
         )
         assert np.array_equal(output, (1, 0, 0))
@@ -318,6 +339,8 @@ class Testing(unittest.TestCase):
                 "1",
                 "--cache-dir",
                 cache_dir,
+                "--verbosity",
+                Verbosity.DYNAMIC.value,
             ]
         )
         assert np.array_equal(output, (2, 0, 1))
@@ -333,6 +356,8 @@ class Testing(unittest.TestCase):
                 "--cache-dir",
                 cache_dir,
                 "--build-only",
+                "--verbosity",
+                Verbosity.DYNAMIC.value,
             ]
         )
         build_name = f"linear_pytorch_{model_hash}"
@@ -355,6 +380,8 @@ class Testing(unittest.TestCase):
                 "turnkey",
                 os.path.join(corpus_dir, "two_executions.py"),
                 "--analyze-only",
+                "--verbosity",
+                Verbosity.DYNAMIC.value,
             ]
         )
         assert np.array_equal(output, (2, 0, 0))
@@ -367,6 +394,8 @@ class Testing(unittest.TestCase):
                 "--analyze-only",
                 "--max-depth",
                 "1",
+                "--verbosity",
+                Verbosity.DYNAMIC.value,
             ]
         )
         assert np.array_equal(output, (6, 0, 0))
