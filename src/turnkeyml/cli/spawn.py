@@ -17,7 +17,7 @@ import turnkeyml.common.filesystem as filesystem
 import turnkeyml.common.printing as printing
 import turnkeyml.common.build as build
 from turnkeyml.cli.parser_helpers import encode_args
-from turnkeyml.analyze.util import Verbosity
+from turnkeyml.analyze.status import Verbosity
 
 
 class WatchdogTimer(Thread):

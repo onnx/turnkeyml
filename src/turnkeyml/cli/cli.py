@@ -13,7 +13,7 @@ from turnkeyml.version import __version__ as turnkey_version
 from turnkeyml.run.devices import SUPPORTED_DEVICES, SUPPORTED_RUNTIMES
 from turnkeyml.build.sequences import SUPPORTED_SEQUENCES
 from turnkeyml.cli.spawn import DEFAULT_TIMEOUT_SECONDS
-from turnkeyml.analyze.util import Verbosity
+from turnkeyml.analyze.status import Verbosity
 
 
 class MyParser(argparse.ArgumentParser):

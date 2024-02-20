@@ -20,7 +20,7 @@ from turnkeyml.analyze.script import (
     explore_invocation,
     get_model_hash,
 )
-from turnkeyml.analyze.util import ModelInfo, UniqueInvocationInfo, Verbosity
+from turnkeyml.analyze.status import ModelInfo, UniqueInvocationInfo, Verbosity
 import turnkeyml.common.build as build
 import turnkeyml.build.onnx_helpers as onnx_helpers
 

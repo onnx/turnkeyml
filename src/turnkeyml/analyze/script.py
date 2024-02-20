@@ -20,7 +20,7 @@ import turnkeyml.common.build as build
 import turnkeyml.common.exceptions as exp
 from turnkeyml.build.stage import Sequence
 import turnkeyml.analyze.status as status
-import turnkeyml.analyze.util as util
+import turnkeyml.analyze.model as analyze_model
 import turnkeyml.common.tf_helpers as tf_helpers
 import turnkeyml.common.labels as labels
 from turnkeyml.build_api import build_model
@@ -48,11 +48,11 @@ class TracerArgs:
     onnx_opset: int
     cache_dir: str
     rebuild: str
-    models_found: Dict[str, util.ModelInfo] = dataclasses.field(default_factory=dict)
+    models_found: Dict[str, status.ModelInfo] = dataclasses.field(default_factory=dict)
     script_name: Optional[str] = None
     sequence: Optional[Sequence] = None
     rt_args: Optional[Dict] = None
-    verbosity: util.Verbosity = util.Verbosity.DYNAMIC
+    verbosity: status.Verbosity = status.Verbosity.DYNAMIC
 
     @functools.cached_property
     def labels(self) -> Dict[str, str]:
@@ -99,7 +99,7 @@ class TracerArgs:
                 # If we receive an instance of Sequence, we need to convert it
                 # to a string to save it to YAML
                 saved_value = arg_value.sequence.__class__.__name__
-            elif isinstance(arg_value, util.Verbosity):
+            elif isinstance(arg_value, status.Verbosity):
                 saved_value = arg_value.value
             elif isinstance(arg_value, list) and any(
                 isinstance(arg_sub_value, Action) for arg_sub_value in arg_value
@@ -134,7 +134,7 @@ class TracerArgs:
         return hashlib.sha256(str(self).encode()).hexdigest()[:8]
 
 
-def _store_traceback(invocation_info: util.UniqueInvocationInfo):
+def _store_traceback(invocation_info: status.UniqueInvocationInfo):
     """
     Store the traceback from an exception into invocation_info so that
     we can print it during the status update.
@@ -180,8 +180,8 @@ def set_status_on_exception(
 
 def explore_invocation(
     model_inputs: dict,
-    model_info: util.ModelInfo,
-    invocation_info: util.UniqueInvocationInfo,
+    model_info: status.ModelInfo,
+    invocation_info: status.UniqueInvocationInfo,
     tracer_args: TracerArgs,
 ) -> None:
     """
@@ -404,7 +404,7 @@ def explore_invocation(
             model_to_benchmark = build_state.results[0]
 
             # Analyze the onnx file (if any) and save statistics
-            util.analyze_onnx(
+            analyze_model.analyze_onnx(
                 build_name=build_name,
                 cache_dir=tracer_args.cache_dir,
                 stats=stats,
@@ -510,7 +510,7 @@ def explore_invocation(
 
     finally:
         # Ensure that stdout/stderr is not being forwarded before updating status
-        util.stop_logger_forward()
+        status.stop_logger_forward()
 
         status.update(
             tracer_args.models_found,
@@ -586,7 +586,7 @@ def store_model_info(
 
     if not model_already_found:
         build_model = Action.BUILD in tracer_args.actions
-        tracer_args.models_found[model_hash] = util.ModelInfo(
+        tracer_args.models_found[model_hash] = status.ModelInfo(
             model=model,
             name=model_name,
             file=file,
@@ -680,7 +680,7 @@ def explore_frame(
 
         if model_type == build.ModelType.PYTORCH:
             # Avoid instrumenting models before they have been fully loaded
-            if util.count_parameters(local_var, model_type) == 0:
+            if analyze_model.count_parameters(local_var, model_type) == 0:
                 return
 
             # Mark this model as instrumented
@@ -762,7 +762,7 @@ def explore_frame(
 
             if invocation_hash not in model_info.unique_invocations:
                 model_info.unique_invocations[invocation_hash] = (
-                    util.UniqueInvocationInfo(
+                    status.UniqueInvocationInfo(
                         name=model_info.name,
                         script_name=model_info.script_name,
                         file=model_info.file,
@@ -956,7 +956,7 @@ class HelpfulExceptions:
                 )
 
 
-def evaluate_script(tracer_args: TracerArgs) -> Dict[str, util.ModelInfo]:
+def evaluate_script(tracer_args: TracerArgs) -> Dict[str, status.ModelInfo]:
     tracer_args.script_name = fs.clean_file_name(tracer_args.input)
 
     # Get a pointer to the script's python module

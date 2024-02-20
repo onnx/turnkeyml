@@ -19,7 +19,7 @@ import turnkeyml.common.labels as labels
 from turnkeyml.parser import parse
 import turnkeyml.common.filesystem as filesystem
 from helpers import common
-from turnkeyml.analyze.util import Verbosity
+from turnkeyml.analyze.status import Verbosity
 
 try:
     # pylint: disable=unused-import
