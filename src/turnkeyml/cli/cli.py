@@ -291,10 +291,11 @@ def main():
         choices=[field.value for field in Verbosity],
         default=default_verbosity,
         help="Verbosity of the status updates printed to the command line "
-        f"(default={default_verbosity}, which automatically chooses one of the "
-        "following). 'app': take over the terminal. 'app_low': "
-        "less verbose version of 'app'. 'simple': print each evaluation "
-        "as it takes place.",
+        f"(default={default_verbosity}). '{Verbosity.DYNAMIC.value}': "
+        "take over the terminal, updating "
+        " it with a summary of all turnkey information. "
+        f"'{Verbosity.STATIC.value}': print each evaluation as it takes place and "
+        "never clear the terminal.",
     )
 
     #######################################

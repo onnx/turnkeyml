@@ -43,8 +43,8 @@ def _select_verbosity(
     Choose verbosity based on the following policies:
         1. The explicit verbosity argument takes priority over AUTO and the env var
         2. The env var takes priority over AUTO
-        3. Use SIMPLE when there are many inputs, or in process isolation mode,
-            and use APP otherwise
+        3. Use STATIC when there are many inputs, or in process isolation mode,
+            and use DYNAMIC otherwise
 
     Returns the selected verbosity.
     """
@@ -63,18 +63,18 @@ def _select_verbosity(
     else:
         # Verbosity.AUTO and no env var
         if len(input_files_expanded) > 4 or process_isolation:
-            # Automatically select SIMPLE if:
-            # - There are many evaluations (>4), since APP mode works
+            # Automatically select STATIC if:
+            # - There are many evaluations (>4), since DYNAMIC mode works
             #       best when all results fit on one screen
-            # - Process isolation mode is active, since APP mode is
+            # - Process isolation mode is active, since DYNAMIC mode is
             #       incompatible with process isolation
-            verbosity_selected = Verbosity.SIMPLE
+            verbosity_selected = Verbosity.STATIC
         else:
-            verbosity_selected = Verbosity.APP
+            verbosity_selected = Verbosity.DYNAMIC
 
-    # Use a progress bar in SIMPLE mode if there is more than 1 input
+    # Use a progress bar in STATIC mode if there is more than 1 input
     use_progress_bar = (
-        verbosity_selected == Verbosity.SIMPLE and len(input_files_expanded) > 1
+        verbosity_selected == Verbosity.STATIC and len(input_files_expanded) > 1
     )
 
     return verbosity_selected, use_progress_bar
@@ -165,7 +165,7 @@ def benchmark_files(
     timeout: Optional[int] = None,
     sequence: Union[str, stage.Sequence] = None,
     rt_args: Optional[Dict] = None,
-    verbosity: str = Verbosity.SIMPLE.value,
+    verbosity: str = Verbosity.STATIC.value,
 ):
 
     # Capture the function arguments so that we can forward them

@@ -40,9 +40,8 @@ def parameters_to_size(parameters: int, byte_per_parameter: int = 4) -> str:
 
 class Verbosity(Enum):
     AUTO = "auto"
-    APP = "app"
-    APP_LOW = "app_low"
-    SIMPLE = "simple"
+    DYNAMIC = "dynamic"
+    STATIC = "static"
 
 
 @dataclass
@@ -75,10 +74,8 @@ class SkipFields:
     model_name: bool = False
     model_type: bool = False
     parameters: bool = False
-    class_name: bool = False
     location: bool = False
     input_shape: bool = False
-    hash: bool = False
     build_dir: bool = False
     unique_input_shape: bool = False
     previous_status_message: Optional[str] = None
@@ -155,18 +152,6 @@ class UniqueInvocationInfo(BasicInfo):
 
         self.skip.model_type = True
 
-    def _print_class(self):
-        if self.skip.class_name:
-            return
-
-        # Display class of model and where it was found, if
-        # the an input script (and not an input onnx file) was used
-        if self.model_type != build.ModelType.ONNX_FILE:
-            print(
-                f"{self.indent}\tClass:\t\t{self.model_class.__name__} ({self.model_class})"
-            )
-            self.skip.class_name = True
-
     def _print_location(self):
         if self.skip.location:
             return
@@ -217,14 +202,6 @@ class UniqueInvocationInfo(BasicInfo):
         print(f"{self.indent}\tInput Shape:\t{input_shape}")
 
         self.skip.input_shape = True
-
-    def _print_hash(self):
-        if self.skip.hash:
-            return
-
-        print(f"{self.indent}\tModel Hash:\t" + self.hash)
-
-        self.skip.hash = True
 
     def _print_build_dir(self, cache_dir: str, build_name: str):
         if self.skip.build_dir:
@@ -328,14 +305,12 @@ class UniqueInvocationInfo(BasicInfo):
         if (self.depth == 0 and not model_visited) or (self.depth != 0):
             # Print this information only once per model
             self._print_model_type()
-            self._print_class()
             self._print_location()
             self._print_parameters()
         self._print_unique_input_shape(
             exec_time_formatted, invocation_idx, multiple_unique_invocations
         )
         self._print_input_shape()
-        self._print_hash()
         self._print_build_dir(cache_dir=cache_dir, build_name=build_name)
         self._print_status()
 

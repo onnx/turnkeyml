@@ -191,7 +191,7 @@ class Testing(unittest.TestCase):
                 os.path.join(corpus_dir, "linear_pytorch.py"),
                 "--analyze-only",
                 "--verbosity",
-                Verbosity.APP.value,
+                Verbosity.DYNAMIC.value,
             ]
         )
         assert np.array_equal(pytorch_output, (1, 0, 0))
@@ -205,7 +205,7 @@ class Testing(unittest.TestCase):
                 "1",
                 "--analyze-only",
                 "--verbosity",
-                Verbosity.APP.value,
+                Verbosity.DYNAMIC.value,
             ]
         )
         assert np.array_equal(output, (2, 0, 0))
@@ -221,7 +221,7 @@ class Testing(unittest.TestCase):
                 "--cache-dir",
                 cache_dir,
                 "--verbosity",
-                Verbosity.APP.value,
+                Verbosity.DYNAMIC.value,
             ]
         )
         assert np.array_equal(output, (2, 0, 1))
@@ -239,7 +239,7 @@ class Testing(unittest.TestCase):
                 "--lean-cache",
                 "--build-only",
                 "--verbosity",
-                Verbosity.APP.value,
+                Verbosity.DYNAMIC.value,
             ]
         )
         build_name = f"linear_pytorch_{model_hash}"
@@ -259,7 +259,7 @@ class Testing(unittest.TestCase):
                 "--my-arg test_arg",
                 "--analyze-only",
                 "--verbosity",
-                Verbosity.APP.value,
+                Verbosity.DYNAMIC.value,
             ]
         )
         assert "Received arg test_arg" in output
@@ -278,7 +278,7 @@ class Testing(unittest.TestCase):
             "--script-args",
             f"--num_channels {num_channels+1}",
             "--verbosity",
-            Verbosity.APP.value,
+            Verbosity.DYNAMIC.value,
         ]
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, _ = process.communicate()
@@ -293,7 +293,7 @@ class Testing(unittest.TestCase):
             "--script-args",
             "--invalid_arg 123",
             "--verbosity",
-            Verbosity.APP.value,
+            Verbosity.DYNAMIC.value,
         ]
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         _, stderr = process.communicate()
@@ -306,7 +306,7 @@ class Testing(unittest.TestCase):
                 os.path.join(corpus_dir, "pipeline.py"),
                 "--analyze-only",
                 "--verbosity",
-                Verbosity.APP.value,
+                Verbosity.DYNAMIC.value,
             ]
         )
         assert np.array_equal(output, (1, 0, 0))
@@ -318,7 +318,7 @@ class Testing(unittest.TestCase):
                 os.path.join(corpus_dir, "activation.py"),
                 "--analyze-only",
                 "--verbosity",
-                Verbosity.APP.value,
+                Verbosity.DYNAMIC.value,
             ]
         )
         assert np.array_equal(output, (0, 0, 0))
@@ -330,7 +330,7 @@ class Testing(unittest.TestCase):
                 os.path.join(corpus_dir, "linear_pytorch.py"),
                 "--analyze-only",
                 "--verbosity",
-                Verbosity.APP.value,
+                Verbosity.DYNAMIC.value,
             ]
         )
         assert np.array_equal(output, (1, 0, 0))
@@ -346,7 +346,7 @@ class Testing(unittest.TestCase):
                 "--cache-dir",
                 cache_dir,
                 "--verbosity",
-                Verbosity.APP.value,
+                Verbosity.DYNAMIC.value,
             ]
         )
         assert np.array_equal(output, (2, 0, 1))
@@ -363,7 +363,7 @@ class Testing(unittest.TestCase):
                 cache_dir,
                 "--build-only",
                 "--verbosity",
-                Verbosity.APP.value,
+                Verbosity.DYNAMIC.value,
             ]
         )
         build_name = f"linear_pytorch_{model_hash}"
@@ -387,7 +387,7 @@ class Testing(unittest.TestCase):
                 os.path.join(corpus_dir, "two_executions.py"),
                 "--analyze-only",
                 "--verbosity",
-                Verbosity.APP.value,
+                Verbosity.DYNAMIC.value,
             ]
         )
         assert np.array_equal(output, (2, 0, 0))
@@ -401,7 +401,7 @@ class Testing(unittest.TestCase):
                 "--max-depth",
                 "1",
                 "--verbosity",
-                Verbosity.APP.value,
+                Verbosity.DYNAMIC.value,
             ]
         )
         assert np.array_equal(output, (6, 0, 0))

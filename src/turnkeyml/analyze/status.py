@@ -22,7 +22,7 @@ def update(
     Prints all models and submodels found
     """
 
-    if verbosity == Verbosity.APP or verbosity == Verbosity.APP_LOW:
+    if verbosity == Verbosity.DYNAMIC:
         if platform.system() != "Windows":
             os.system("clear")
         else:
@@ -39,9 +39,8 @@ def update(
             parent_model_hash=None,
             parent_invocation_hash=None,
             script_names_visited=[],
-            demo_mode=verbosity == Verbosity.APP_LOW,
         )
-    else:  # Verbosity.simple
+    else:  # Verbosity.STATIC
         if invocation_info.model_type == build.ModelType.ONNX_FILE:
             # We don't invoke the ONNX files, so they can't have multiple invocations
             multiple_unique_invocations = False
@@ -67,7 +66,6 @@ def recursive_print(
     parent_model_hash: Union[str, None] = None,
     parent_invocation_hash: Union[str, None] = None,
     script_names_visited: List[str] = False,
-    demo_mode: bool = False,
 ) -> None:
     script_names_visited = []
 
@@ -92,14 +90,11 @@ def recursive_print(
                     if model_info.depth == 0:
                         print_file_name = True
 
-                if demo_mode:
-                    # In this verbosity mode we don't want to print overly-detailed
-                    # information. That way, the best information to demo stands out
-                    unique_invocation.skip = SkipFields(hash=True, class_name=True)
-                else:
-                    # In this verbosity mode we want to print all of the information
-                    # every time, so reset SkipFields
-                    unique_invocation.skip = SkipFields()
+                # In this verbosity mode we want to print all of the information
+                # every time, so reset SkipFields
+                # NOTE: to introduce a new lower-verbosity mode, set some members
+                # of SkipFields to False to skip them
+                unique_invocation.skip = SkipFields()
 
                 unique_invocation.print(
                     build_name=build_name,

@@ -52,7 +52,7 @@ class TracerArgs:
     script_name: Optional[str] = None
     sequence: Optional[Sequence] = None
     rt_args: Optional[Dict] = None
-    verbosity: util.Verbosity = util.Verbosity.APP
+    verbosity: util.Verbosity = util.Verbosity.DYNAMIC
 
     @functools.cached_property
     def labels(self) -> Dict[str, str]:
