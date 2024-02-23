@@ -1,7 +1,5 @@
 import os
-import sys
 import logging
-import warnings
 from typing import Dict, Any, List, Optional
 from statistics import mean
 import time
@@ -16,10 +14,6 @@ import turnkeyml.common.build as build
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.filesystem as fs
 from turnkeyml.common.filesystem import Stats
-
-
-def customwarn(message, category, filename, lineno, file=None, line=None):
-    sys.stdout.write(warnings.formatwarning(message, category, filename, lineno))
 
 
 class TorchRT(BaseRT):
@@ -67,6 +61,13 @@ class TorchRT(BaseRT):
         )
 
     def _compile(self) -> None:
+        """
+        Perform any requested compilation actions on the PyTorch model.
+
+        Note: This method is expected to be overloaded by most children of
+        this class.
+        """
+
         self.model.eval()
 
         if self.runtime == "torch-compiled":
@@ -83,6 +84,14 @@ class TorchRT(BaseRT):
             self.model = torch.compile(self.model)
 
     def _setup(self) -> None:
+        """
+        Validate the parameters of this class and invoke compilation.
+
+        Note: the implementation of this method is intentionally generic. Any
+        runtime-specific actions should go into the _compile() method if
+        possible.
+        """
+
         # Ensure we have the correct model type
         model_type = ignition.identify_model_type(self.model)
         if model_type != build.ModelType.PYTORCH:
@@ -90,6 +99,7 @@ class TorchRT(BaseRT):
                 f"Only Pytorch models are valid when runtime is {self.runtime}"
             )
 
+        # Compile the
         start_time = time.perf_counter()
         with build.Logger("Preparing torch model", self.logfile_path):
             self._compile()
@@ -102,7 +112,8 @@ class TorchRT(BaseRT):
         self, per_iteration_latency: List[float]
     ) -> MeasuredPerformance:
         """
-        Calculate performance statistics from per_iteration_latency
+        Calculate performance statistics from the per-iteration latencies
+        acquired during execution.
         """
 
         self.mean_latency_ms = mean(per_iteration_latency) * 1000
@@ -125,6 +136,10 @@ class TorchRT(BaseRT):
         Run the model repeatedly, collecting the performance of each
         iteration. Stop running when the iterations target or time limit
         is reached, whichever comes first.
+
+        Note: this method is intended to be useful in the following ways:
+            1. Generic across any child class of TorchRT
+            2. Useful for both cache warmup and benchmarking
         """
 
         counter = 0
@@ -141,9 +156,14 @@ class TorchRT(BaseRT):
 
         return per_iteration_latency
 
-    def _execute(self) -> MeasuredPerformance:
+    def _benchmark_inner(self) -> MeasuredPerformance:
         """
-        The logic for executing a torch model to collect performance data
+        The logic for benchmarking a torch model to collect performance data.
+        This method is meant to be called by the benchmark() method, which is
+        why it is named _benchmark_inner().
+
+        Note: this method is intended to be generic across any child class
+        of TorchRT.
         """
 
         # Cache warmup for 1 minute or 10 iterations, whichever
@@ -165,14 +185,17 @@ class TorchRT(BaseRT):
 
     def benchmark(self) -> MeasuredPerformance:
         """
-        Wrapper function for self._execute()
+        Wrapper function for self._benchmark_inner()
 
-        The reason this wrapper exists is to allow developers to apply various
+        The reason this wrapper exists is to allow plugin developers to apply various
         settings to execution on a per-runtime basis. For example, selectively
         enabling torch.no_grad().
+
+        Note: it is expected that most child classes of TorchRT will overload
+        this method.
         """
         with torch.no_grad():
-            return self._execute()
+            return self._benchmark_inner()
 
     @property
     def mean_latency(self) -> float:
