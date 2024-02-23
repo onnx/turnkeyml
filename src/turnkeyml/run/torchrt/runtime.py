@@ -70,7 +70,6 @@ class TorchRT(BaseRT):
         self.model.eval()
 
         if self.runtime == "torch-compiled":
-            raise ValueError("gotcha!")
             # First ensure we have the required version of Pytorch
             clean_torch_version = self.runtime_version.split("+")[0]
             if version.parse(clean_torch_version) < version.parse("2.0.0"):
