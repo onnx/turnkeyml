@@ -1,7 +1,8 @@
-# labels: name::bert author::transformers task::Generative_AI license::apache-2.0
+# labels: name::llama2_7b_token author::transformers task::Generative_AI license::apache-2.0
 from turnkeyml.parser import parse
 from transformers import LlamaModel, LlamaConfig
 import torch
+import turnkeyml.common.build as build
 
 torch.manual_seed(0)
 
@@ -30,23 +31,25 @@ else:
 inputs = {
     "input_ids": torch.ones(batch_size, max_seq_length, dtype=torch.long),
     "attention_mask": torch.ones(batch_size, max_seq_length, dtype=torch.float),
-    "position_ids": [[0]],
-    "past_key_value": (
-        torch.ones(
-            batch_size,
-            config.num_attention_heads,
-            max_seq_length - 1,
-            model.self_attn.head_dim,
-            dtype=torch.float,
-        ),
-        torch.ones(
-            batch_size,
-            config.num_attention_heads,
-            max_seq_length - 1,
-            model.self_attn.head_dim,
-            dtype=torch.float,
-        ),
-    ),
+    # "position_ids": [0],
+    "past_key_values": [
+        (
+            torch.ones(
+                batch_size,
+                config.num_attention_heads,
+                max_seq_length - 1,
+                model.layers[0].self_attn.head_dim,
+                dtype=torch.float,
+            ),
+            torch.ones(
+                batch_size,
+                config.num_attention_heads,
+                max_seq_length - 1,
+                model.layers[0].self_attn.head_dim,
+                dtype=torch.float,
+            ),
+        )
+    ],
 }
 
 # Call model

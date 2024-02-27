@@ -1,4 +1,4 @@
-# labels: name::bert author::transformers task::Generative_AI license::apache-2.0
+# labels: name::llama2_7b_prefill author::transformers task::Generative_AI license::apache-2.0
 from turnkeyml.parser import parse
 from transformers import LlamaModel, LlamaConfig
 import torch
