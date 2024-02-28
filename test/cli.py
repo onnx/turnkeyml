@@ -976,17 +976,21 @@ class Testing(unittest.TestCase):
             turnkeycli()
 
         # Benchmark the single model from cache directory
-        builds = filesystem.get_available_builds(cache_dir)
+        selected_build = filesystem.get_available_builds(cache_dir)[-1]
         testargs = [
             "turnkey",
             "cache",
             "benchmark",
-            sorted(builds)[0],
+            selected_build,
             "--cache-dir",
             cache_dir,
         ]
         with patch.object(sys, "argv", flatten(testargs)):
             turnkeycli()
+
+        # Make sure the benchmark happened
+        test_script = "_".join(selected_build.split("_")[:-1]) + ".py"
+        assert_success_of_builds([test_script], cache_dir, check_perf=True)
 
         # Make sure the benchmarks happened
         assert_success_of_builds(
