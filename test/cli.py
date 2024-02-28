@@ -981,7 +981,7 @@ class Testing(unittest.TestCase):
             "turnkey",
             "cache",
             "benchmark",
-            builds[0],
+            sorted(builds)[0],
             "--cache-dir",
             cache_dir,
         ]
