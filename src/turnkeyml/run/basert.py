@@ -79,6 +79,9 @@ class BaseRT(ABC):
         self.logfile_path = os.path.join(
             self.local_output_dir, f"{runtime}_benchmark_log.txt"
         )
+        self.compile_logfile_path = os.path.join(
+            self.local_output_dir, f"{runtime}_compile_log.txt"
+        )
 
         # Validate runtime is supported
         if runtime not in runtimes_supported:
@@ -86,6 +89,8 @@ class BaseRT(ABC):
                 f"'runtime' argument {runtime} passed to TensorRT, which only "
                 f"supports runtimes: {runtimes_supported}"
             )
+
+        os.makedirs(self.local_output_dir, exist_ok=True)
 
         self._setup()
 
@@ -140,7 +145,6 @@ class BaseRT(ABC):
         files_to_transfer: absolute paths to files
         """
 
-        os.makedirs(self.local_output_dir, exist_ok=True)
         for file in files_to_transfer:
             shutil.copy(
                 file, os.path.join(self.local_output_dir, os.path.basename(file))
