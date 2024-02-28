@@ -976,7 +976,7 @@ class Testing(unittest.TestCase):
             turnkeycli()
 
         # Benchmark the single model from cache directory
-        builds = filesystem.get_available_builds()
+        builds = filesystem.get_available_builds(cache_dir)
         testargs = [
             "turnkey",
             "cache",
