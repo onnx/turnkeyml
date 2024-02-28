@@ -989,7 +989,9 @@ class Testing(unittest.TestCase):
             turnkeycli()
 
         # Make sure the benchmarks happened
-        assert_success_of_builds(test_scripts[0], cache_dir, check_perf=True)
+        assert_success_of_builds(
+            sorted(list(test_scripts))[0], cache_dir, check_perf=True
+        )
 
         # Benchmark the cache directory
         testargs = [
