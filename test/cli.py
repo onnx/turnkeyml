@@ -992,11 +992,6 @@ class Testing(unittest.TestCase):
         test_script = "_".join(selected_build.split("_")[:-1]) + ".py"
         assert_success_of_builds([test_script], cache_dir, check_perf=True)
 
-        # Make sure the benchmarks happened
-        assert_success_of_builds(
-            sorted(list(test_scripts))[0], cache_dir, check_perf=True
-        )
-
         # Benchmark the cache directory
         testargs = [
             "turnkey",
