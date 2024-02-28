@@ -410,9 +410,8 @@ def main():
 
     delete_group.add_argument(
         "build_name",
-        nargs="*",
+        nargs="?",
         help="Name of the specific build to be deleted, within the cache directory",
-        default=None,
     )
 
     delete_group.add_argument(
@@ -445,9 +444,8 @@ def main():
 
     clean_group.add_argument(
         "build_name",
-        nargs="*",
+        nargs="?",
         help="Name of the specific build to be cleaned, within the cache directory",
-        default=None,
     )
 
     clean_group.add_argument(
@@ -492,9 +490,8 @@ def main():
 
     cache_benchmark_group.add_argument(
         "build_names",
-        nargs="*",
+        nargs="?",
         help="Name of the specific build(s) to be benchmarked, within the cache directory",
-        default=None,
     )
 
     cache_benchmark_group.add_argument(

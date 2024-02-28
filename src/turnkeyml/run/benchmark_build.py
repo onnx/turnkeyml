@@ -211,7 +211,7 @@ def benchmark_cache(
     if benchmark_all:
         builds = fs.get_available_builds(cache_dir)
     else:
-        builds = build_names
+        builds = [build_names]
 
     # Keep track of whether this is the first build we are benchmarking
     first = True
