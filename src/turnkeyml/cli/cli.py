@@ -181,7 +181,7 @@ def main():
         dest="runtime",
         help="Software runtime that will be used to collect the benchmark. "
         "Must be compatible with the selected device. "
-        "Automatically selects a sequence if `--sequence` is not used."
+        "Automatically selects a sequence if `--sequence` is not used. "
         "If this argument is not set, the default runtime of the selected device will be used.",
         required=False,
         default=None,
@@ -519,9 +519,9 @@ def main():
     cache_benchmark_parser.add_argument(
         "--timeout",
         type=int,
-        default=None,
+        default=1800,
         help="Benchmark timeout, in seconds, after which each benchmark will be canceled "
-        "(default: no timeout).",
+        "(default: 30min).",
     )
 
     cache_benchmark_parser.add_argument(
