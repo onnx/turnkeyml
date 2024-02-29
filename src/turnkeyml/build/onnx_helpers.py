@@ -2,6 +2,7 @@
 Helper functions for dealing with ONNX files and ONNX models
 """
 
+import os
 from typing import Tuple
 import re
 import math
@@ -9,6 +10,12 @@ import numpy as np
 import onnx
 import onnxruntime as ort
 import turnkeyml.common.exceptions as exp
+from onnx.external_data_helper import (
+    _get_all_tensors,
+    uses_external_data,
+    ExternalDataInfo,
+)
+from onnx.onnx_pb import ModelProto, TensorProto
 
 
 def parameter_count(model):
@@ -101,11 +108,39 @@ def dtype_ort2str(dtype_str: str):
     return datatype
 
 
+def load_fake_data_for_model(model: ModelProto) -> None:
+    """Loads fake tensors into model
+
+    Arguments:
+        model: ModelProto to load fake data to
+    """
+    for tensor in _get_all_tensors(model):
+        if uses_external_data(tensor):
+
+            # Load fake data for tensor
+            info = ExternalDataInfo(tensor)
+            if info.length:
+                tensor.raw_data = os.urandom(info.length)
+            else:
+                tensor.raw_data = os.urandom()
+
+            # Change the state of tensors and remove external data
+            tensor.data_location = TensorProto.DEFAULT
+            del tensor.external_data[:]
+
+
 def dummy_inputs(onnx_file: str) -> dict:
     # Generate dummy inputs of the expected shape and type for the input model
     sess_options = ort.SessionOptions()
     sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-    onnx_session = ort.InferenceSession(onnx_file, sess_options)
+    onnx_session = None
+    if False:
+        onnx_session = ort.InferenceSession(onnx_file, sess_options)
+    else:
+        onnx_model = onnx.load(onnx_file, load_external_data=False)
+        load_fake_data_for_model(onnx_model)
+        serialized_model = onnx_model.SerializeToString()
+        onnx_session = ort.InferenceSession(serialized_model, sess_options)
     sess_input = onnx_session.get_inputs()
 
     input_stats = []

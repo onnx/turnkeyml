@@ -9,6 +9,7 @@ from turnkeyml.common import printing
 import turnkeyml.common.build as build
 from turnkeyml.common.performance import MeasuredPerformance
 import turnkeyml.common.filesystem as fs
+from turnkeyml.build.onnx_helpers import load_fake_data_for_model
 
 
 class AnalysisException(Exception):
@@ -72,7 +73,12 @@ def count_parameters(model: torch.nn.Module, model_type: build.ModelType) -> int
     elif model_type == build.ModelType.KERAS:
         return model.count_params()
     elif model_type == build.ModelType.ONNX_FILE:
-        onnx_model = onnx.load(model)
+        onnx_model = None
+        if False:
+            onnx_model = onnx.load(model)
+        else:
+            onnx_model = onnx.load(model, load_external_data=False)
+            load_fake_data_for_model(onnx_model)
         return int(
             sum(
                 np.prod(tensor.dims)

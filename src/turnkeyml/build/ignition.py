@@ -16,6 +16,7 @@ import turnkeyml.build.stage as stage
 import turnkeyml.build.hummingbird as hummingbird
 import turnkeyml.build.sequences as sequences
 from turnkeyml.version import __version__ as turnkey_version
+from turnkeyml.build.onnx_helpers import load_fake_data_for_model
 
 
 def lock_config(
@@ -47,7 +48,13 @@ def lock_config(
 
     # Detect and validate ONNX opset
     if isinstance(model, str) and model.endswith(".onnx"):
-        onnx_file_opset = onnx_helpers.get_opset(onnx.load(model))
+        loaded_model = None
+        if False:
+            loaded_model = onnx.load(model)
+        else:
+            loaded_model = onnx.load(model, load_external_data=False)
+            load_fake_data_for_model(loaded_model)
+        onnx_file_opset = onnx_helpers.get_opset(loaded_model)
 
         if onnx_opset is not None and onnx_opset != onnx_file_opset:
             raise ValueError(

@@ -1,10 +1,39 @@
 import argparse
 import re
+import os
 import math
 import json
 import time
 import numpy as np
 import onnxruntime as ort
+import onnx
+from onnx.external_data_helper import (
+    _get_all_tensors,
+    uses_external_data,
+    ExternalDataInfo,
+)
+from onnx.onnx_pb import ModelProto, TensorProto
+
+
+def load_fake_data_for_model(model: ModelProto) -> None:
+    """Loads fake tensors into model
+
+    Arguments:
+        model: ModelProto to load fake data to
+    """
+    for tensor in _get_all_tensors(model):
+        if uses_external_data(tensor):
+
+            # Load fake data for tensor
+            info = ExternalDataInfo(tensor)
+            if info.length:
+                tensor.raw_data = os.urandom(info.length)
+            else:
+                tensor.raw_data = os.urandom()
+
+            # Change the state of tensors and remove external data
+            tensor.data_location = TensorProto.DEFAULT
+            del tensor.external_data[:]
 
 
 def run_ort_profile(
@@ -17,7 +46,15 @@ def run_ort_profile(
     per_iteration_latency = []
     sess_options = ort.SessionOptions()
     sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-    onnx_session = ort.InferenceSession(onnx_file_path, sess_options)
+    onnx_session = None
+    if False:
+        onnx_session = ort.InferenceSession(onnx_file_path, sess_options)
+    else:
+        onnx_model = onnx.load(onnx_file_path, load_external_data=False)
+        load_fake_data_for_model(onnx_model)
+        serialized_model = onnx_model.SerializeToString()
+        onnx_session = ort.InferenceSession(serialized_model, sess_options)
+
     sess_input = onnx_session.get_inputs()
     input_feed = dummy_inputs(sess_input)
     output_name = onnx_session.get_outputs()[0].name
