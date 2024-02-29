@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional
+from typing import Dict, Optional
 import multiprocessing
 import traceback
 import turnkeyml.common.build as build
