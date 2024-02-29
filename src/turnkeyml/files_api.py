@@ -380,17 +380,17 @@ def benchmark_files(
                 #  - is_target=True is required or else traceback wont be printed for
                 #       in the event of any errors
                 #  - Most other values can be left as default
-                invocation_info = UniqueInvocationInfo(
-                    name=onnx_name,
-                    script_name=onnx_name,
-                    file=file_path_absolute,
-                    build_model=not build_only,
-                    model_type=build.ModelType.ONNX_FILE,
-                    executed=1,
-                    input_shapes=input_shapes,
-                    hash=onnx_hash,
-                    is_target=True,
-                )
+                # invocation_info = UniqueInvocationInfo(
+                #     name=onnx_name,
+                #     script_name=onnx_name,
+                #     file=file_path_absolute,
+                #     build_model=not build_only,
+                #     model_type=build.ModelType.ONNX_FILE,
+                #     executed=1,
+                #     input_shapes=input_shapes,
+                #     hash=onnx_hash,
+                #     is_target=True,
+                # )
 
                 # Create the ModelInfo
                 model_info = ModelInfo(
@@ -400,9 +400,13 @@ def benchmark_files(
                     file=file_path_absolute,
                     build_model=not build_only,
                     model_type=build.ModelType.ONNX_FILE,
-                    unique_invocations={onnx_hash: invocation_info},
+                    # unique_invocations={onnx_hash: invocation_info},
                     hash=onnx_hash,
                 )
+                model_info.add_unique_invocation()
+
+                # THIS IS BAD
+                # invocation_info.params = model_info.params
 
                 # Begin evaluating the ONNX model
                 tracer_args.script_name = onnx_name

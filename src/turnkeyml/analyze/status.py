@@ -327,6 +327,26 @@ class ModelInfo(BasicInfo):
     def __post_init__(self):
         self.params = analyze_model.count_parameters(self.model, self.model_type)
 
+    def add_unique_invocation(
+        self, invocation_hash: int, targets, input_shapes, parent_invocation_hash
+    ):
+        unique_invocations[invocation_hash] = UniqueInvocationInfo(
+            name=self.name,
+            script_name=self.script_name,
+            file=self.file,
+            line=self.line,
+            params=self.params,
+            depth=self.depth,
+            build_model=self.build_model,
+            model_type=self.model_type,
+            model_class=type(self.model),
+            invocation_hash=invocation_hash,
+            hash=self.hash,
+            is_target=invocation_hash in targets or len(targets) == 0,
+            input_shapes=input_shapes,
+            parent_hash=parent_invocation_hash,
+        )
+
 
 def update(
     models_found: Dict[str, ModelInfo],
