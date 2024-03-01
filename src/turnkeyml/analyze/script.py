@@ -762,10 +762,11 @@ def explore_frame(
 
             if invocation_hash not in model_info.unique_invocations:
                 model_info.add_unique_invocation(
-                    invocation_hash,
-                    tracer_args.targets,
-                    input_shapes,
-                    parent_invocation_hash,
+                    invocation_hash=invocation_hash,
+                    is_target=invocation_hash in tracer_args.targets
+                    or len(tracer_args.targets) == 0,
+                    input_shapes=input_shapes,
+                    parent_hash=parent_invocation_hash,
                 )
             model_info.last_unique_invocation_executed = invocation_hash
 

@@ -328,9 +328,13 @@ class ModelInfo(BasicInfo):
         self.params = analyze_model.count_parameters(self.model, self.model_type)
 
     def add_unique_invocation(
-        self, invocation_hash: int, targets, input_shapes, parent_invocation_hash
+        self,
+        invocation_hash: int,
+        is_target: bool,
+        input_shapes: Dict,
+        parent_hash: Union[str, None] = None,
     ):
-        unique_invocations[invocation_hash] = UniqueInvocationInfo(
+        self.unique_invocations[invocation_hash] = UniqueInvocationInfo(
             name=self.name,
             script_name=self.script_name,
             file=self.file,
@@ -342,9 +346,9 @@ class ModelInfo(BasicInfo):
             model_class=type(self.model),
             invocation_hash=invocation_hash,
             hash=self.hash,
-            is_target=invocation_hash in targets or len(targets) == 0,
+            is_target=is_target,
             input_shapes=input_shapes,
-            parent_hash=parent_invocation_hash,
+            parent_hash=parent_hash,
         )
 
 
