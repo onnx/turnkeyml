@@ -333,6 +333,7 @@ class ModelInfo(BasicInfo):
         is_target: bool,
         input_shapes: Dict,
         parent_hash: Union[str, None] = None,
+        executed: int = 0,
     ):
         self.unique_invocations[invocation_hash] = UniqueInvocationInfo(
             name=self.name,
@@ -349,6 +350,7 @@ class ModelInfo(BasicInfo):
             is_target=is_target,
             input_shapes=input_shapes,
             parent_hash=parent_hash,
+            executed=executed,
         )
 
 
