@@ -335,6 +335,9 @@ class ModelInfo(BasicInfo):
         parent_hash: Union[str, None] = None,
         executed: int = 0,
     ):
+        model_class = (
+            type(self.model) if self.model_type == build.ModelType.PYTORCH else None
+        )
         self.unique_invocations[invocation_hash] = UniqueInvocationInfo(
             name=self.name,
             script_name=self.script_name,
@@ -344,7 +347,7 @@ class ModelInfo(BasicInfo):
             depth=self.depth,
             build_model=self.build_model,
             model_type=self.model_type,
-            model_class=type(self.model),
+            model_class=model_class,
             invocation_hash=invocation_hash,
             hash=self.hash,
             is_target=is_target,
