@@ -46,14 +46,34 @@ def run_ort_profile(
     per_iteration_latency = []
     sess_options = ort.SessionOptions()
     sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-    onnx_session = None
+    model_for_inf_session = None
     if False:
-        onnx_session = ort.InferenceSession(onnx_file_path, sess_options)
+        model_for_inf_session = onnx_file_path
     else:
+        # Create an inference session with the weightless model
         onnx_model = onnx.load(onnx_file_path, load_external_data=False)
         load_fake_data_for_model(onnx_model)
-        serialized_model = onnx_model.SerializeToString()
-        onnx_session = ort.InferenceSession(serialized_model, sess_options)
+        model_for_inf_session = None
+        try:
+            # Try to load small models without generating weight files
+            print("\tTrying to Serialize model in memory...")
+            model_for_inf_session = onnx_model.SerializeToString()
+        except ValueError:
+            # Exception in case onnx.ModelProto exceeds maximum protobuf size of 2GB
+            # This requires actually saving the weights to a file
+            print("\tModel too large, using external format instead...")
+            model_for_inf_session = "tmp.onnx"
+            onnx.save_model(
+                onnx_model,
+                model_for_inf_session,
+                save_as_external_data=True,
+                all_tensors_to_one_file=True,
+                location="tmp_weights",
+                size_threshold=0,
+                convert_attribute=False,
+            )
+
+    onnx_session = ort.InferenceSession(model_for_inf_session, sess_options)
 
     sess_input = onnx_session.get_inputs()
     input_feed = dummy_inputs(sess_input)

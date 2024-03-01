@@ -133,20 +133,53 @@ def dummy_inputs(onnx_file: str) -> dict:
     # Generate dummy inputs of the expected shape and type for the input model
     sess_options = ort.SessionOptions()
     sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-    onnx_session = None
+    model_for_inf_session = None
     if False:
-        onnx_session = ort.InferenceSession(onnx_file, sess_options)
+        model_for_inf_session = onnx_file
     else:
+        # Create an inference session with the weightless model
         onnx_model = onnx.load(onnx_file, load_external_data=False)
         load_fake_data_for_model(onnx_model)
-        serialized_model = onnx_model.SerializeToString()
-        onnx_session = ort.InferenceSession(serialized_model, sess_options)
+        model_for_inf_session = None
+        try:
+            # Try to load small models without generating weight files
+            print("\tTrying to Serialize model in memory...")
+            model_for_inf_session = onnx_model.SerializeToString()
+        except ValueError:
+            # Exception in case onnx.ModelProto exceeds maximum protobuf size of 2GB
+            # This requires actually saving the weights to a file
+            print("\tModel too large, using external format instead...")
+            model_for_inf_session = "tmp.onnx"
+            onnx.save_model(
+                onnx_model,
+                model_for_inf_session,
+                save_as_external_data=True,
+                all_tensors_to_one_file=True,
+                location="tmp_weights",
+                size_threshold=0,
+                convert_attribute=False,
+            )
+
+    onnx_session = ort.InferenceSession(model_for_inf_session, sess_options)
     sess_input = onnx_session.get_inputs()
 
     input_stats = []
+    model_inputs = {}
     for _idx, input_ in enumerate(range(len(sess_input))):
         input_name = sess_input[input_].name
         input_shape = sess_input[input_].shape
+
+        def replace_shape(shape, word, replacement):
+            if word in shape:
+                shape[shape.index(word)] = replacement
+
+        # Set input shapes if not defined
+        replace_shape(input_shape, "batch_size", 1)
+        replace_shape(input_shape, "num_channels", 3)
+        replace_shape(input_shape, "height", 224)
+        replace_shape(input_shape, "width", 224)
+
+        model_inputs[input_name] = input_shape
 
         # TODO: Use onnx update_inputs_outputs_dims to automatically freeze models
         for dim in input_shape:
@@ -157,6 +190,32 @@ def dummy_inputs(onnx_file: str) -> dict:
 
         input_type = sess_input[input_].type
         input_stats.append([input_name, input_shape, input_type])
+
+    # Freeze inputs
+    model_outputs = {}
+    for out in onnx_session.get_outputs():
+        output_shape = out.shape
+
+        replace_shape(output_shape, "batch_size", 1)
+        replace_shape(output_shape, "num_channels", 3)
+        replace_shape(output_shape, "height", 224)
+        replace_shape(output_shape, "width", 224)
+        model_outputs[out.name] = output_shape
+
+    from onnx.tools.update_model_dims import update_inputs_outputs_dims
+
+    onnx_model = onnx.load(onnx_file, load_external_data=False)
+    load_fake_data_for_model(onnx_model)
+    updated_model = update_inputs_outputs_dims(onnx_model, model_inputs, model_outputs)
+    onnx.save_model(
+        updated_model,
+        onnx_file,
+        save_as_external_data=True,
+        all_tensors_to_one_file=True,
+        location="tmp_weights",
+        size_threshold=0,
+        convert_attribute=False,
+    )
 
     input_feed = {}
     for stat in input_stats:
