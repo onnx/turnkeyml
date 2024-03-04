@@ -560,6 +560,7 @@ def get_system_info():
                     subprocess.check_output(
                         "sudo -n dmidecode -s system-product-name",
                         shell=True,
+                        stderr=subprocess.DEVNULL,
                     )
                     .decode()
                     .strip()
