@@ -558,7 +558,7 @@ def get_system_info():
             try:
                 oem_info = (
                     subprocess.check_output(
-                        "sudo dmidecode -s system-product-name",
+                        "sudo -n dmidecode -s system-product-name",
                         shell=True,
                     )
                     .decode()
@@ -566,6 +566,9 @@ def get_system_info():
                     .replace("\n", " ")
                 )
                 info_dict["OEM System"] = oem_info
+            except subprocess.CalledProcessError:
+                # This catches the case where sudo requires a password
+                info_dict["OEM System"] = "Unable to get oem info - password required"
             except Exception as e:  # pylint: disable=broad-except
                 info_dict["Error OEM System"] = str(e)
 
