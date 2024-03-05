@@ -327,6 +327,35 @@ class ModelInfo(BasicInfo):
     def __post_init__(self):
         self.params = analyze_model.count_parameters(self.model, self.model_type)
 
+    def add_unique_invocation(
+        self,
+        invocation_hash: int,
+        is_target: bool,
+        input_shapes: Dict,
+        parent_hash: Union[str, None] = None,
+        executed: int = 0,
+    ):
+        model_class = (
+            type(self.model) if self.model_type == build.ModelType.PYTORCH else None
+        )
+        self.unique_invocations[invocation_hash] = UniqueInvocationInfo(
+            name=self.name,
+            script_name=self.script_name,
+            file=self.file,
+            line=self.line,
+            params=self.params,
+            depth=self.depth,
+            build_model=self.build_model,
+            model_type=self.model_type,
+            model_class=model_class,
+            invocation_hash=invocation_hash,
+            hash=self.hash,
+            is_target=is_target,
+            input_shapes=input_shapes,
+            parent_hash=parent_hash,
+            executed=executed,
+        )
+
 
 def update(
     models_found: Dict[str, ModelInfo],

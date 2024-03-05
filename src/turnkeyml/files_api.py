@@ -20,7 +20,7 @@ from turnkeyml.analyze.script import (
     explore_invocation,
     get_model_hash,
 )
-from turnkeyml.analyze.status import ModelInfo, UniqueInvocationInfo, Verbosity
+from turnkeyml.analyze.status import ModelInfo, Verbosity
 import turnkeyml.common.build as build
 import turnkeyml.build.onnx_helpers as onnx_helpers
 
@@ -374,24 +374,6 @@ def benchmark_files(
                 onnx_inputs = onnx_helpers.dummy_inputs(file_path_absolute)
                 input_shapes = {key: value.shape for key, value in onnx_inputs.items()}
 
-                # Create the UniqueInvocationInfo
-                #  - execute=1 is required or else the ONNX model will be
-                #       skipped in later stages of evaluation
-                #  - is_target=True is required or else traceback wont be printed for
-                #       in the event of any errors
-                #  - Most other values can be left as default
-                invocation_info = UniqueInvocationInfo(
-                    name=onnx_name,
-                    script_name=onnx_name,
-                    file=file_path_absolute,
-                    build_model=not build_only,
-                    model_type=build.ModelType.ONNX_FILE,
-                    executed=1,
-                    input_shapes=input_shapes,
-                    hash=onnx_hash,
-                    is_target=True,
-                )
-
                 # Create the ModelInfo
                 model_info = ModelInfo(
                     model=file_path_absolute,
@@ -400,8 +382,19 @@ def benchmark_files(
                     file=file_path_absolute,
                     build_model=not build_only,
                     model_type=build.ModelType.ONNX_FILE,
-                    unique_invocations={onnx_hash: invocation_info},
                     hash=onnx_hash,
+                )
+
+                # Add UniqueInvocationInfo
+                #  - is_target=True is required or else traceback wont be printed for
+                #      in the event of any errors
+                #  - execute=1 is required or else the ONNX model will be
+                #       skipped in later stages of evaluation
+                model_info.add_unique_invocation(
+                    invocation_hash=onnx_hash,
+                    is_target=True,
+                    input_shapes=input_shapes,
+                    executed=1,
                 )
 
                 # Begin evaluating the ONNX model
@@ -410,7 +403,7 @@ def benchmark_files(
                 explore_invocation(
                     model_inputs=onnx_inputs,
                     model_info=model_info,
-                    invocation_info=invocation_info,
+                    invocation_info=model_info.unique_invocations[onnx_hash],
                     tracer_args=tracer_args,
                 )
                 models_found = tracer_args.models_found
