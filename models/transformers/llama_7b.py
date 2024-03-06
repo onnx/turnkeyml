@@ -44,4 +44,4 @@ inputs = {
 #   and token generation stages.
 # The token generation stage is the invocation that has "past_key_values"
 #   in the input shape.
-model.generate(**inputs, max_seq_length=128 + 2)
+model.generate(**inputs, max_length=max_seq_length + 2)
