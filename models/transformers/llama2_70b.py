@@ -22,6 +22,7 @@ if pretrained:
     model = LlamaForCausalLM.from_pretrained(model_path)
 else:
     config = LlamaConfig(
+        architectures=["LlamaForCausalLM"],
         hidden_size=8192,
         intermediate_size=28672,
         max_position_embeddings=4096,
