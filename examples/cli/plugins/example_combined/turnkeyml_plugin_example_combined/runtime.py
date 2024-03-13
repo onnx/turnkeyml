@@ -111,5 +111,6 @@ class CombinedExampleRT(BaseRT):
                 "Queried throughput before self.benchmark() was called"
             )
 
+    @staticmethod
     def device_name() -> str:
         return "Example Device"
