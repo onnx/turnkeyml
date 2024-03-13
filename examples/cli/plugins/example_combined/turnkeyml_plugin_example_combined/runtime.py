@@ -111,9 +111,5 @@ class CombinedExampleRT(BaseRT):
                 "Queried throughput before self.benchmark() was called"
             )
 
-    @property
-    def device_name(self) -> str:
-        return (
-            f"Device Family {self.device_type.family}, Device Part {self.device_type.part}, "
-            f"Device Configuration {self.device_type.config}"
-        )
+    def device_name() -> str:
+        return "Example Device"

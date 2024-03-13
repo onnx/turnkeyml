@@ -82,6 +82,5 @@ class ExampleRT(BaseRT):
                 "Queried throughput before self.benchmark() was called"
             )
 
-    @property
-    def device_name(self) -> str:
+    def device_name() -> str:
         return "the x86 cpu of your dreams"

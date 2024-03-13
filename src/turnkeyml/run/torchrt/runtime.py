@@ -124,7 +124,7 @@ class TorchRT(BaseRT):
         return MeasuredPerformance(
             mean_latency=self.mean_latency,
             throughput=self.throughput,
-            device=self.device_name,
+            device=self.device_name(),
             device_type=self.device_type,
             runtime=self.runtime,
             runtime_version=self.runtime_version,
