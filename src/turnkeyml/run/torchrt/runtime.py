@@ -218,6 +218,6 @@ class TorchRT(BaseRT):
                 "Queried throughput before self.benchmark() was called"
             )
 
-    @property
-    def device_name(self) -> str:
+    @staticmethod
+    def device_name() -> str:
         return get_cpu_specs()["CPU Name"]
