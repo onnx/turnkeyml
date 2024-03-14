@@ -79,6 +79,9 @@ class BaseRT(ABC):
         self.logfile_path = os.path.join(
             self.local_output_dir, f"{runtime}_benchmark_log.txt"
         )
+        self.compile_logfile_path = os.path.join(
+            self.local_output_dir, f"{runtime}_compile_log.txt"
+        )
 
         # Validate runtime is supported
         if runtime not in runtimes_supported:
@@ -189,6 +192,16 @@ class BaseRT(ABC):
         os.makedirs(self.local_output_dir, exist_ok=True)
         os.makedirs(self.local_onnx_dir, exist_ok=True)
         shutil.copy(model_file, self.local_onnx_file)
+
+        # Copy any ONNX external data files present in the onnx build directory
+        onnx_build_dir = os.path.dirname(model_file)
+        external_data_files = [
+            os.path.join(onnx_build_dir, f)
+            for f in os.listdir(onnx_build_dir)
+            if ".onnx" not in f
+        ]
+        for f in external_data_files:
+            shutil.copy(f, os.path.dirname(self.local_onnx_file))
 
         # Execute benchmarking in hardware
         if self.requires_docker:
