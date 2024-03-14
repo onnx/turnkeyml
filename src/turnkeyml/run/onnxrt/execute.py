@@ -11,7 +11,7 @@ from statistics import mean
 import platform
 import turnkeyml.run.plugin_helpers as plugin_helpers
 
-ORT_VERSION = "1.15.1"
+ORT_VERSION = "1.17.0"
 
 BATCHSIZE = 1
 
