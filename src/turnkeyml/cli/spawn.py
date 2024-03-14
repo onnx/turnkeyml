@@ -355,6 +355,7 @@ def run_turnkey(
                     and evaluation_id
                 ):
                     try:
+
                         # Amend the stats with a specific function status if possible
                         if isinstance(e, subprocess.TimeoutExpired):
                             evaluation_status = build.FunctionStatus.TIMEOUT
@@ -374,6 +375,8 @@ def run_turnkey(
                             ):
                                 stats.save_model_eval_stat(key, evaluation_status.value)
 
+                        # Save the exception into the error log stat
+                        stats.save_model_eval_stat(filesystem.Keys.ERROR_LOG, str(e))
                     except Exception as stats_exception:  # pylint: disable=broad-except
                         printing.log_info(
                             "Stats file found, but unable to perform cleanup due to "
