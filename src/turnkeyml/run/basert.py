@@ -193,6 +193,16 @@ class BaseRT(ABC):
         os.makedirs(self.local_onnx_dir, exist_ok=True)
         shutil.copy(model_file, self.local_onnx_file)
 
+        # Copy any ONNX external data files present in the onnx build directory
+        onnx_build_dir = os.path.dirname(model_file)
+        external_data_files = [
+            os.path.join(onnx_build_dir, f)
+            for f in os.listdir(onnx_build_dir)
+            if ".onnx" not in f
+        ]
+        for f in external_data_files:
+            shutil.copy(f, os.path.dirname(self.local_onnx_file))
+
         # Execute benchmarking in hardware
         if self.requires_docker:
             _check_docker_install()
@@ -218,7 +228,7 @@ class BaseRT(ABC):
         return MeasuredPerformance(
             mean_latency=self.mean_latency,
             throughput=self.throughput,
-            device=self.device_name,
+            device=self.device_name(),
             device_type=self.device_type,
             runtime=self.runtime,
             runtime_version=self.runtime_version,
@@ -250,9 +260,9 @@ class BaseRT(ABC):
         Returns the throughput, in IPS, for the benchmarking run.
         """
 
-    @property
+    @staticmethod
     @abstractmethod
-    def device_name(self) -> str:
+    def device_name() -> str:
         """
         Returns the full device name for the device used in benchmarking.
         For example, a benchmark on a `x86` device might have a device name like
