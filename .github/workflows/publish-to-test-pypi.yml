@@ -2,12 +2,12 @@ name: Publish Python distributions to PyPI
 
 on:
   push:
-    branches: ["main", "canary"]
+    branches: ["main", "canary", "refresh"]
     tags:
       - v*
       - RC*
   pull_request:
-    branches: ["main", "canary"]
+    branches: ["main", "canary", "refresh"]
 
 jobs:
   build-n-publish:
