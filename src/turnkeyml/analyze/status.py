@@ -138,8 +138,6 @@ class UniqueInvocationInfo(BasicInfo):
         if self.depth == 0:
             if self.model_type == build.ModelType.PYTORCH:
                 print(f"{self.indent}\tModel Type:\tPytorch (torch.nn.Module)")
-            elif self.model_type == build.ModelType.KERAS:
-                print(f"{self.indent}\tModel Type:\tKeras (tf.keras.Model)")
             elif self.model_type == build.ModelType.ONNX_FILE:
                 print(f"{self.indent}\tModel Type:\tONNX File (.onnx)")
 

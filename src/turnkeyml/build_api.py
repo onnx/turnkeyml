@@ -23,8 +23,7 @@ def build_model(
 
     Args:
         model: Model to be mapped to an optimized ONNX file, which can be a PyTorch
-            model instance, Keras model instance, Hummingbird model instance,
-            or a path to an ONNX file.
+            model instance or a path to an ONNX file.
         inputs: Example inputs to the user's model. The ONNX file will be
             built to handle inputs with the same static shape only.
         build_name: Unique name for the model that will be

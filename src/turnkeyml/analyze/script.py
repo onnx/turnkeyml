@@ -21,7 +21,6 @@ import turnkeyml.common.exceptions as exp
 from turnkeyml.build.stage import Sequence
 import turnkeyml.analyze.status as status
 import turnkeyml.analyze.model as analyze_model
-import turnkeyml.common.tf_helpers as tf_helpers
 import turnkeyml.common.labels as labels
 from turnkeyml.build_api import build_model
 import turnkeyml.common.filesystem as fs
@@ -32,6 +31,25 @@ class Action(Enum):
     ANALYZE = "analyze"
     BUILD = "build"
     BENCHMARK = "benchmark"
+
+
+def _get_classes(module) -> List[str]:
+    """
+    Returns all classes within a module.
+    """
+    return [y for x, y in inspect.getmembers(module, inspect.isclass)]
+
+
+def _get_transformers_activations() -> List:
+    """
+    We need this helper because transformers is not a required depenence for
+    this project, however if we are analyzing a transformers model then we need
+    to inspect its activations.
+    """
+    if "transformers" in sys.modules:
+        return _get_classes(sys.modules["transformers"].activations)
+    else:
+        return []
 
 
 @dataclasses.dataclass
@@ -66,8 +84,8 @@ class TracerArgs:
 
     @functools.cached_property
     def torch_activations(self) -> List[str]:
-        act = tf_helpers.get_classes(torch.nn.modules.activation)
-        act += tf_helpers.get_transformers_activations()
+        act = _get_classes(torch.nn.modules.activation)
+        act += _get_transformers_activations()
         return act
 
     @property
@@ -219,13 +237,8 @@ def explore_invocation(
 
         # Convert all positional arguments into keyword arguments
         if args != ():
-            if model_info.model_type in [
-                build.ModelType.PYTORCH,
-                build.ModelType.PYTORCH_COMPILED,
-            ]:
-                forward_function = model_info.model.forward
-            elif model_info.model_type == build.ModelType.KERAS:
-                forward_function = model_info.model.call
+
+            forward_function = model_info.model.forward
             all_args = list(inspect.signature(forward_function).parameters.keys())
             for i in range(len(args)):
                 if torch.is_tensor(args[i]):
@@ -530,9 +543,7 @@ def explore_invocation(
             fs.clean_output_dir(tracer_args.cache_dir, build_name)
 
 
-def get_model_hash(
-    model: Union[torch.nn.Module, "tf.keras.Model", str], model_type: build.ModelType
-):
+def get_model_hash(model: Union[torch.nn.Module, str], model_type: build.ModelType):
     return build.hash_model(
         model, model_type, hash_params=model_type == build.ModelType.ONNX_FILE
     )[:8]
@@ -560,7 +571,7 @@ def get_invocation_hash(
 
 
 def store_model_info(
-    model: Union[torch.nn.Module, "tf.keras.Model"],
+    model: torch.nn.Module,
     model_name: str,
     model_type: build.ModelType,
     frame: FrameType,
@@ -569,7 +580,6 @@ def store_model_info(
     depth: int,
     parent_hash: str,
 ):
-    # Getting the model hash is only possible after the first inference of Keras models
     model_hash = get_model_hash(model, model_type)
 
     # File where the model was found
@@ -615,7 +625,7 @@ def explore_frame(
     parent_hash: Union[str, None] = None,
 ):
     """
-    This function checks whether local_var is a torch or keras model.
+    This function checks whether local_var is a torch model.
     If it is, we will modify its forward function to know when it
     is called.
     """
@@ -624,7 +634,7 @@ def explore_frame(
     if not bool(sys.modules):
         return
 
-    # Skip all variables that are not a subclass of torch.nn.Module/tf.keras.Model
+    # Skip all variables that are not a subclass of torch.nn.Module
     # Note: try block used since dead weakreferences fail when checking subclass
     try:
         if issubclass(type(local_var), torch.nn.Module):
@@ -634,8 +644,6 @@ def explore_frame(
                 model_type = build.ModelType.PYTORCH_COMPILED
             else:
                 model_type = build.ModelType.PYTORCH
-        elif tf_helpers.is_keras_subclass(type(local_var)):
-            model_type = build.ModelType.KERAS
         else:
             return
     except AttributeError:
@@ -651,15 +659,13 @@ def explore_frame(
     ):
         return
 
-    # Check if we are inside of a subclass of torch.nn.Module or tf.keras.model
+    # Check if we are inside of a subclass of torch.nn.Module
     inside_class = False
     inside_nn_subclass = False
     if "self" in frame.f_locals:
         self_var = frame.f_locals["self"]
         inside_class = type(self_var)
-        inside_nn_subclass = issubclass(
-            inside_class, torch.nn.Module
-        ) or tf_helpers.is_keras_subclass(inside_class)
+        inside_nn_subclass = issubclass(inside_class, torch.nn.Module)
 
     if not inside_nn_subclass:
         if hasattr(local_var, "forward_instrumented"):
@@ -683,48 +689,36 @@ def explore_frame(
 
             return
 
-        if model_type == build.ModelType.PYTORCH:
-            # Avoid instrumenting models before they have been fully loaded
-            if analyze_model.count_parameters(local_var, model_type) == 0:
-                return
+        # Avoid instrumenting models before they have been fully loaded
+        if analyze_model.count_parameters(local_var, model_type) == 0:
+            return
 
-            # Mark this model as instrumented
-            local_var.forward_instrumented = True
+        # Mark this model as instrumented
+        local_var.forward_instrumented = True
 
-            # Create a copy of the old forward function
-            old_forward = local_var.forward
+        # Create a copy of the old forward function
+        old_forward = local_var.forward
 
-            # Recursively look for sub-models within the found model
-            # This is only possible on Pytorch, since each layer of a torch.nn.module
-            # is also a torch.nn.module.
-            model_hash = get_model_hash(local_var, model_type)
-            local_var.turnkey_hash = model_hash
-            if depth < tracer_args.max_depth:
-                recursive_search(
-                    frame, event, local_var, depth, model_hash, tracer_args
-                )
+        # Recursively look for sub-models within the found model
+        # This is only possible on Pytorch, since each layer of a torch.nn.module
+        # is also a torch.nn.module.
+        model_hash = get_model_hash(local_var, model_type)
+        local_var.turnkey_hash = model_hash
+        if depth < tracer_args.max_depth:
+            recursive_search(frame, event, local_var, depth, model_hash, tracer_args)
 
-            # We can keep track of Pytorch models even before they are executed
-            store_model_info(
-                local_var,
-                local_var_name,
-                model_type,
-                frame,
-                event,
-                tracer_args,
-                depth,
-                parent_hash,
-            )
-        elif model_type == build.ModelType.KERAS:
-            # Mark this model as instrumented
-            local_var.forward_instrumented = True
+        # We can keep track of Pytorch models even before they are executed
+        store_model_info(
+            local_var,
+            local_var_name,
+            model_type,
+            frame,
+            event,
+            tracer_args,
+            depth,
+            parent_hash,
+        )
 
-            # Create a copy of the old forward function
-            old_forward = local_var.call
-
-            # Raise exception if user tries to use max_depth!=0 for a keras model
-            if tracer_args.max_depth != 0:
-                raise exp.Error("max_depth is not supported for Keras models")
         local_var.old_forward = old_forward
 
         def forward_spy(*args, **kwargs):
@@ -738,19 +732,6 @@ def explore_frame(
                 # on child models if the user has explicitly asked us to
                 # do so by setting the max_depth flag.
                 return old_forward(*args, **kwargs)
-
-            # We can only keep track of keras models once they have been executed
-            if model_type == build.ModelType.KERAS:
-                store_model_info(
-                    local_var,
-                    local_var_name,
-                    model_type,
-                    frame,
-                    event,
-                    tracer_args,
-                    depth,
-                    parent_hash,
-                )
 
             # Get parent invocation hash
             parent_invocation_hash = None
@@ -841,15 +822,11 @@ def explore_frame(
 
         # The inspect module offers the ability to actually copy the signature of the wrapped
         # function. This allows other functions to see the correct parameters instead of the
-        # enigmatic *args, **kwargs. This is especially important for Keras, since it heavily
-        # relies on inspections to the call function.
+        # enigmatic *args, **kwargs.
         forward_spy.__signature__ = inspect.signature(old_forward)
 
         # Use modified forward/call function
-        if model_type == build.ModelType.PYTORCH:
-            local_var.forward = forward_spy
-        elif model_type == build.ModelType.KERAS:
-            local_var.call = forward_spy
+        local_var.forward = forward_spy
 
 
 def tracefunc(
@@ -886,7 +863,7 @@ def tracefunc(
 def recursive_search(
     frame: FrameType,
     event: str,
-    model: Union[torch.nn.Module, "tf.keras.Model"],
+    model: torch.nn.Module,
     depth: int,
     parent_hash: Union[str, None],
     tracer_args: TracerArgs,

@@ -2,12 +2,7 @@ import os
 import unittest
 import torch
 import onnx
-import tensorflow as tf
 import numpy as np
-import sklearn.ensemble
-import sklearn.neighbors
-import xgboost  # pylint: disable=import-error
-import lightgbm  # pylint: disable=import-error
 from onnxmltools.utils.float16_converter import convert_float_to_float16
 from onnxmltools.utils import save_model
 from onnxmltools.utils import load_model
@@ -40,15 +35,6 @@ class AnotherSimplePytorchModel(torch.nn.Module):
         return output
 
 
-class SmallKerasModel(tf.keras.Model):  # pylint: disable=abstract-method
-    def __init__(self):
-        super(SmallKerasModel, self).__init__()
-        self.dense = tf.keras.layers.Dense(10)
-
-    def call(self, x):  # pylint: disable=arguments-differ
-        return self.dense(x)
-
-
 base_dir = os.path.dirname(os.path.abspath(__file__))
 cache_location = os.path.join(base_dir, "generated", "build_model_cache")
 
@@ -59,40 +45,6 @@ inputs = {"x": torch.rand(10)}
 inputs_2 = {"x": torch.rand(5)}
 input_tensor = torch.rand(10)
 
-# Define keras models and inputs
-batch_keras_inputs = {"x": tf.random.uniform((1, 10), dtype=tf.float32)}
-keras_subclass_model = SmallKerasModel()
-keras_subclass_model.build(input_shape=(1, 10))
-keras_sequential_model = tf.keras.Sequential()
-keras_sequential_model.add(
-    tf.keras.layers.InputLayer(
-        batch_size=1,
-        input_shape=(10),
-        name="x",
-    )
-)
-keras_sequential_model.add(tf.keras.layers.Dense(10))
-keras_sequential_model.compile(
-    loss="binary_crossentropy",
-    optimizer="adam",
-    metrics=["accuracy"],
-)
-
-# Define sklearn model and inputs
-np.random.seed(0)
-rf_batch_size = 320
-
-rf_inputs = np.random.rand(rf_batch_size, 10).astype(np.float32)
-
-rf_model = sklearn.ensemble.RandomForestClassifier(
-    n_estimators=10, max_depth=5, random_state=0
-)
-xgb_model = xgboost.XGBClassifier(
-    n_estimators=10, max_depth=5, random_state=0, objective="binary:logistic"
-)
-lgbm_model = lightgbm.LGBMClassifier(n_estimators=10, max_depth=5, random_state=0)
-kn_model = sklearn.neighbors.KNeighborsClassifier(n_neighbors=10)
-
 
 # Run build_model() and get results
 def full_compilation_pytorch_model():
@@ -100,32 +52,6 @@ def full_compilation_pytorch_model():
     state = build_model(
         pytorch_model,
         inputs,
-        build_name=build_name,
-        rebuild="always",
-        monitor=False,
-        cache_dir=cache_location,
-    )
-    return state.build_status == build.FunctionStatus.SUCCESSFUL
-
-
-def full_compilation_keras_subclass_model():
-    build_name = "full_compilation_keras_subclass_model"
-    state = build_model(
-        keras_subclass_model,
-        batch_keras_inputs,
-        build_name=build_name,
-        rebuild="always",
-        monitor=False,
-        cache_dir=cache_location,
-    )
-    return state.build_status == build.FunctionStatus.SUCCESSFUL
-
-
-def full_compilation_keras_sequential_model():
-    build_name = "full_compilation_keras_sequential_model"
-    state = build_model(
-        keras_sequential_model,
-        batch_keras_inputs,
         build_name=build_name,
         rebuild="always",
         monitor=False,
@@ -147,66 +73,6 @@ def full_compilation_onnx_model():
     state = build_model(
         "small_onnx_model.onnx",
         inputs,
-        build_name=build_name,
-        rebuild="always",
-        monitor=False,
-        cache_dir=cache_location,
-    )
-    return state.build_status == build.FunctionStatus.SUCCESSFUL
-
-
-def full_compilation_hummingbird_rf():
-    rf_model.fit(rf_inputs, np.random.randint(2, size=rf_batch_size))
-
-    build_name = "full_compilation_hummingbird_rf"
-    state = build_model(
-        rf_model,
-        {"input_0": rf_inputs},
-        build_name=build_name,
-        rebuild="always",
-        monitor=False,
-        cache_dir=cache_location,
-    )
-    return state.build_status == build.FunctionStatus.SUCCESSFUL
-
-
-def full_compilation_hummingbird_xgb():
-    xgb_model.fit(rf_inputs, np.random.randint(2, size=rf_batch_size))
-
-    build_name = "full_compilation_hummingbird_xgb"
-    state = build_model(
-        xgb_model,
-        {"input_0": rf_inputs},
-        build_name=build_name,
-        rebuild="always",
-        monitor=False,
-        cache_dir=cache_location,
-    )
-    return state.build_status == build.FunctionStatus.SUCCESSFUL
-
-
-def full_compilation_hummingbird_lgbm():
-    lgbm_model.fit(rf_inputs, np.random.randint(2, size=rf_batch_size))
-
-    build_name = "full_compilation_hummingbird_lgbm"
-    state = build_model(
-        lgbm_model,
-        {"input_0": rf_inputs},
-        build_name=build_name,
-        rebuild="always",
-        monitor=False,
-        cache_dir=cache_location,
-    )
-    return state.build_status == build.FunctionStatus.SUCCESSFUL
-
-
-def full_compilation_hummingbird_kn():
-    kn_model.fit(rf_inputs, np.random.randint(2, size=rf_batch_size))
-
-    build_name = "full_compilation_hummingbird_kn"
-    state = build_model(
-        kn_model,
-        {"input_0": rf_inputs},
         build_name=build_name,
         rebuild="always",
         monitor=False,
@@ -489,20 +355,8 @@ class Testing(unittest.TestCase):
     def test_002_full_compilation_pytorch_model(self):
         assert full_compilation_pytorch_model()
 
-    def test_003_full_compilation_keras_sequential_model(self):
-        assert full_compilation_keras_sequential_model()
-
-    def test_004_full_compilation_keras_subclass_model(self):
-        assert full_compilation_keras_subclass_model()
-
     def test_005_full_compilation_onnx_model(self):
         assert full_compilation_onnx_model()
-
-    def test_006_full_compilation_hummingbird_rf(self):
-        assert full_compilation_hummingbird_rf()
-
-    def test_007_full_compilation_hummingbird_xgb(self):
-        assert full_compilation_hummingbird_xgb()
 
     def test_009_custom_stage(self):
         assert custom_stage()
@@ -647,9 +501,6 @@ class Testing(unittest.TestCase):
         # Make sure the ONNX file matches the state file
         assert model_opset == state.config.onnx_opset
 
-    def test_016_full_compilation_hummingbird_lgbm(self):
-        assert full_compilation_hummingbird_lgbm()
-
     def test_017_inputs_conversion(self):
         custom_sequence_fp32 = stage.Sequence(
             "custom_sequence_fp32",
@@ -701,9 +552,6 @@ class Testing(unittest.TestCase):
 
         inputs_path = os.path.join(cache_location, build_name, "inputs.npy")
         assert np.load(inputs_path, allow_pickle=True)[0]["x"].dtype == np.float16
-
-    def test_018_full_compilation_hummingbird_kn(self):
-        assert full_compilation_hummingbird_kn()
 
 
 if __name__ == "__main__":

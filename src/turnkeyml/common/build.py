@@ -15,9 +15,7 @@ import psutil
 import yaml
 import torch
 import numpy as np
-import sklearn.base
 import turnkeyml.common.exceptions as exp
-import turnkeyml.common.tf_helpers as tf_helpers
 from turnkeyml.version import __version__ as turnkey_version
 
 
@@ -26,8 +24,6 @@ UnionValidModelInstanceTypes = Union[
     str,
     torch.nn.Module,
     torch.jit.ScriptModule,
-    "tf.keras.Model",
-    sklearn.base.BaseEstimator,
 ]
 
 if os.environ.get("TURNKEY_ONNX_OPSET"):
@@ -44,9 +40,7 @@ REBUILD_OPTIONS = ["if_needed", "always", "never"]
 class ModelType(enum.Enum):
     PYTORCH = "pytorch"
     PYTORCH_COMPILED = "pytorch_compiled"
-    KERAS = "keras"
     ONNX_FILE = "onnx_file"
-    HUMMINGBIRD = "hummingbird"
     UNKNOWN = "unknown"
 
 
@@ -105,30 +99,6 @@ def hash_model(model, model_type: ModelType, hash_params: bool = True):
 
         # Return hash of topology and parameters
         return hashlib.sha256(hashable_model).hexdigest()
-
-    elif model_type == ModelType.KERAS:
-        # Convert model parameters and topology to string
-        summary_list = []  # type: List[str]
-
-        # pylint: disable=unnecessary-lambda
-        model.summary(print_fn=lambda x: summary_list.append(x))
-
-        summary_str = " ".join(summary_list)
-        hashable_params = {}
-        for layer in model.layers:
-            hashable_params[layer.name] = layer.weights
-        if hash_params:
-            hashable_model = (summary_str + str(hashable_params)).encode()
-        else:
-            hashable_model = summary_str.encode()
-
-        # Return hash of topology and parameters
-        return hashlib.sha256(hashable_model).hexdigest()
-
-    elif model_type == ModelType.HUMMINGBIRD:
-        import pickle
-
-        return hashlib.sha256(pickle.dumps(model)).hexdigest()
 
     else:
         msg = f"""
@@ -218,9 +188,6 @@ def get_shapes_and_dtypes(inputs: dict):
         elif torch.is_tensor(value):
             shapes[key] = np.array(value.detach()).shape
             dtypes[key] = np.array(value.detach()).dtype.name
-        elif tf_helpers.is_keras_tensor(value):
-            shapes[key] = np.array(value).shape
-            dtypes[key] = np.array(value).dtype.name
         elif isinstance(value, np.ndarray):
             shapes[key] = value.shape
             dtypes[key] = value.dtype.name
