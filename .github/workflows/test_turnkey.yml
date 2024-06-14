@@ -5,9 +5,9 @@ name: Lint and Test TurnkeyML
 
 on:
   push:
-    branches: ["main", "canary"]
+    branches: ["main", "canary", "refresh"]
   pull_request:
-    branches: ["main", "canary"]
+    branches: ["main", "canary", "refresh"]
 
 permissions:
   contents: read
