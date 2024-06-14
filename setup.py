@@ -32,10 +32,6 @@ setup(
         "invoke>=2.0.0",
         "onnx>=1.11.0",
         "onnxmltools==1.10.0",
-        "hummingbird-ml==0.4.4",
-        "scikit-learn==1.1.1",
-        "xgboost==1.6.1",
-        "lightgbm==3.3.5",
         "onnxruntime >=1.10.1",
         "torch>=1.12.1",
         "protobuf>=3.17.3,<3.21",
@@ -45,13 +41,8 @@ setup(
         "pandas>=1.5.3",
         "fasteners",
         "GitPython>=3.1.40",
+        "psutil",
     ],
-    extras_require={
-        "tensorflow": [
-            "tensorflow-cpu==2.8.1",
-            "tf2onnx>=1.12.0",
-        ],
-    },
     classifiers=[],
     entry_points={
         "console_scripts": [

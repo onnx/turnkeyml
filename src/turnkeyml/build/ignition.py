@@ -8,12 +8,10 @@ import turnkeyml.common.build as build
 import turnkeyml.common.filesystem as filesystem
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.printing as printing
-import turnkeyml.common.tf_helpers as tf_helpers
 import turnkeyml.build.onnx_helpers as onnx_helpers
 import turnkeyml.build.tensor_helpers as tensor_helpers
 import turnkeyml.build.export as export
 import turnkeyml.build.stage as stage
-import turnkeyml.build.hummingbird as hummingbird
 import turnkeyml.build.sequences as sequences
 from turnkeyml.version import __version__ as turnkey_version
 
@@ -393,9 +391,7 @@ def load_or_make_state(
 
 export_map = {
     build.ModelType.PYTORCH: export.ExportPytorchModel(),
-    build.ModelType.KERAS: export.ExportKerasModel(),
     build.ModelType.ONNX_FILE: export.ReceiveOnnxModel(),
-    build.ModelType.HUMMINGBIRD: hummingbird.ConvertHummingbirdModel(),
 }
 
 
@@ -431,20 +427,6 @@ def identify_model_type(model) -> build.ModelType:
     elif isinstance(model, str):
         if model.endswith(".onnx"):
             model_type = build.ModelType.ONNX_FILE
-    elif tf_helpers.is_keras_model(model):
-        model_type = build.ModelType.KERAS
-        if not tf_helpers.is_executing_eagerly():
-            raise exp.IntakeError(
-                "`build_model()` requires Keras models to be run in eager execution mode. "
-                "Enable eager execution to continue."
-            )
-        if not model.built:
-            raise exp.IntakeError(
-                "Keras model has not been built. Please call "
-                "model.build(input_shape) before running build_model()"
-            )
-    elif hummingbird.is_supported_model(model):
-        model_type = build.ModelType.HUMMINGBIRD
     else:
         raise exp.IntakeError(
             "Argument 'model' passed to build_model() is "
@@ -465,10 +447,6 @@ def model_intake(
     #    |------- path to onnx model file
     #    |
     #    |------- pytorch model object
-    #    |
-    #    |------- keras model object
-    #    |
-    #    |------- Hummingbird-supported model object
 
     if user_sequence is None or user_sequence.enable_model_validation:
         if user_model is None and user_inputs is None:

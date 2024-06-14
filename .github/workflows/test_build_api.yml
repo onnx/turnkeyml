@@ -36,7 +36,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           conda install pylint
-          pip install -e .[tensorflow] --no-cache-dir
+          pip install -e .
           pip install transformers
           python -m pip check
       - name: Lint with PyLint
@@ -53,17 +53,7 @@ jobs:
           rm -rf ~/.cache/turnkey_test_cache
           python examples/build_api/hello_torch_world.py
           rm -rf ~/.cache/turnkey_test_cache
-          python examples/build_api/hello_keras_world.py
-          rm -rf ~/.cache/turnkey_test_cache
           python examples/build_api/hello_onnx_world.py
-          rm -rf ~/.cache/turnkey_test_cache
-          python examples/build_api/randomforest.py
-          rm -rf ~/.cache/turnkey_test_cache
-          python examples/build_api/xgbclassifier.py
-          rm -rf ~/.cache/turnkey_test_cache
-          python examples/build_api/lgbmclassifier.py
-          rm -rf ~/.cache/turnkey_test_cache
-          python examples/build_api/kneighborsclassifier.py
           rm -rf ~/.cache/turnkey_test_cache
           python examples/build_api/build_name.py
           rm -rf ~/.cache/turnkey_test_cache

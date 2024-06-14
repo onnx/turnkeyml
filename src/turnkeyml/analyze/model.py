@@ -19,8 +19,6 @@ def count_parameters(model: torch.nn.Module, model_type: build.ModelType) -> int
     """
     if model_type == build.ModelType.PYTORCH:
         return sum([parameter.numel() for _, parameter in model.named_parameters()])
-    elif model_type == build.ModelType.KERAS:
-        return model.count_params()
     elif model_type == build.ModelType.ONNX_FILE:
         onnx_model = onnx.load(model)
         return int(
