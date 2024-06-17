@@ -10,7 +10,7 @@ import numpy as np
 from turnkeyml.common.performance import MeasuredPerformance, Device
 import turnkeyml.common.build as build
 import turnkeyml.common.exceptions as exp
-from turnkeyml.common.filesystem import Stats, rebase_cache_dir
+import turnkeyml.common.filesystem as fs
 
 
 def _check_docker_install():
@@ -41,7 +41,7 @@ class BaseRT(ABC):
         self,
         cache_dir: str,
         build_name: str,
-        stats: Stats,
+        stats: fs.Stats,
         device_type: Union[str, Device],
         runtime: str,
         runtimes_supported: List[str],
@@ -177,12 +177,12 @@ class BaseRT(ABC):
             os.remove(self.local_outputs_file)
 
         # Transfer input artifacts
-        state = build.load_state(self.cache_dir, self.build_name)
+        state = fs.load_state(self.cache_dir, self.build_name)
 
         # Just in case the model file was generated on a different machine:
         # strip the state's cache dir, then prepend the current cache dir
-        model_file = rebase_cache_dir(
-            state.results[0], state.config.build_name, self.cache_dir
+        model_file = fs.rebase_cache_dir(
+            state.results[0], state.build_name, self.cache_dir
         )
 
         if not os.path.exists(model_file):

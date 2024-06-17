@@ -50,30 +50,28 @@ def get_output_names(
     return [node.name for node in onnx_model.graph.output]  # pylint: disable=no-member
 
 
-def onnx_dir(state: build.State):
+def onnx_dir(state: fs.State):
+    return os.path.join(build.output_dir(state.cache_dir, state.build_name), "onnx")
+
+
+def base_onnx_file(state: fs.State):
     return os.path.join(
-        build.output_dir(state.cache_dir, state.config.build_name), "onnx"
+        onnx_dir(state),
+        f"{state.build_name}-op{state.onnx_opset}-base.onnx",
     )
 
 
-def base_onnx_file(state: build.State):
+def opt_onnx_file(state: fs.State):
     return os.path.join(
         onnx_dir(state),
-        f"{state.config.build_name}-op{state.config.onnx_opset}-base.onnx",
+        f"{state.build_name}-op{state.onnx_opset}-opt.onnx",
     )
 
 
-def opt_onnx_file(state: build.State):
+def converted_onnx_file(state: fs.State):
     return os.path.join(
         onnx_dir(state),
-        f"{state.config.build_name}-op{state.config.onnx_opset}-opt.onnx",
-    )
-
-
-def converted_onnx_file(state: build.State):
-    return os.path.join(
-        onnx_dir(state),
-        f"{state.config.build_name}-op{state.config.onnx_opset}-opt-f16.onnx",
+        f"{state.build_name}-op{state.onnx_opset}-opt-f16.onnx",
     )
 
 
@@ -89,7 +87,7 @@ class ExportPlaceholder(stage.Stage):
             monitor_message="Placeholder for an Export Stage",
         )
 
-    def fire(self, _: build.State):
+    def fire(self, _: fs.State):
         raise exp.StageError(
             "This Sequence includes an ExportPlaceholder Stage that should have "
             "been replaced with an export Stage."
@@ -114,7 +112,7 @@ class ReceiveOnnxModel(stage.Stage):
             monitor_message="Receiving ONNX Model",
         )
 
-    def fire(self, state: build.State):
+    def fire(self, state: fs.State):
         if not isinstance(state.model, str):
             msg = f"""
             The current stage (ReceiveOnnxModel) is only compatible with
@@ -182,9 +180,7 @@ class ReceiveOnnxModel(stage.Stage):
         if check_model(output_path, success_msg, fail_msg):
             state.intermediate_results = [output_path]
 
-            stats = fs.Stats(
-                state.cache_dir, state.config.build_name, state.evaluation_id
-            )
+            stats = fs.Stats(state.cache_dir, state.build_name, state.evaluation_id)
             stats.save_model_eval_stat(
                 fs.Keys.ONNX_FILE,
                 output_path,
@@ -220,7 +216,7 @@ class ExportPytorchModel(stage.Stage):
             monitor_message="Exporting PyTorch to ONNX",
         )
 
-    def fire(self, state: build.State):
+    def fire(self, state: fs.State):
         if not isinstance(state.model, (torch.nn.Module, torch.jit.ScriptModule)):
             msg = f"""
             The current stage (ExportPytorchModel) is only compatible with
@@ -280,7 +276,7 @@ class ExportPytorchModel(stage.Stage):
         default_warnings = warnings.showwarning
         warnings.showwarning = _warn_to_stdout
 
-        stats = fs.Stats(state.cache_dir, state.config.build_name, state.evaluation_id)
+        stats = fs.Stats(state.cache_dir, state.build_name, state.evaluation_id)
 
         # Verify if the exported model matches the input torch model
         try:
@@ -295,7 +291,7 @@ class ExportPytorchModel(stage.Stage):
             export_verification = torch.onnx.verification.find_mismatch(
                 state.model,
                 tuple(state.inputs.values()),
-                opset_version=state.config.onnx_opset,
+                opset_version=state.onnx_opset,
                 options=fp32_tolerance,
             )
 
@@ -331,7 +327,7 @@ class ExportPytorchModel(stage.Stage):
             output_path,
             input_names=dummy_input_names,
             do_constant_folding=True,
-            opset_version=state.config.onnx_opset,
+            opset_version=state.onnx_opset,
             verbose=False,
         )
 
@@ -387,7 +383,7 @@ class OptimizeOnnxModel(stage.Stage):
             monitor_message="Optimizing ONNX file",
         )
 
-    def fire(self, state: build.State):
+    def fire(self, state: fs.State):
         input_onnx = state.intermediate_results[0]
         output_path = opt_onnx_file(state)
 
@@ -415,9 +411,7 @@ class OptimizeOnnxModel(stage.Stage):
         if check_model(output_path, success_msg, fail_msg):
             state.intermediate_results = [output_path]
 
-            stats = fs.Stats(
-                state.cache_dir, state.config.build_name, state.evaluation_id
-            )
+            stats = fs.Stats(state.cache_dir, state.build_name, state.evaluation_id)
             stats.save_model_eval_stat(
                 fs.Keys.ONNX_FILE,
                 output_path,
@@ -452,7 +446,7 @@ class ConvertOnnxToFp16(stage.Stage):
             monitor_message="Converting to FP16",
         )
 
-    def fire(self, state: build.State):
+    def fire(self, state: fs.State):
         input_onnx = state.intermediate_results[0]
 
         # Convert the model to FP16
@@ -521,9 +515,7 @@ class ConvertOnnxToFp16(stage.Stage):
         if check_model(output_path, success_msg, fail_msg):
             state.intermediate_results = [output_path]
 
-            stats = fs.Stats(
-                state.cache_dir, state.config.build_name, state.evaluation_id
-            )
+            stats = fs.Stats(state.cache_dir, state.build_name, state.evaluation_id)
             stats.save_model_eval_stat(
                 fs.Keys.ONNX_FILE,
                 output_path,

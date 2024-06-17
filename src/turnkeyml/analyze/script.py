@@ -169,7 +169,7 @@ def _store_traceback(invocation_info: status.UniqueInvocationInfo):
 
 def set_status_on_exception(
     build_required: bool,
-    build_state: build.State,
+    build_state: fs.State,
     stats: fs.Stats,
     benchmark_logfile_path: str,
 ):

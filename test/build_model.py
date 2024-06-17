@@ -499,7 +499,7 @@ class Testing(unittest.TestCase):
         assert user_opset == model_opset
 
         # Make sure the ONNX file matches the state file
-        assert model_opset == state.config.onnx_opset
+        assert model_opset == state.onnx_opset
 
     def test_017_inputs_conversion(self):
         custom_sequence_fp32 = stage.Sequence(

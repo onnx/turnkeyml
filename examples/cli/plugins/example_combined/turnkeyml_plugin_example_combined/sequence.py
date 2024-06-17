@@ -17,7 +17,7 @@ class CombinedExampleStage(Stage):
             monitor_message="Special step expected by CombinedExampleRT",
         )
 
-    def fire(self, state: build.State):
+    def fire(self, state: fs.State):
         return state
 
 

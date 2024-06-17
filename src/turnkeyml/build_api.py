@@ -4,7 +4,7 @@ import turnkeyml.build.ignition as ignition
 import turnkeyml.build.stage as stage
 import turnkeyml.common.printing as printing
 import turnkeyml.common.build as build
-import turnkeyml.common.filesystem as filesystem
+import turnkeyml.common.filesystem as fs
 
 
 def build_model(
@@ -12,13 +12,13 @@ def build_model(
     inputs: Optional[Dict[str, Any]] = None,
     build_name: Optional[str] = None,
     evaluation_id: Optional[str] = "build",
-    cache_dir: str = filesystem.DEFAULT_CACHE_DIR,
+    cache_dir: str = fs.DEFAULT_CACHE_DIR,
     monitor: Optional[bool] = None,
     rebuild: Optional[str] = None,
     sequence: Optional[List[stage.Stage]] = None,
     onnx_opset: Optional[int] = None,
     device: Optional[str] = None,
-) -> build.State:
+) -> fs.State:
     """Use build a model instance into an optimized ONNX file.
 
     Args:
@@ -67,9 +67,9 @@ def build_model(
     # Support "~" in the cache_dir argument
     parsed_cache_dir = os.path.expanduser(cache_dir)
 
-    # Validate and lock in the config (user arguments that
+    # Validate and lock in the initial state (user arguments that
     # configure the build) that will be used by the rest of the toolchain
-    config = ignition.lock_config(
+    state = ignition.initialize_state(
         model=model,
         build_name=build_name,
         sequence=sequence,
@@ -92,7 +92,7 @@ def build_model(
 
     # Get the state of the model from the cache if a valid build is available
     state = ignition.load_or_make_state(
-        config=config,
+        new_state=state,
         evaluation_id=evaluation_id,
         cache_dir=parsed_cache_dir,
         rebuild=rebuild or build.DEFAULT_REBUILD_POLICY,
@@ -107,18 +107,17 @@ def build_model(
     if state.build_status == build.FunctionStatus.SUCCESSFUL:
         # Successful builds can be loaded from cache and returned with
         # no additional steps
-        additional_msg = " (build_name auto-selected)" if config.auto_name else ""
         printing.log_success(
-            f' Build "{config.build_name}"{additional_msg} found in cache. Loading it!',
+            f' Build "{state.build_name}" found in cache. Loading it!',
         )
 
         return state
 
-    sequence_locked.show_monitor(config, state.monitor)
+    sequence_locked.show_monitor(state, state.monitor)
     state = sequence_locked.launch(state)
 
     printing.log_success(
-        f"\n    Saved to **{build.output_dir(state.cache_dir, config.build_name)}**"
+        f"\n    Saved to **{build.output_dir(state.cache_dir, state.build_name)}**"
     )
 
     return state

@@ -138,7 +138,7 @@ def get_stats_and_state(
 
     for build_state_file in builds:
         if test_script_name in build_state_file:
-            build_state = build.load_state(state_path=build_state_file)
+            build_state = fs.load_state(state_path=build_state_file)
             stats = filesystem.Stats(
                 build_state.cache_dir,
                 build_state.config.build_name,

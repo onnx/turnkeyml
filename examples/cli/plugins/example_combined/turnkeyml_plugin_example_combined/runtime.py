@@ -57,7 +57,7 @@ class CombinedExampleRT(BaseRT):
         pass
 
     def benchmark(self):
-        state = build.load_state(self.cache_dir, self.build_name)
+        state = fs.load_state(self.cache_dir, self.build_name)
         per_iteration_latency = []
         sess_options = ort.SessionOptions()
         sess_options.graph_optimization_level = (

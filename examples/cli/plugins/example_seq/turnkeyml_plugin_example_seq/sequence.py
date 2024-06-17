@@ -33,7 +33,7 @@ class ExampleStage(Stage):
             monitor_message="Teaching by example",
         )
 
-    def fire(self, state: build.State):
+    def fire(self, state: fs.State):
         return state
 
 

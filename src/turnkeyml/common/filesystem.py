@@ -2,7 +2,7 @@ import os
 import shutil
 import glob
 import pathlib
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 import importlib.util
 import yaml
 import turnkeyml.common.printing as printing
@@ -375,6 +375,45 @@ class Keys:
     TIMESTAMP = "timestamp"
     # Records the logfile of any failed stage/benchmark
     ERROR_LOG = "error_log"
+    # Name of the build in the cache
+    BUILD_NAME = "build_name"
+    # Sequence of stages used for this build
+    SEQUENCE = "sequence"
+    # ONNX opset used during model export
+    ONNX_OPSET = "onnx_opset"
+    # Whether the build monitor is enabled to provide visibility to the build process
+    MONITOR = "monitor"
+    # Whether to rebuild the model in the event of a cache hit
+    REBUILD = "rebuild"
+    # Cache directory where the build artifacts and logs will be stored
+    CACHE_DIR = "cache_dir"
+    # Unique ID for an evaluation (build of a model against a specfic device/runtime/sequence)
+    EVALUATION_ID = "evaluation_id"
+    # Model (object or path to file) under evaluation
+    MODEL = "model"
+    # Example inputs to the model
+    INPUTS = "inputs"
+    # Version of TurnkeyML used for the build
+    TURNKEY_VERSION = "turnkey_version"
+    # Indicates what framework (e.g., PyTorch, ONNX) the model was source from
+    MODEL_TYPE = "model_type"
+    # Unique ID for this build
+    UID = "uid"
+    # Unique hash for this model
+    MODEL_HASH = "model_hash"
+    # Input shapes expected by the model
+    EXPECTED_INPUT_SHAPES = "expected_input_shapes"
+    # Input data types expected by the model
+    EXPECTED_INPUT_DTYPES = "expected_input_dtypes"
+    # Output tensor names produced by the model
+    EXPECTED_OUTPUT_NAMES = "expected_output_names"
+    # Whether or not inputs must be downcasted during inference
+    DOWNCAST_APPLIED = "downcast_applied"
+    # The results of the most recent stage that was executed
+    CURRENT_BUILD_STAGE = "current_build_stage"
+    INTERMEDIATE_RESULTS = "intermediate_results"
+    # Final result artifact of the build
+    RESULTS = "results"
 
 
 def _clean_logfile(logfile_lines: List[str]) -> List[str]:
@@ -528,3 +567,94 @@ def rebase_cache_dir(input_path: str, build_name: str, new_cache_dir: str):
 
     relative_input_path = input_path.split(build_name, 1)[1][1:]
     return os.path.join(new_cache_dir, build_name, relative_input_path)
+
+
+# All of the state properties analyzed by ignition.validate_cached_model()
+# should be listed here.
+cache_analysis_properties = [
+    Keys.BUILD_NAME,
+    Keys.ONNX_OPSET,
+    Keys.DEVICE,
+    Keys.SEQUENCE,
+    Keys.BUILD_STATUS,
+    Keys.TURNKEY_VERSION,
+    Keys.MODEL_HASH,
+    Keys.EXPECTED_INPUT_DTYPES,
+    Keys.EXPECTED_INPUT_SHAPES,
+    Keys.DOWNCAST_APPLIED,
+    Keys.UID,
+]
+
+
+class State:
+    def __init__(self, **kwargs):
+        self._members = {}
+
+        for key, value in kwargs.items():
+            self._members[key] = value
+
+        self.__setattr__ = self.state_set_attr
+        self.__getattribute__ = self.state_get_attr
+
+    def state_set_attr(self, name: str, value: Any) -> None:
+        self._members[name] = value
+
+    def state_get_attr(self, name: str) -> Any:
+        if name.startswith("_"):
+            return self.__dict__[name]
+        else:
+            return self._members[name]
+
+    def save(self):
+        """
+        Save only the crucial properties for assessing a cache hit.
+
+        That list is defined by the state properties referenced in
+        ignition.validate_cached_model()
+        """
+
+        state_to_save = {}
+        # Save results state only if the result is a string (ie, a path to a file)
+        for key, value in self._members.items():
+            if key in cache_analysis_properties or (
+                key == Keys.RESULTS and isinstance(key[0], str)
+            ):
+                state_to_save[key] = value
+
+        with open(
+            build.state_file(
+                self._members[Keys.CACHE_DIR], self._members[Keys.BUILD_NAME]
+            ),
+            "w",
+            encoding="utf8",
+        ) as outfile:
+            yaml.dump(state_to_save, outfile)
+
+
+def load_state(
+    cache_dir=None,
+    build_name=None,
+    state_path=None,
+) -> State:
+
+    if state_path is not None:
+        file_path = state_path
+    elif build_name is not None and cache_dir is not None:
+        file_path = build.state_file(cache_dir, build_name)
+    else:
+        raise ValueError(
+            "This function requires either build_name and cache_dir to be set, "
+            "or state_path to be set, not both or neither"
+        )
+
+    state_dict = build.load_yaml(file_path)
+
+    for key in state_dict.keys():
+        if key not in cache_analysis_properties:
+            raise exp.StateError(
+                "Loaded state does not have sufficient information "
+                "saved to assess whether it is a cache hit because "
+                f"key {key} is missing."
+            )
+
+    return State(**state_dict)

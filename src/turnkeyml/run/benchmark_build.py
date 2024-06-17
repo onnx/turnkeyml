@@ -84,7 +84,7 @@ def benchmark_build(
         rt_args: same as turnkey
     """
 
-    state = build.load_state(cache_dir, build_name)
+    state = fs.load_state(cache_dir, build_name)
 
     if state.build_status != build.FunctionStatus.SUCCESSFUL:
         raise SkippedBenchmark(
@@ -93,7 +93,7 @@ def benchmark_build(
             f"has state: {state.build_status}"
         )
 
-    selected_runtime = apply_default_runtime(state.config.device, runtime)
+    selected_runtime = apply_default_runtime(state.device, runtime)
 
     if rt_args is None:
         rt_args_to_use = {}
@@ -140,7 +140,7 @@ def benchmark_build(
             # because this function only works with runtimes that
             # keep their model and inputs on disk.
             inputs=None,
-            device_type=state.config.device,
+            device_type=state.device,
             runtime=selected_runtime,
             **rt_args_to_use,
         )
@@ -231,7 +231,7 @@ def benchmark_cache(
                 "Try running `turnkey cache list` to see the builds in your build cache."
             )
 
-        state = build.load_state(cache_dir, build_name)
+        state = fs.load_state(cache_dir, build_name)
         stats = fs.Stats(cache_dir, build_name, state.evaluation_id)
 
         # Apply the skip policy by skipping over this iteration of the
