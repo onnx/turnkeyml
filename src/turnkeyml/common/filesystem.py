@@ -588,22 +588,19 @@ cache_analysis_properties = [
 
 class State:
     def __init__(self, **kwargs):
-        self._members = {}
 
         for key, value in kwargs.items():
-            self._members[key] = value
+            self.__dict__[key] = value
 
-        self.__setattr__ = self.state_set_attr
-        self.__getattribute__ = self.state_get_attr
+        # self.__setattr__ = self.state_set_attr
+        # self.__getattribute__ = self.state_get_attr
 
-    def state_set_attr(self, name: str, value: Any) -> None:
-        self._members[name] = value
+    def __setattr__(self, name: str, value: Any) -> None:
+        # self.__dict__[name] = value
+        return super().__setattr__(name, value)
 
-    def state_get_attr(self, name: str) -> Any:
-        if name.startswith("_"):
-            return self.__dict__[name]
-        else:
-            return self._members[name]
+    # def __getattribute__(self, name: str) -> Any:
+    #     return self.__dict__[name]
 
     def save(self):
         """
@@ -615,16 +612,14 @@ class State:
 
         state_to_save = {}
         # Save results state only if the result is a string (ie, a path to a file)
-        for key, value in self._members.items():
+        for key, value in vars(self).items():
             if key in cache_analysis_properties or (
                 key == Keys.RESULTS and isinstance(key[0], str)
             ):
                 state_to_save[key] = value
 
         with open(
-            build.state_file(
-                self._members[Keys.CACHE_DIR], self._members[Keys.BUILD_NAME]
-            ),
+            build.state_file(self.cache_dir, self.build_name),
             "w",
             encoding="utf8",
         ) as outfile:

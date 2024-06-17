@@ -526,6 +526,8 @@ def explore_invocation(
 
         _store_traceback(invocation_info)
 
+        raise e
+
     finally:
         # Ensure that stdout/stderr is not being forwarded before updating status
         status.stop_logger_forward()

@@ -18,6 +18,9 @@ from turnkeyml.version import __version__ as turnkey_version
 
 def initialize_state(
     model: build.UnionValidModelInstanceTypes,
+    monitor: str,
+    evaluation_id: str,
+    cache_dir: str,
     build_name: Optional[str] = None,
     sequence: stage.Sequence = None,
     onnx_opset: Optional[int] = None,
@@ -65,12 +68,21 @@ def initialize_state(
     else:
         device_to_use = device
 
+    # Support "~" in the cache_dir argument
+    parsed_cache_dir = os.path.expanduser(cache_dir)
+
     # Store the args that should be immutable
     state = fs.State(
+        model=model,
+        monitor=monitor,
+        evaluation_id=evaluation_id,
+        cache_dir=parsed_cache_dir,
         build_name=build_name,
         sequence=stage_names,
         onnx_opset=opset_to_use,
         device=device_to_use,
+        turnkey_version=turnkey_version,
+        build_status=build.FunctionStatus.NOT_STARTED,
     )
 
     return state
@@ -85,7 +97,6 @@ def validate_cached_model(
     new_state: fs.State,
     cached_state: fs.State,
     model_type: build.ModelType,
-    model: build.UnionValidModelInstanceTypes = None,
     inputs: Optional[Dict[str, Any]] = None,
 ) -> List[str]:
     """
@@ -118,8 +129,10 @@ def validate_cached_model(
         )
         result.append(msg)
 
-    if model is not None:
-        model_changed = cached_state.model_hash != build.hash_model(model, model_type)
+    if new_state.model is not None:
+        model_changed = cached_state.model_hash != build.hash_model(
+            new_state.model, model_type
+        )
     else:
         model_changed = False
 
@@ -212,15 +225,13 @@ def validate_cached_model(
 
 
 def _begin_fresh_build(
-    state_args: Dict,
+    new_state: fs.State,
 ) -> fs.State:
     # Wipe everything in this model's build directory, except for the stats file,
     # start with a fresh State.
-    stats = fs.Stats(state_args["cache_dir"], state_args["config"].build_name)
+    stats = fs.Stats(new_state.cache_dir, new_state.build_name)
 
-    build_dir = build.output_dir(
-        state_args["cache_dir"], state_args["config"].build_name
-    )
+    build_dir = build.output_dir(new_state.cache_dir, new_state.build_name)
 
     fs.rmdir(
         build_dir,
@@ -229,10 +240,9 @@ def _begin_fresh_build(
             os.path.join(build_dir, fs.BUILD_MARKER),
         ],
     )
-    state = fs.State(**state_args)
-    state.save()
+    new_state.save()
 
-    return state
+    return new_state
 
 
 def _rebuild_if_needed(problem_report: str, state_args: Dict):
@@ -251,12 +261,8 @@ def _rebuild_if_needed(problem_report: str, state_args: Dict):
 
 def load_or_make_state(
     new_state: fs.State,
-    evaluation_id: str,
-    cache_dir: str,
     rebuild: str,
     model_type: build.ModelType,
-    monitor: bool,
-    model: build.UnionValidModelInstanceTypes = None,
     inputs: Optional[Dict[str, Any]] = None,
 ) -> fs.State:
     """
@@ -276,37 +282,29 @@ def load_or_make_state(
             f"however the only allowed values of `rebuild` are {build.REBUILD_OPTIONS}"
         )
 
-    # Put all the args for making a new State instance into a dict
-    # to help the following code be cleaner
-    state_args = {
-        fs.Keys.MODEL: model,
-        fs.Keys.INPUTS: inputs,
-        fs.Keys.MONITOR: monitor,
-        fs.Keys.EVALUATION_ID: evaluation_id,
-        fs.Keys.CACHE_DIR: cache_dir,
-        fs.Keys.MODEL_TYPE: model_type,
-        **new_state._members,
-    }
+    # Initialize the new state with the results of model intake
+    new_state.inputs = inputs
+    new_state.model_type = model_type
 
     if rebuild == "always":
-        return _begin_fresh_build(state_args)
+        return _begin_fresh_build(new_state)
     else:
         # Try to load state and check if model successfully built before
-        if os.path.isfile(build.state_file(cache_dir, new_state.build_name)):
+        if os.path.isfile(build.state_file(new_state.cache_dir, new_state.build_name)):
             try:
                 cached_state = fs.load_state(
-                    cache_dir,
+                    new_state.cache_dir,
                     new_state.build_name,
                 )
 
             except exp.StateError as e:
                 problem = (
                     "- build_model() failed to load "
-                    f"{build.state_file(cache_dir, new_state.build_name)}"
+                    f"{build.state_file(new_state.cache_dir, new_state.build_name)}"
                 )
 
                 if rebuild == "if_needed":
-                    return _rebuild_if_needed(problem, state_args)
+                    return _rebuild_if_needed(problem, new_state)
                 else:
                     # Give the rebuild="never" users a chance to address the problem
                     raise exp.CacheError(e)
@@ -315,7 +313,6 @@ def load_or_make_state(
                 new_state=new_state,
                 cached_state=cached_state,
                 model_type=model_type,
-                model=model,
                 inputs=inputs,
             )
 
@@ -324,7 +321,7 @@ def load_or_make_state(
                 problem_report = "\n".join(cache_problems)
 
                 if rebuild == "if_needed":
-                    return _rebuild_if_needed(problem_report, state_args)
+                    return _rebuild_if_needed(problem_report, new_state)
                 if rebuild == "never":
                     msg = (
                         "build_model() discovered a cached build of "
@@ -341,15 +338,11 @@ def load_or_make_state(
                         "failed and the `rebuild` argument is set to `never`."
                     )
 
-            # Ensure the model and inputs are part of the state
-            new_state.model = model
-            new_state.inputs = inputs
-
-            return new_state
+            return cached_state
 
         else:
             # No state file found, so we have to build
-            return _begin_fresh_build(state_args)
+            return _begin_fresh_build(new_state)
 
 
 export_map = {
@@ -472,4 +465,4 @@ def model_intake(
         sequence = user_sequence
         model_type = build.ModelType.UNKNOWN
 
-    return (user_model, inputs, sequence, model_type)
+    return (inputs, sequence, model_type)

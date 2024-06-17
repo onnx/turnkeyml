@@ -11,7 +11,7 @@ def build_model(
     model: build.UnionValidModelInstanceTypes = None,
     inputs: Optional[Dict[str, Any]] = None,
     build_name: Optional[str] = None,
-    evaluation_id: Optional[str] = "build",
+    evaluation_id: str = "build",
     cache_dir: str = fs.DEFAULT_CACHE_DIR,
     monitor: Optional[bool] = None,
     rebuild: Optional[str] = None,
@@ -64,13 +64,13 @@ def build_model(
     else:
         monitor_setting = monitor
 
-    # Support "~" in the cache_dir argument
-    parsed_cache_dir = os.path.expanduser(cache_dir)
-
-    # Validate and lock in the initial state (user arguments that
-    # configure the build) that will be used by the rest of the toolchain
+    # Validate and apply defaults to the initial user arguments that
+    # configure the build
     state = ignition.initialize_state(
         model=model,
+        monitor=monitor_setting,
+        evaluation_id=evaluation_id,
+        cache_dir=cache_dir,
         build_name=build_name,
         sequence=sequence,
         onnx_opset=onnx_opset,
@@ -80,7 +80,6 @@ def build_model(
     # Analyze the user's model argument and lock in the model, inputs,
     # and sequence that will be used by the rest of the toolchain
     (
-        model_locked,
         inputs_locked,
         sequence_locked,
         model_type,
@@ -93,12 +92,8 @@ def build_model(
     # Get the state of the model from the cache if a valid build is available
     state = ignition.load_or_make_state(
         new_state=state,
-        evaluation_id=evaluation_id,
-        cache_dir=parsed_cache_dir,
         rebuild=rebuild or build.DEFAULT_REBUILD_POLICY,
         model_type=model_type,
-        monitor=monitor_setting,
-        model=model_locked,
         inputs=inputs_locked,
     )
 
