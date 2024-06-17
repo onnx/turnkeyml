@@ -122,7 +122,7 @@ def benchmark_build(
     stats = fs.Stats(cache_dir, build_name, state.evaluation_id)
 
     stats.save_model_eval_stat(
-        fs.Keys.BENCHMARK_STATUS, build.FunctionStatus.INCOMPLETE.value
+        fs.Keys.BENCHMARK_STATUS, build.FunctionStatus.INCOMPLETE
     )
 
     benchmark_logfile_path = ""
@@ -157,7 +157,7 @@ def benchmark_build(
         perf.print()
 
         stats.save_model_eval_stat(
-            fs.Keys.BENCHMARK_STATUS, build.FunctionStatus.SUCCESSFUL.value
+            fs.Keys.BENCHMARK_STATUS, build.FunctionStatus.SUCCESSFUL
         )
     except Exception as e:
         set_status_on_exception(
@@ -240,8 +240,7 @@ def benchmark_cache(
         eval_stats = stats.evaluation_stats
         if (
             fs.Keys.BENCHMARK_STATUS in eval_stats
-            and eval_stats[fs.Keys.BENCHMARK_STATUS]
-            != build.FunctionStatus.NOT_STARTED.value
+            and eval_stats[fs.Keys.BENCHMARK_STATUS] != build.FunctionStatus.NOT_STARTED
         ):
             if skip_policy == "attempted":
                 printing.log_warning(
@@ -251,7 +250,7 @@ def benchmark_cache(
             elif (
                 skip_policy == "successful"
                 and eval_stats[fs.Keys.BENCHMARK_STATUS]
-                == build.FunctionStatus.SUCCESSFUL.value
+                == build.FunctionStatus.SUCCESSFUL
             ):
                 printing.log_warning(
                     f"Skipping because it was already successfully benchmarked: {build_name}"
@@ -260,7 +259,7 @@ def benchmark_cache(
             elif (
                 skip_policy == "failed"
                 and eval_stats[fs.Keys.BENCHMARK_STATUS]
-                != build.FunctionStatus.SUCCESSFUL.value
+                != build.FunctionStatus.SUCCESSFUL
             ):
                 printing.log_warning(
                     f"Skipping because it was previously attempted and failed: {build_name}"
@@ -287,7 +286,7 @@ def benchmark_cache(
                 child.kill()
             parent.kill()
             stats.save_model_eval_stat(
-                fs.Keys.BENCHMARK_STATUS, build.FunctionStatus.TIMEOUT.value
+                fs.Keys.BENCHMARK_STATUS, build.FunctionStatus.TIMEOUT
             )
 
             printing.log_warning(
@@ -304,11 +303,11 @@ def benchmark_cache(
 
             if isinstance(p.exception[0], SkippedBenchmark):
                 stats.save_model_eval_stat(
-                    fs.Keys.BENCHMARK_STATUS, build.FunctionStatus.NOT_STARTED.value
+                    fs.Keys.BENCHMARK_STATUS, build.FunctionStatus.NOT_STARTED
                 )
             else:
                 stats.save_model_eval_stat(
-                    fs.Keys.BENCHMARK_STATUS, build.FunctionStatus.ERROR.value
+                    fs.Keys.BENCHMARK_STATUS, build.FunctionStatus.ERROR
                 )
 
             if isinstance(p.exception[0], exp.HardwareError):

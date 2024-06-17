@@ -293,7 +293,7 @@ class Sequence(Stage):
         # At the beginning of a sequence no stage has started
         for stage in self.stages:
             stats.save_model_eval_stat(
-                stage.status_key, build.FunctionStatus.NOT_STARTED.value
+                stage.status_key, build.FunctionStatus.NOT_STARTED
             )
             stats.save_model_eval_stat(stage.duration_key, "-")
 
@@ -305,7 +305,7 @@ class Sequence(Stage):
 
                 # Set status as incomplete, since stage just started
                 stats.save_model_eval_stat(
-                    stage.status_key, build.FunctionStatus.INCOMPLETE.value
+                    stage.status_key, build.FunctionStatus.INCOMPLETE
                 )
 
                 # Collect telemetry about the stage
@@ -319,9 +319,7 @@ class Sequence(Stage):
             except Exception as e:  # pylint: disable=broad-except
 
                 # Update Stage Status
-                stats.save_model_eval_stat(
-                    stage.status_key, build.FunctionStatus.ERROR.value
-                )
+                stats.save_model_eval_stat(stage.status_key, build.FunctionStatus.ERROR)
 
                 # Save the log file for the failed stage to stats for easy reference
                 stats.save_eval_error_log(stage.logfile_path)
@@ -343,7 +341,7 @@ class Sequence(Stage):
             else:
                 # Update Stage Status
                 stats.save_model_eval_stat(
-                    stage.status_key, build.FunctionStatus.SUCCESSFUL.value
+                    stage.status_key, build.FunctionStatus.SUCCESSFUL
                 )
 
             finally:

@@ -583,7 +583,37 @@ cache_analysis_properties = [
     Keys.EXPECTED_INPUT_SHAPES,
     Keys.DOWNCAST_APPLIED,
     Keys.UID,
+    Keys.EVALUATION_ID,
 ]
+
+
+def is_nice_to_write(value):
+    """
+    Checks whether a value is nice to write to YAML.
+    Returns True if the value is a string, int, float, bool, list, dict, or tuple.
+    Returns False otherwise.
+    """
+    if isinstance(value, (str, int, float, bool)):
+        return True
+    elif isinstance(value, list) or isinstance(value, tuple):
+        # Check if all elements in the list are nice to write
+        return all(is_nice_to_write(item) for item in value)
+    elif isinstance(value, dict):
+        # Check if all values in the dictionary are nice to write
+        return all(is_nice_to_write(item) for item in value.values())
+    return False
+
+
+def sanitize_for_yaml(input_dict: Dict) -> Dict:
+    """
+    Creates a new dictionary  containing only nice-to-write values
+    from the original dictionary.
+    """
+    result = {}
+    for key, value in input_dict.items():
+        if is_nice_to_write(value):
+            result[key] = value
+    return result
 
 
 class State:
@@ -592,31 +622,12 @@ class State:
         for key, value in kwargs.items():
             self.__dict__[key] = value
 
-        # self.__setattr__ = self.state_set_attr
-        # self.__getattribute__ = self.state_get_attr
-
     def __setattr__(self, name: str, value: Any) -> None:
-        # self.__dict__[name] = value
         return super().__setattr__(name, value)
 
-    # def __getattribute__(self, name: str) -> Any:
-    #     return self.__dict__[name]
-
     def save(self):
-        """
-        Save only the crucial properties for assessing a cache hit.
 
-        That list is defined by the state properties referenced in
-        ignition.validate_cached_model()
-        """
-
-        state_to_save = {}
-        # Save results state only if the result is a string (ie, a path to a file)
-        for key, value in vars(self).items():
-            if key in cache_analysis_properties or (
-                key == Keys.RESULTS and isinstance(key[0], str)
-            ):
-                state_to_save[key] = value
+        state_to_save = sanitize_for_yaml(vars(self))
 
         with open(
             build.state_file(self.cache_dir, self.build_name),
@@ -643,13 +654,5 @@ def load_state(
         )
 
     state_dict = build.load_yaml(file_path)
-
-    for key in state_dict.keys():
-        if key not in cache_analysis_properties:
-            raise exp.StateError(
-                "Loaded state does not have sufficient information "
-                "saved to assess whether it is a cache hit because "
-                f"key {key} is missing."
-            )
 
     return State(**state_dict)

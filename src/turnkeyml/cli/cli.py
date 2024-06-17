@@ -5,7 +5,7 @@ import copy
 from difflib import get_close_matches
 import turnkeyml.common.build as build
 import turnkeyml.common.exceptions as exceptions
-import turnkeyml.common.filesystem as filesystem
+import turnkeyml.common.filesystem as fs
 import turnkeyml.cli.report as report
 import turnkeyml.cli.parser_helpers as parser_helpers
 from turnkeyml.files_api import benchmark_files
@@ -34,11 +34,9 @@ def print_version(_):
 
 def print_stats(args):
     state_path = build.state_file(args.cache_dir, args.build_name)
-    filesystem.print_yaml_file(state_path, "build state")
+    fs.print_yaml_file(state_path, "build state")
 
-    filesystem.print_yaml_file(
-        filesystem.Stats(args.cache_dir, args.build_name).file, "stats"
-    )
+    fs.print_yaml_file(fs.Stats(args.cache_dir, args.build_name).file, "stats")
 
 
 def benchmark_command(args):
@@ -192,9 +190,9 @@ def main():
         "--cache-dir",
         dest="cache_dir",
         help="Build cache directory where the resulting build directories will "
-        f"be stored (defaults to {filesystem.DEFAULT_CACHE_DIR})",
+        f"be stored (defaults to {fs.DEFAULT_CACHE_DIR})",
         required=False,
-        default=filesystem.DEFAULT_CACHE_DIR,
+        default=fs.DEFAULT_CACHE_DIR,
     )
 
     both_build_benchmark_group.add_argument(
@@ -330,9 +328,9 @@ def main():
         dest="cache_dirs",
         help=(
             "One or more build cache directories to generate the report "
-            f"(defaults to {filesystem.DEFAULT_CACHE_DIR})"
+            f"(defaults to {fs.DEFAULT_CACHE_DIR})"
         ),
-        default=[filesystem.DEFAULT_CACHE_DIR],
+        default=[fs.DEFAULT_CACHE_DIR],
         nargs="*",
     )
 
@@ -352,16 +350,16 @@ def main():
     list_parser = cache_subparsers.add_parser(
         "list", help="List all builds in a target cache"
     )
-    list_parser.set_defaults(func=filesystem.print_available_builds)
+    list_parser.set_defaults(func=fs.print_available_builds)
 
     list_parser.add_argument(
         "-d",
         "--cache-dir",
         dest="cache_dir",
         help="The builds in this build cache directory will printed to the terminal "
-        f" (defaults to {filesystem.DEFAULT_CACHE_DIR})",
+        f" (defaults to {fs.DEFAULT_CACHE_DIR})",
         required=False,
-        default=filesystem.DEFAULT_CACHE_DIR,
+        default=fs.DEFAULT_CACHE_DIR,
     )
 
     #######################################
@@ -378,9 +376,9 @@ def main():
         "--cache-dir",
         dest="cache_dir",
         help="The stats of a build in this build cache directory will printed to the terminal "
-        f" (defaults to {filesystem.DEFAULT_CACHE_DIR})",
+        f" (defaults to {fs.DEFAULT_CACHE_DIR})",
         required=False,
-        default=filesystem.DEFAULT_CACHE_DIR,
+        default=fs.DEFAULT_CACHE_DIR,
     )
 
     stats_parser.add_argument(
@@ -395,15 +393,15 @@ def main():
     delete_parser = cache_subparsers.add_parser(
         "delete", help="Delete one or more builds in a build cache"
     )
-    delete_parser.set_defaults(func=filesystem.delete_builds)
+    delete_parser.set_defaults(func=fs.delete_builds)
 
     delete_parser.add_argument(
         "-d",
         "--cache-dir",
         dest="cache_dir",
-        help="Search path for builds " f"(defaults to {filesystem.DEFAULT_CACHE_DIR})",
+        help="Search path for builds " f"(defaults to {fs.DEFAULT_CACHE_DIR})",
         required=False,
-        default=filesystem.DEFAULT_CACHE_DIR,
+        default=fs.DEFAULT_CACHE_DIR,
     )
 
     delete_group = delete_parser.add_mutually_exclusive_group(required=True)
@@ -429,15 +427,15 @@ def main():
         "clean",
         help="Remove the build artifacts from one or more builds in a build cache",
     )
-    clean_parser.set_defaults(func=filesystem.clean_builds)
+    clean_parser.set_defaults(func=fs.clean_builds)
 
     clean_parser.add_argument(
         "-d",
         "--cache-dir",
         dest="cache_dir",
-        help="Search path for builds " f"(defaults to {filesystem.DEFAULT_CACHE_DIR})",
+        help="Search path for builds " f"(defaults to {fs.DEFAULT_CACHE_DIR})",
         required=False,
-        default=filesystem.DEFAULT_CACHE_DIR,
+        default=fs.DEFAULT_CACHE_DIR,
     )
 
     clean_group = clean_parser.add_mutually_exclusive_group(required=True)
@@ -463,7 +461,7 @@ def main():
         "location",
         help="Print the location of the default build cache directory",
     )
-    cache_location_parser.set_defaults(func=filesystem.print_cache_dir)
+    cache_location_parser.set_defaults(func=fs.print_cache_dir)
 
     #######################################
     # Parser for the "cache benchmark" command
@@ -479,9 +477,9 @@ def main():
         "-d",
         "--cache-dir",
         dest="cache_dir",
-        help="Search path for builds " f"(defaults to {filesystem.DEFAULT_CACHE_DIR})",
+        help="Search path for builds " f"(defaults to {fs.DEFAULT_CACHE_DIR})",
         required=False,
-        default=filesystem.DEFAULT_CACHE_DIR,
+        default=fs.DEFAULT_CACHE_DIR,
     )
 
     cache_benchmark_group = cache_benchmark_parser.add_mutually_exclusive_group(
@@ -572,7 +570,7 @@ def main():
         "location",
         help="Print the location of the models directory",
     )
-    models_location_parser.set_defaults(func=filesystem.print_models_dir)
+    models_location_parser.set_defaults(func=fs.print_models_dir)
 
     models_location_parser.add_argument(
         "--quiet",

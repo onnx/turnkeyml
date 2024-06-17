@@ -55,20 +55,11 @@ def build_model(
             https://github.com/onnx/turnkeyml/blob/main/docs/tools_user_guide.md
     """
 
-    # Allow monitor to be globally disabled by an environment variable
-    if monitor is None:
-        if os.environ.get("TURNKEY_BUILD_MONITOR") == "False":
-            monitor_setting = False
-        else:
-            monitor_setting = True
-    else:
-        monitor_setting = monitor
-
     # Validate and apply defaults to the initial user arguments that
     # configure the build
     state = ignition.initialize_state(
         model=model,
-        monitor=monitor_setting,
+        monitor=monitor,
         evaluation_id=evaluation_id,
         cache_dir=cache_dir,
         build_name=build_name,

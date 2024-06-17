@@ -141,7 +141,7 @@ def get_stats_and_state(
             build_state = fs.load_state(state_path=build_state_file)
             stats = filesystem.Stats(
                 build_state.cache_dir,
-                build_state.config.build_name,
+                build_state.build_name,
                 build_state.evaluation_id,
             )
             return stats.evaluation_stats, build_state

@@ -161,6 +161,8 @@ class FullyCustomStage(stage.Stage):
     def fire(self, state):
         print(self.saying)
 
+        state.intermediate_results = ["great stuff"]
+
         return state
 
 

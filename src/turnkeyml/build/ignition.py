@@ -18,9 +18,9 @@ from turnkeyml.version import __version__ as turnkey_version
 
 def initialize_state(
     model: build.UnionValidModelInstanceTypes,
-    monitor: str,
     evaluation_id: str,
     cache_dir: str,
+    monitor: Optional[bool] = None,
     build_name: Optional[str] = None,
     sequence: stage.Sequence = None,
     onnx_opset: Optional[int] = None,
@@ -30,8 +30,17 @@ def initialize_state(
     Process the user's configuration arguments to build_model():
     1. Raise exceptions for illegal arguments
     2. Replace unset arguments with default values
-    3. Lock the configuration into an immutable object
+    3. Create an instance of State containing the arguments
     """
+
+    # Allow monitor to be globally disabled by an environment variable
+    if monitor is None:
+        if os.environ.get("TURNKEY_BUILD_MONITOR") == "False":
+            monitor_setting = False
+        else:
+            monitor_setting = True
+    else:
+        monitor_setting = monitor
 
     # The default model name is the name of the python file that calls build_model()
     if build_name is None:
@@ -71,10 +80,9 @@ def initialize_state(
     # Support "~" in the cache_dir argument
     parsed_cache_dir = os.path.expanduser(cache_dir)
 
-    # Store the args that should be immutable
     state = fs.State(
         model=model,
-        monitor=monitor,
+        monitor=monitor_setting,
         evaluation_id=evaluation_id,
         cache_dir=parsed_cache_dir,
         build_name=build_name,
@@ -83,6 +91,8 @@ def initialize_state(
         device=device_to_use,
         turnkey_version=turnkey_version,
         build_status=build.FunctionStatus.NOT_STARTED,
+        downcast_applied=False,
+        uid=build.unique_id(),
     )
 
     return state
@@ -109,6 +119,20 @@ def validate_cached_model(
     """
 
     result = []
+
+    # We required that a build was successful to load it from cache
+    if vars(cached_state).get(fs.Keys.BUILD_STATUS) != build.FunctionStatus.SUCCESSFUL:
+        return ["Your cached build was not successful."]
+
+    # Make sure the cached state contains all information needed to assess a cache hit
+    for key in fs.cache_analysis_properties:
+        if key not in vars(cached_state).keys():
+            return [
+                (
+                    f"Your cached build is missing state key {key}. This is a bug in "
+                    "turnkey itself, please contact the developers."
+                )
+            ]
 
     current_version_decoded = decode_version_number(turnkey_version)
     state_version_decoded = decode_version_number(cached_state.turnkey_version)
@@ -245,10 +269,9 @@ def _begin_fresh_build(
     return new_state
 
 
-def _rebuild_if_needed(problem_report: str, state_args: Dict):
-    build_name = state_args[fs.Keys.BUILD_NAME]
+def _rebuild_if_needed(problem_report: str, state: fs.State):
     msg = (
-        f"build_model() discovered a cached build of {build_name}, but decided to "
+        f"build_model() discovered a cached build of {state.build_name}, but decided to "
         "rebuild for the following reasons: \n\n"
         f"{problem_report} \n\n"
         "build_model() will now rebuild your model to ensure correctness. You can change this "
@@ -256,7 +279,7 @@ def _rebuild_if_needed(problem_report: str, state_args: Dict):
     )
     printing.log_warning(msg)
 
-    return _begin_fresh_build(state_args)
+    return _begin_fresh_build(state)
 
 
 def load_or_make_state(
@@ -285,6 +308,15 @@ def load_or_make_state(
     # Initialize the new state with the results of model intake
     new_state.inputs = inputs
     new_state.model_type = model_type
+    if inputs is not None:
+        new_state.expected_input_shapes, new_state.expected_input_dtypes = (
+            build.get_shapes_and_dtypes(inputs)
+        )
+    else:
+        new_state.expected_input_shapes, new_state.expected_input_dtypes = None, None
+
+    if new_state.model is not None and new_state.model_type != build.ModelType.UNKNOWN:
+        new_state.model_hash = build.hash_model(new_state.model, new_state.model_type)
 
     if rebuild == "always":
         return _begin_fresh_build(new_state)

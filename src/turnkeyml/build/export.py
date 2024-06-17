@@ -50,6 +50,10 @@ def get_output_names(
     return [node.name for node in onnx_model.graph.output]  # pylint: disable=no-member
 
 
+def original_inputs_file(cache_dir: str, build_name: str):
+    return os.path.join(build.output_dir(cache_dir, build_name), "inputs.npy")
+
+
 def onnx_dir(state: fs.State):
     return os.path.join(build.output_dir(state.cache_dir, state.build_name), "onnx")
 
@@ -170,7 +174,9 @@ class ReceiveOnnxModel(stage.Stage):
         shutil.copy(state.model, output_path)
 
         tensor_helpers.save_inputs(
-            [state.inputs], state.original_inputs_file, downcast=False
+            [state.inputs],
+            original_inputs_file(state.cache_dir, state.build_name),
+            downcast=False,
         )
 
         # Check the if the base mode has been exported successfully
@@ -338,7 +344,9 @@ class ExportPytorchModel(stage.Stage):
         warnings.showwarning = default_warnings
 
         tensor_helpers.save_inputs(
-            [state.inputs], state.original_inputs_file, downcast=False
+            [state.inputs],
+            original_inputs_file(state.cache_dir, state.build_name),
+            downcast=False,
         )
 
         # Check the if the base mode has been exported successfully
@@ -479,7 +487,7 @@ class ConvertOnnxToFp16(stage.Stage):
         )
 
         # Load inputs and convert to fp16
-        inputs_file = state.original_inputs_file
+        inputs_file = original_inputs_file(state.cache_dir, state.build_name)
         if os.path.isfile(inputs_file):
             inputs = np.load(inputs_file, allow_pickle=True)
             inputs_converted = tensor_helpers.save_inputs(

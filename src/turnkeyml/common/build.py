@@ -103,7 +103,7 @@ def hash_model(model, model_type: ModelType, hash_params: bool = True):
         raise ValueError(msg)
 
 
-class FunctionStatus(enum.Enum):
+class FunctionStatus:
     """
     Status values that are assigned to stages, builds, benchmarks, and other
     functionality to help the user understand whether that function completed

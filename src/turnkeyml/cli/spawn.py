@@ -376,9 +376,9 @@ def run_turnkey(
                         for key in stats.evaluation_stats.keys():
                             if (
                                 stats.evaluation_stats[key]
-                                == build.FunctionStatus.INCOMPLETE.value
+                                == build.FunctionStatus.INCOMPLETE
                             ):
-                                stats.save_model_eval_stat(key, evaluation_status.value)
+                                stats.save_model_eval_stat(key, evaluation_status)
 
                         # Save the exception into the error log stat
                         stats.save_model_eval_stat(filesystem.Keys.ERROR_LOG, str(e))

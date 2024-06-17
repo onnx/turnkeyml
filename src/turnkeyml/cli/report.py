@@ -88,8 +88,8 @@ def summary_spreadsheets(args) -> None:
                                     or fs.Keys.BENCHMARK_STATUS
                                 )
                                 or fs.Keys.STAGE_STATUS in key
-                            ) and value == bd.FunctionStatus.INCOMPLETE.value:
-                                value = bd.FunctionStatus.KILLED.value
+                            ) and value == bd.FunctionStatus.INCOMPLETE:
+                                value = bd.FunctionStatus.KILLED
 
                             # Add stats ensuring that those are all in lower case
                             evaluation_stats[key.lower()] = value
