@@ -1,8 +1,7 @@
 import os
 import shutil
 from typing import Dict
-import turnkeyml.common.filesystem as filesystem
-import turnkeyml.common.build as build
+import turnkeyml.common.filesystem as fs
 
 
 # We generate a corpus on to the filesystem during the test
@@ -133,13 +132,13 @@ def get_stats_and_state(
     cache_dir: str,
 ) -> int:
     # Figure out the build name by surveying the build cache
-    builds = filesystem.get_all(cache_dir)
+    builds = fs.get_all(cache_dir)
     test_script_name = strip_dot_py(test_script)
 
     for build_state_file in builds:
         if test_script_name in build_state_file:
             build_state = fs.load_state(state_path=build_state_file)
-            stats = filesystem.Stats(
+            stats = fs.Stats(
                 build_state.cache_dir,
                 build_state.build_name,
                 build_state.evaluation_id,
