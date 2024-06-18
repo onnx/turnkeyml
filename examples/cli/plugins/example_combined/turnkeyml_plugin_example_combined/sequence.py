@@ -1,5 +1,5 @@
 from turnkeyml.build.stage import Sequence, Stage
-import turnkeyml.common.build as build
+import turnkeyml.common.filesystem as fs
 import turnkeyml.build.export as export
 
 combined_seq_name = "example-combined-seq"

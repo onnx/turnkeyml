@@ -5,10 +5,9 @@ import onnxruntime as ort
 import numpy as np
 from turnkeyml.run.basert import BaseRT
 import turnkeyml.common.exceptions as exp
-import turnkeyml.common.build as build
+import turnkeyml.common.filesystem as fs
 from turnkeyml.run.onnxrt.within_conda import dummy_inputs
 from turnkeyml.common.performance import MeasuredPerformance
-from turnkeyml.common.filesystem import Stats
 
 
 combined_rt_name = "example-combined-rt"
@@ -19,7 +18,7 @@ class CombinedExampleRT(BaseRT):
         self,
         cache_dir: str,
         build_name: str,
-        stats: Stats,
+        stats: fs.Stats,
         iterations: int,
         device_type: str,
         runtime: str = combined_rt_name,
