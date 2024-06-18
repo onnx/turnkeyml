@@ -111,7 +111,7 @@ def custom_stage():
             self.funny_saying = funny_saying
 
         def fire(self, state):
-            input_onnx = state.intermediate_results[0]
+            input_onnx = state.intermediate_results
             output_onnx = os.path.join(export.onnx_dir(state), "custom.onnx")
             fp32_model = load_model(input_onnx)
             fp16_model = convert_float_to_float16(fp32_model)
@@ -438,7 +438,7 @@ class Testing(unittest.TestCase):
 
         assert state.build_status == build.FunctionStatus.SUCCESSFUL
 
-        onnx_model = onnx.load(state.results[0])
+        onnx_model = onnx.load(state.results)
         model_opset = getattr(onnx_model.opset_import[0], "version", None)
         assert user_opset == model_opset
 

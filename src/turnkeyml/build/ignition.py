@@ -1,9 +1,7 @@
 from typing import Optional, List, Tuple, Union, Dict, Any
-import sys
 import os
 import copy
 import torch
-import onnx
 import turnkeyml.common.build as build
 import turnkeyml.common.filesystem as fs
 import turnkeyml.common.exceptions as exp
@@ -14,88 +12,6 @@ import turnkeyml.build.export as export
 import turnkeyml.build.stage as stage
 import turnkeyml.build.sequences as sequences
 from turnkeyml.version import __version__ as turnkey_version
-
-
-def initialize_state(
-    model: build.UnionValidModelInstanceTypes,
-    evaluation_id: str,
-    cache_dir: str,
-    monitor: Optional[bool] = None,
-    build_name: Optional[str] = None,
-    sequence: stage.Sequence = None,
-    onnx_opset: Optional[int] = None,
-    device: Optional[str] = None,
-) -> fs.State:
-    """
-    Process the user's configuration arguments to build_model():
-    1. Raise exceptions for illegal arguments
-    2. Replace unset arguments with default values
-    3. Create an instance of State containing the arguments
-    """
-
-    # Allow monitor to be globally disabled by an environment variable
-    if monitor is None:
-        if os.environ.get("TURNKEY_BUILD_MONITOR") == "False":
-            monitor_setting = False
-        else:
-            monitor_setting = True
-    else:
-        monitor_setting = monitor
-
-    # The default model name is the name of the python file that calls build_model()
-    if build_name is None:
-        build_name = os.path.basename(sys.argv[0])
-
-    if sequence is None:
-        # The value ["default"] indicates that build_model() will be assigning some
-        # default sequence later in the program
-        stage_names = ["default"]
-    else:
-        stage_names = sequence.get_names()
-
-    # Detect and validate ONNX opset
-    if isinstance(model, str) and model.endswith(".onnx"):
-        onnx_file_opset = onnx_helpers.get_opset(onnx.load(model))
-
-        if onnx_opset is not None and onnx_opset != onnx_file_opset:
-            raise ValueError(
-                "When using a '.onnx' file as input, the onnx_opset argument must "
-                "be None or exactly match the ONNX opset of the '.onnx' file. However, the "
-                f"'.onnx' file has opset {onnx_file_opset}, while onnx_opset was set "
-                f"to {onnx_opset}"
-            )
-
-        opset_to_use = onnx_file_opset
-    else:
-        if onnx_opset is None:
-            opset_to_use = build.DEFAULT_ONNX_OPSET
-        else:
-            opset_to_use = onnx_opset
-
-    if device is None:
-        device_to_use = build.DEFAULT_DEVICE
-    else:
-        device_to_use = device
-
-    # Support "~" in the cache_dir argument
-    parsed_cache_dir = os.path.expanduser(cache_dir)
-
-    state = fs.State(
-        model=model,
-        monitor=monitor_setting,
-        evaluation_id=evaluation_id,
-        cache_dir=parsed_cache_dir,
-        build_name=build_name,
-        sequence=stage_names,
-        onnx_opset=opset_to_use,
-        device=device_to_use,
-        turnkey_version=turnkey_version,
-        build_status=build.FunctionStatus.NOT_STARTED,
-        downcast_applied=False,
-        uid=build.unique_id(),
-    )
-
-    return state
 
 
 def decode_version_number(version: str) -> Dict[str, int]:
@@ -304,19 +220,6 @@ def load_or_make_state(
             f"Received `rebuild` argument with value {rebuild}, "
             f"however the only allowed values of `rebuild` are {build.REBUILD_OPTIONS}"
         )
-
-    # Initialize the new state with the results of model intake
-    new_state.inputs = inputs
-    new_state.model_type = model_type
-    if inputs is not None:
-        new_state.expected_input_shapes, new_state.expected_input_dtypes = (
-            build.get_shapes_and_dtypes(inputs)
-        )
-    else:
-        new_state.expected_input_shapes, new_state.expected_input_dtypes = None, None
-
-    if new_state.model is not None and new_state.model_type != build.ModelType.UNKNOWN:
-        new_state.model_hash = build.hash_model(new_state.model, new_state.model_type)
 
     if rebuild == "always":
         return _begin_fresh_build(new_state)

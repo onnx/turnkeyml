@@ -4,7 +4,6 @@ import sys
 import traceback
 import platform
 import subprocess
-import enum
 from typing import Dict, Union
 import hashlib
 import pkg_resources
@@ -33,7 +32,7 @@ DEFAULT_REBUILD_POLICY = "if_needed"
 REBUILD_OPTIONS = ["if_needed", "always", "never"]
 
 
-class ModelType(enum.Enum):
+class ModelType:
     PYTORCH = "pytorch"
     PYTORCH_COMPILED = "pytorch_compiled"
     ONNX_FILE = "onnx_file"

@@ -91,7 +91,7 @@ def assert_success_of_builds(
                     assert iterations == check_iteration_count
 
                 if check_opset:
-                    onnx_model = onnx.load(build_state.results[0])
+                    onnx_model = onnx.load(build_state.results)
                     model_opset = getattr(onnx_model.opset_import[0], "version", None)
                     assert model_opset == check_opset
 

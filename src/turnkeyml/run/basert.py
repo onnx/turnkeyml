@@ -182,7 +182,7 @@ class BaseRT(ABC):
         # Just in case the model file was generated on a different machine:
         # strip the state's cache dir, then prepend the current cache dir
         model_file = fs.rebase_cache_dir(
-            state.results[0], state.build_name, self.cache_dir
+            state.results, state.build_name, self.cache_dir
         )
 
         if not os.path.exists(model_file):

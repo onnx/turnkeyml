@@ -133,7 +133,7 @@ def benchmark_build(
             build_name=build_name,
             stats=stats,
             iterations=iterations,
-            model=state.results[0],
+            model=state.results,
             # The `inputs` argument to BaseRT is only meant for
             # benchmarking runtimes that have to keep their inputs
             # in memory (e.g., `torch-eager`). We provide None here

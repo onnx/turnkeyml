@@ -415,7 +415,7 @@ def explore_invocation(
                 fs.Keys.BUILD_STATUS, build.FunctionStatus.SUCCESSFUL
             )
 
-            model_to_benchmark = build_state.results[0]
+            model_to_benchmark = build_state.results
 
             # Analyze the onnx file (if any) and save statistics
             analyze_model.analyze_onnx(

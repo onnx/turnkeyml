@@ -1,4 +1,3 @@
-import os
 from typing import Optional, List, Dict, Any
 import turnkeyml.build.ignition as ignition
 import turnkeyml.build.stage as stage
@@ -55,19 +54,6 @@ def build_model(
             https://github.com/onnx/turnkeyml/blob/main/docs/tools_user_guide.md
     """
 
-    # Validate and apply defaults to the initial user arguments that
-    # configure the build
-    state = ignition.initialize_state(
-        model=model,
-        monitor=monitor,
-        evaluation_id=evaluation_id,
-        cache_dir=cache_dir,
-        build_name=build_name,
-        sequence=sequence,
-        onnx_opset=onnx_opset,
-        device=device,
-    )
-
     # Analyze the user's model argument and lock in the model, inputs,
     # and sequence that will be used by the rest of the toolchain
     (
@@ -78,6 +64,21 @@ def build_model(
         model,
         inputs,
         sequence,
+    )
+
+    # Validate and apply defaults to the initial user arguments that
+    # configure the build
+    state = fs.State(
+        model=model,
+        model_type=model_type,
+        inputs=inputs_locked,
+        monitor=monitor,
+        evaluation_id=evaluation_id,
+        cache_dir=cache_dir,
+        build_name=build_name,
+        sequence=sequence,
+        onnx_opset=onnx_opset,
+        device=device,
     )
 
     # Get the state of the model from the cache if a valid build is available

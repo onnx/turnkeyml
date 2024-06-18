@@ -63,7 +63,7 @@ class CombinedExampleRT(BaseRT):
         sess_options.graph_optimization_level = (
             ort.GraphOptimizationLevel.ORT_ENABLE_ALL
         )
-        onnx_session = ort.InferenceSession(state.results[0], sess_options)
+        onnx_session = ort.InferenceSession(state.results, sess_options)
         sess_input = onnx_session.get_inputs()
         input_feed = dummy_inputs(sess_input)
         output_name = onnx_session.get_outputs()[0].name

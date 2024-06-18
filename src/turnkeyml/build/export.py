@@ -392,7 +392,7 @@ class OptimizeOnnxModel(stage.Stage):
         )
 
     def fire(self, state: fs.State):
-        input_onnx = state.intermediate_results[0]
+        input_onnx = state.intermediate_results
         output_path = opt_onnx_file(state)
 
         # Perform some basic optimizations on the model to remove shape related
@@ -455,7 +455,7 @@ class ConvertOnnxToFp16(stage.Stage):
         )
 
     def fire(self, state: fs.State):
-        input_onnx = state.intermediate_results[0]
+        input_onnx = state.intermediate_results
 
         # Convert the model to FP16
         # Some ops will not be converted to fp16 because they are in a block list
