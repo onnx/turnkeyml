@@ -184,7 +184,7 @@ class ReceiveOnnxModel(stage.Stage):
         fail_msg = "\tFailed receiving ONNX Model"
 
         if check_model(output_path, success_msg, fail_msg):
-            state.intermediate_results = [output_path]
+            state.intermediate_results = output_path
 
             stats = fs.Stats(state.cache_dir, state.build_name, state.evaluation_id)
             stats.save_model_eval_stat(
@@ -354,7 +354,7 @@ class ExportPytorchModel(stage.Stage):
         fail_msg = "\tFailed exporting model to ONNX"
 
         if check_model(output_path, success_msg, fail_msg):
-            state.intermediate_results = [output_path]
+            state.intermediate_results = output_path
 
             stats.save_model_eval_stat(
                 fs.Keys.ONNX_FILE,
@@ -417,7 +417,7 @@ class OptimizeOnnxModel(stage.Stage):
         fail_msg = "\tFailed optimizing ONNX model"
 
         if check_model(output_path, success_msg, fail_msg):
-            state.intermediate_results = [output_path]
+            state.intermediate_results = output_path
 
             stats = fs.Stats(state.cache_dir, state.build_name, state.evaluation_id)
             stats.save_model_eval_stat(
@@ -521,7 +521,7 @@ class ConvertOnnxToFp16(stage.Stage):
         fail_msg = "\tFailed converting ONNX model to fp16"
 
         if check_model(output_path, success_msg, fail_msg):
-            state.intermediate_results = [output_path]
+            state.intermediate_results = output_path
 
             stats = fs.Stats(state.cache_dir, state.build_name, state.evaluation_id)
             stats.save_model_eval_stat(

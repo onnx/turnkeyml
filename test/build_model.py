@@ -119,7 +119,7 @@ def custom_stage():
 
             print(f"funny message: {self.funny_saying}")
 
-            state.intermediate_results = [output_onnx]
+            state.intermediate_results = output_onnx
 
             return state
 
@@ -161,7 +161,7 @@ class FullyCustomStage(stage.Stage):
     def fire(self, state):
         print(self.saying)
 
-        state.intermediate_results = ["great stuff"]
+        state.intermediate_results = "great stuff"
 
         return state
 
