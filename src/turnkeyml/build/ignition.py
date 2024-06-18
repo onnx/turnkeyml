@@ -34,7 +34,10 @@ def validate_cached_model(
     the cached model is valid to use in the build.
     """
 
-    result = []
+    # The first few cache miss conditions (e.g., failed build, failed state load,
+    # out-of-date package) return that specific condition as the reason the cache
+    # missed. Any other conditions are aggregated into a multi-condition return
+    # message.
 
     # We required that a build was successful to load it from cache
     if vars(cached_state).get(fs.Keys.BUILD_STATUS) != build.FunctionStatus.SUCCESSFUL:
@@ -79,14 +82,19 @@ def validate_cached_model(
         out_of_date = "minor"
 
     if out_of_date:
-        msg = (
-            f"Your build {cached_state.build_name} was previously built against "
-            f"turnkey version {cached_state.turnkey_version}, "
-            f"however you are now using turnkey version {turnkey_version}. The previous build is "
-            f"incompatible with this version of turnkey, as indicated by the {out_of_date} "
-            "version number changing. See **docs/versioning.md** for details."
-        )
-        result.append(msg)
+        return [
+            (
+                f"Your build {cached_state.build_name} was previously built against "
+                f"turnkey version {cached_state.turnkey_version}, "
+                f"however you are now using turnkey version {turnkey_version}. The previous build is "
+                f"incompatible with this version of turnkey, as indicated by the {out_of_date} "
+                "version number changing. See **docs/versioning.md** for details."
+            )
+        ]
+
+    # Below are the cache miss properties that we will aggregate into
+    # a multi-property cache miss message
+    result = []
 
     if new_state.model is not None:
         model_changed = cached_state.model_hash != build.hash_model(
