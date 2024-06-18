@@ -131,47 +131,52 @@ def validate_cached_model(
             changed_args.append((key, vars(new_state)[key], vars(cached_state)[key]))
 
     # Show an error if the model changed
+    build_conditions_changed = (
+        model_changed
+        or input_shapes_changed
+        or input_dtypes_changed
+        or len(changed_args) > 0
+    )
+    if build_conditions_changed:
 
-    # Show an error if build_name is not specified for different models on the same script
-    if cached_state.uid == build.unique_id():
-        msg = (
-            "You are building multiple different models in the same script "
-            "without specifying a unique build_model(..., build_name=) for each build."
-        )
-        result.append(msg)
-
-    if model_changed:
-        msg = (
-            f'Model "{new_state.build_name}" changed since the last time it was built.'
-        )
-        result.append(msg)
-
-    if input_shapes_changed:
-        input_shapes, _ = build.get_shapes_and_dtypes(inputs)
-        msg = (
-            f'Input shape of model "{new_state.build_name}" changed from '
-            f"{cached_state.expected_input_shapes} to {input_shapes} "
-            f"since the last time it was built."
-        )
-        result.append(msg)
-
-    if input_dtypes_changed:
-        _, input_dtypes = build.get_shapes_and_dtypes(inputs)
-        msg = (
-            f'Input data type of model "{new_state.build_name}" changed from '
-            f"{cached_state.expected_input_dtypes} to {input_dtypes} "
-            f"since the last time it was built."
-        )
-        result.append(msg)
-
-    if len(changed_args) > 0:
-        for key_name, current_arg, previous_arg in changed_args:
+        # Show an error if build_name is not specified for different models on the same script
+        if cached_state.uid == new_state.unique_id():
             msg = (
-                f'build_model() argument "{key_name}" for build '
-                f"{new_state.build_name} changed from "
-                f"{previous_arg} to {current_arg} since the last build."
+                "You are building multiple different models in the same script "
+                "without specifying a unique build_model(..., build_name=) for each build."
             )
             result.append(msg)
+
+        if model_changed:
+            msg = f'Model "{new_state.build_name}" changed since the last time it was built.'
+            result.append(msg)
+
+        if input_shapes_changed:
+            input_shapes, _ = build.get_shapes_and_dtypes(inputs)
+            msg = (
+                f'Input shape of model "{new_state.build_name}" changed from '
+                f"{cached_state.expected_input_shapes} to {input_shapes} "
+                f"since the last time it was built."
+            )
+            result.append(msg)
+
+        if input_dtypes_changed:
+            _, input_dtypes = build.get_shapes_and_dtypes(inputs)
+            msg = (
+                f'Input data type of model "{new_state.build_name}" changed from '
+                f"{cached_state.expected_input_dtypes} to {input_dtypes} "
+                f"since the last time it was built."
+            )
+            result.append(msg)
+
+        if len(changed_args) > 0:
+            for key_name, current_arg, previous_arg in changed_args:
+                msg = (
+                    f'build_model() argument "{key_name}" for build '
+                    f"{new_state.build_name} changed from "
+                    f"{previous_arg} to {current_arg} since the last build."
+                )
+                result.append(msg)
 
     return result
 
