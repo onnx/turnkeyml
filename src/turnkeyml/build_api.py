@@ -82,7 +82,7 @@ def build_model(
     )
 
     # Get the state of the model from the cache if a valid build is available
-    state = ignition.load_or_make_state(
+    state = ignition.load_from_cache(
         new_state=state,
         rebuild=rebuild or build.DEFAULT_REBUILD_POLICY,
         model_type=model_type,

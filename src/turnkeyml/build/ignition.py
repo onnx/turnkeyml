@@ -91,6 +91,7 @@ def validate_cached_model(
         input_shapes_changed = False
         input_dtypes_changed = False
 
+    # Check if the results-impacting arguments have changed
     changed_args = []
     for key in [
         fs.Keys.BUILD_NAME,
@@ -98,66 +99,49 @@ def validate_cached_model(
         fs.Keys.DEVICE,
         fs.Keys.SEQUENCE,
     ]:
-        # TODO: replace `vars(new_state)[key]` with `new_state.key`
         if vars(new_state)[key] != vars(cached_state)[key]:
             changed_args.append((key, vars(new_state)[key], vars(cached_state)[key]))
 
     # Show an error if the model changed
-    build_conditions_changed = (
-        model_changed
-        or input_shapes_changed
-        or input_dtypes_changed
-        or len(changed_args) > 0
-    )
-    if build_conditions_changed:
-        # Show an error if build_name is not specified for different models on the same script
-        if cached_state.uid == build.unique_id():
-            msg = (
-                "You are building multiple different models in the same script "
-                "without specifying a unique build_model(..., build_name=) for each build."
-            )
-            result.append(msg)
 
-        if model_changed:
-            msg = f'Model "{new_state.build_name}" changed since the last time it was built.'
-            result.append(msg)
+    # Show an error if build_name is not specified for different models on the same script
+    if cached_state.uid == build.unique_id():
+        msg = (
+            "You are building multiple different models in the same script "
+            "without specifying a unique build_model(..., build_name=) for each build."
+        )
+        result.append(msg)
 
-        if input_shapes_changed:
-            input_shapes, _ = build.get_shapes_and_dtypes(inputs)
-            msg = (
-                f'Input shape of model "{new_state.build_name}" changed from '
-                f"{cached_state.expected_input_shapes} to {input_shapes} "
-                f"since the last time it was built."
-            )
-            result.append(msg)
+    if model_changed:
+        msg = (
+            f'Model "{new_state.build_name}" changed since the last time it was built.'
+        )
+        result.append(msg)
 
-        if input_dtypes_changed:
-            _, input_dtypes = build.get_shapes_and_dtypes(inputs)
-            msg = (
-                f'Input data type of model "{new_state.build_name}" changed from '
-                f"{cached_state.expected_input_dtypes} to {input_dtypes} "
-                f"since the last time it was built."
-            )
-            result.append(msg)
+    if input_shapes_changed:
+        input_shapes, _ = build.get_shapes_and_dtypes(inputs)
+        msg = (
+            f'Input shape of model "{new_state.build_name}" changed from '
+            f"{cached_state.expected_input_shapes} to {input_shapes} "
+            f"since the last time it was built."
+        )
+        result.append(msg)
 
-        if len(changed_args) > 0:
-            for key_name, current_arg, previous_arg in changed_args:
-                msg = (
-                    f'build_model() argument "{key_name}" for build '
-                    f"{new_state.build_name} changed from "
-                    f"{previous_arg} to {current_arg} since the last build."
-                )
-                result.append(msg)
-    else:
-        if (
-            cached_state.build_status == build.FunctionStatus.ERROR
-            or cached_state.build_status == build.FunctionStatus.INCOMPLETE
-            or cached_state.build_status == build.FunctionStatus.KILLED
-        ) and turnkey_version == cached_state.turnkey_version:
+    if input_dtypes_changed:
+        _, input_dtypes = build.get_shapes_and_dtypes(inputs)
+        msg = (
+            f'Input data type of model "{new_state.build_name}" changed from '
+            f"{cached_state.expected_input_dtypes} to {input_dtypes} "
+            f"since the last time it was built."
+        )
+        result.append(msg)
+
+    if len(changed_args) > 0:
+        for key_name, current_arg, previous_arg in changed_args:
             msg = (
-                "build_model() has detected that you already attempted building "
-                "this model with the exact same model, inputs, options, and version of "
-                "turnkey, and that build failed."
+                f'build_model() argument "{key_name}" for build '
+                f"{new_state.build_name} changed from "
+                f"{previous_arg} to {current_arg} since the last build."
             )
             result.append(msg)
 
@@ -198,7 +182,7 @@ def _rebuild_if_needed(problem_report: str, state: fs.State):
     return _begin_fresh_build(state)
 
 
-def load_or_make_state(
+def load_from_cache(
     new_state: fs.State,
     rebuild: str,
     model_type: build.ModelType,
@@ -226,23 +210,10 @@ def load_or_make_state(
     else:
         # Try to load state and check if model successfully built before
         if os.path.isfile(build.state_file(new_state.cache_dir, new_state.build_name)):
-            try:
-                cached_state = fs.load_state(
-                    new_state.cache_dir,
-                    new_state.build_name,
-                )
-
-            except exp.StateError as e:
-                problem = (
-                    "- build_model() failed to load "
-                    f"{build.state_file(new_state.cache_dir, new_state.build_name)}"
-                )
-
-                if rebuild == "if_needed":
-                    return _rebuild_if_needed(problem, new_state)
-                else:
-                    # Give the rebuild="never" users a chance to address the problem
-                    raise exp.CacheError(e)
+            cached_state = fs.load_state(
+                new_state.cache_dir,
+                new_state.build_name,
+            )
 
             cache_problems = validate_cached_model(
                 new_state=new_state,
