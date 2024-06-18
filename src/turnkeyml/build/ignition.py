@@ -40,8 +40,27 @@ def validate_cached_model(
     if vars(cached_state).get(fs.Keys.BUILD_STATUS) != build.FunctionStatus.SUCCESSFUL:
         return ["Your cached build was not successful."]
 
+    # All of the state properties analyzed by this function
+    # should be listed here.
+    cache_analysis_properties = [
+        fs.Keys.BUILD_NAME,
+        fs.Keys.ONNX_OPSET,
+        fs.Keys.DEVICE,
+        fs.Keys.SEQUENCE,
+        fs.Keys.BUILD_STATUS,
+        fs.Keys.TURNKEY_VERSION,
+        fs.Keys.MODEL_HASH,
+        fs.Keys.EXPECTED_INPUT_DTYPES,
+        fs.Keys.EXPECTED_INPUT_SHAPES,
+        fs.Keys.DOWNCAST_APPLIED,
+        fs.Keys.UID,
+        fs.Keys.EVALUATION_ID,
+        fs.Keys.MODEL_TYPE,
+    ]
+
     # Make sure the cached state contains all information needed to assess a cache hit
-    for key in fs.cache_analysis_properties:
+    # so that we don't hit an attribute error down the function
+    for key in cache_analysis_properties:
         if key not in vars(cached_state).keys():
             return [
                 (

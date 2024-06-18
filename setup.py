@@ -41,6 +41,9 @@ setup(
         "pandas>=1.5.3",
         "fasteners",
         "GitPython>=3.1.40",
+        # Necessary until upstream packages account for the breaking
+        # change to numpy
+        "numpy<2.0.0",
         "psutil",
     ],
     classifiers=[],

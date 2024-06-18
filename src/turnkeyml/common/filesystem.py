@@ -385,18 +385,8 @@ class Keys:
     SEQUENCE = "sequence"
     # ONNX opset used during model export
     ONNX_OPSET = "onnx_opset"
-    # Whether the build monitor is enabled to provide visibility to the build process
-    MONITOR = "monitor"
-    # Whether to rebuild the model in the event of a cache hit
-    REBUILD = "rebuild"
-    # Cache directory where the build artifacts and logs will be stored
-    CACHE_DIR = "cache_dir"
     # Unique ID for an evaluation (build of a model against a specfic device/runtime/sequence)
     EVALUATION_ID = "evaluation_id"
-    # Model (object or path to file) under evaluation
-    MODEL = "model"
-    # Example inputs to the model
-    INPUTS = "inputs"
     # Version of TurnkeyML used for the build
     TURNKEY_VERSION = "turnkey_version"
     # Indicates what framework (e.g., PyTorch, ONNX) the model was source from
@@ -409,15 +399,8 @@ class Keys:
     EXPECTED_INPUT_SHAPES = "expected_input_shapes"
     # Input data types expected by the model
     EXPECTED_INPUT_DTYPES = "expected_input_dtypes"
-    # Output tensor names produced by the model
-    EXPECTED_OUTPUT_NAMES = "expected_output_names"
     # Whether or not inputs must be downcasted during inference
     DOWNCAST_APPLIED = "downcast_applied"
-    # The results of the most recent stage that was executed
-    CURRENT_BUILD_STAGE = "current_build_stage"
-    INTERMEDIATE_RESULTS = "intermediate_results"
-    # Final result artifact of the build
-    RESULTS = "results"
 
 
 def _clean_logfile(logfile_lines: List[str]) -> List[str]:
@@ -571,24 +554,6 @@ def rebase_cache_dir(input_path: str, build_name: str, new_cache_dir: str):
 
     relative_input_path = input_path.split(build_name, 1)[1][1:]
     return os.path.join(new_cache_dir, build_name, relative_input_path)
-
-
-# All of the state properties analyzed by ignition.validate_cached_model()
-# should be listed here.
-cache_analysis_properties = [
-    Keys.BUILD_NAME,
-    Keys.ONNX_OPSET,
-    Keys.DEVICE,
-    Keys.SEQUENCE,
-    Keys.BUILD_STATUS,
-    Keys.TURNKEY_VERSION,
-    Keys.MODEL_HASH,
-    Keys.EXPECTED_INPUT_DTYPES,
-    Keys.EXPECTED_INPUT_SHAPES,
-    Keys.DOWNCAST_APPLIED,
-    Keys.UID,
-    Keys.EVALUATION_ID,
-]
 
 
 def is_nice_to_write(value):
