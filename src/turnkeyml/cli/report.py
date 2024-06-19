@@ -7,7 +7,7 @@ import yaml
 import pandas as pd
 import turnkeyml.common.printing as printing
 import turnkeyml.common.filesystem as fs
-import turnkeyml.common.build as bd
+import turnkeyml.common.build as build
 
 
 def get_report_name(prefix: str = "") -> str:
@@ -88,8 +88,8 @@ def summary_spreadsheets(args) -> None:
                                     or fs.Keys.BENCHMARK_STATUS
                                 )
                                 or fs.Keys.STAGE_STATUS in key
-                            ) and value == bd.FunctionStatus.INCOMPLETE:
-                                value = bd.FunctionStatus.KILLED
+                            ) and value == build.FunctionStatus.INCOMPLETE:
+                                value = build.FunctionStatus.KILLED
 
                             # Add stats ensuring that those are all in lower case
                             evaluation_stats[key.lower()] = value
@@ -126,8 +126,8 @@ def summary_spreadsheets(args) -> None:
     with open(report_path, "w", newline="", encoding="utf8") as spreadsheet:
         writer = csv.writer(spreadsheet)
         writer.writerow(column_headers)
-        for build in report:
-            writer.writerow([build[col] for col in column_headers])
+        for entry in report:
+            writer.writerow([entry[col] for col in column_headers])
 
     # Print message with the output file path
     printing.log("Summary spreadsheet saved at ")
