@@ -575,7 +575,7 @@ def is_nice_to_write(value):
 
 def sanitize_for_yaml(input_dict: Dict) -> Dict:
     """
-    Creates a new dictionary  containing only nice-to-write values
+    Creates a new dictionary containing only nice-to-write values
     from the original dictionary.
     """
     result = {}
