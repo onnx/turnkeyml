@@ -80,108 +80,117 @@ def converted_onnx_file(state: fs.State):
     )
 
 
-# class ReceiveOnnxModel(stage.Stage):
-#     """
-#     Stage that takes an ONNX model as input.
+class OnnxLoad(stage.Stage):
+    """
+    Stage that takes an ONNX model as input and passes it to the following
+    stages.
 
-#     Expected inputs:
-#      - state.model is a path to the ONNX model
-#      - state.inputs is a dict that represents valid inputs for the onnx model
+    Expected inputs:
+     - state.model is a path to the ONNX model
+     - state.inputs is a dict that represents valid inputs for the onnx model
 
-#     Outputs:
-#      - A *-base.onnx file that implements state.model given state.inputs.
-#     """
+    Outputs:
+     - A *-base.onnx file that implements state.model given state.inputs.
+    """
 
-#     def __init__(self):
-#         super().__init__(
-#             unique_name="receive_onnx",
-#             monitor_message="Receiving ONNX Model",
-#         )
+    unique_name = "onnx-load"
 
-#     def fire(self, state: fs.State):
-#         if not isinstance(state.model, str):
-#             msg = f"""
-#             The current stage (ReceiveOnnxModel) is only compatible with
-#             ONNX files, however the stage received a model of type
-#             {type(state.model)}.
-#             """
-#             raise exp.StageError(msg)
-#         if not state.model.endswith(".onnx"):
-#             msg = f"""
-#             The current stage (ReceiveOnnxModel) expects a path to ONNX
-#             model, however the stage received {state.model}.
-#             """
-#             raise exp.StageError(msg)
+    def __init__(self):
+        super().__init__(monitor_message="Loading ONNX Model")
 
-#         dummy_inputs = tuple(state.inputs.values())
-#         dummy_input_names = tuple(state.inputs.keys())
-#         state.inputs = dict(zip(dummy_input_names, dummy_inputs))
+    @staticmethod
+    def parser(add_help: bool = True) -> argparse.ArgumentParser:
+        parser = argparse.ArgumentParser(
+            description="Load an ONNX model",
+            add_help=add_help,
+        )
 
-#         model = onnx.load(state.model)
-#         opset = onnx_helpers.get_opset(model)
-#         input_shapes = [
-#             [d.dim_value for d in _input.type.tensor_type.shape.dim]
-#             for _input in model.graph.input  # pylint: disable=no-member
-#         ]
+        return parser
 
-#         # Save output node names
-#         state.expected_output_names = get_output_names(model)
+    def fire(self, state: fs.State):
+        if not isinstance(state.model, str):
+            msg = f"""
+            The current stage (ReceiveOnnxModel) is only compatible with
+            ONNX files, however the stage received a model of type
+            {type(state.model)}.
+            """
+            raise exp.StageError(msg)
+        if not state.model.endswith(".onnx"):
+            msg = f"""
+            The current stage (ReceiveOnnxModel) expects a path to ONNX
+            model, however the stage received {state.model}.
+            """
+            raise exp.StageError(msg)
 
-#         # Check for Dynamic shapes in the model. They can be represented as 0, -1, "unk__".
-#         for input in input_shapes:
-#             for dimension in input:
-#                 if dimension < 1 or not isinstance(dimension, int):
-#                     msg = f"""
-#                     The received model has dynamic input dimensions. Please freeze the model with static
-#                     input dimensions.
-#                     More information may be available in the log file at **{self.logfile_path}**
-#                     """
-#                     raise exp.StageError(msg)
+        dummy_inputs = tuple(state.inputs.values())
+        dummy_input_names = tuple(state.inputs.keys())
+        state.inputs = dict(zip(dummy_input_names, dummy_inputs))
 
-#         if opset < build.DEFAULT_ONNX_OPSET and opset >= build.MINIMUM_ONNX_OPSET:
-#             print(
-#                 f" \n The received model has an opset {opset}. Though this opset is supported \
-#                 we recommend upgrading the model to opset {build.MINIMUM_ONNX_OPSET}"
-#             )
-#         elif opset < build.MINIMUM_ONNX_OPSET:
-#             msg = f"""
-#             The received model has an opset {opset}. Opset < 11 is not supported. Please
-#             try upgrading the model to opset 13.
-#             More information may be available in the log file at **{self.logfile_path}**
-#             """
-#             raise exp.StageError(msg)
+        model = onnx.load(state.model)
+        opset = onnx_helpers.get_opset(model)
+        input_shapes = [
+            [d.dim_value for d in _input.type.tensor_type.shape.dim]
+            for _input in model.graph.input  # pylint: disable=no-member
+        ]
 
-#         output_path = base_onnx_file(state)
-#         os.makedirs(onnx_dir(state), exist_ok=True)
-#         shutil.copy(state.model, output_path)
+        # Save output node names
+        state.expected_output_names = get_output_names(model)
 
-#         tensor_helpers.save_inputs(
-#             [state.inputs],
-#             original_inputs_file(state.cache_dir, state.build_name),
-#             downcast=False,
-#         )
+        # Check for Dynamic shapes in the model. They can be represented as 0, -1, "unk__".
+        for input in input_shapes:
+            for dimension in input:
+                if dimension < 1 or not isinstance(dimension, int):
+                    msg = f"""
+                    The received model has dynamic input dimensions. Please freeze the model with static
+                    input dimensions.
+                    More information may be available in the log file at **{self.logfile_path}**
+                    """
+                    raise exp.StageError(msg)
 
-#         # Check the if the base mode has been exported successfully
-#         success_msg = "\tSuccess receiving ONNX Model"
-#         fail_msg = "\tFailed receiving ONNX Model"
+        if opset < build.DEFAULT_ONNX_OPSET and opset >= build.MINIMUM_ONNX_OPSET:
+            print(
+                f" \n The received model has an opset {opset}. Though this opset is supported \
+                we recommend upgrading the model to opset {build.MINIMUM_ONNX_OPSET}"
+            )
+        elif opset < build.MINIMUM_ONNX_OPSET:
+            msg = f"""
+            The received model has an opset {opset}. Opset < 11 is not supported. Please
+            try upgrading the model to opset 13.
+            More information may be available in the log file at **{self.logfile_path}**
+            """
+            raise exp.StageError(msg)
 
-#         if check_model(output_path, success_msg, fail_msg):
-#             state.intermediate_results = output_path
+        output_path = base_onnx_file(state)
+        os.makedirs(onnx_dir(state), exist_ok=True)
+        shutil.copy(state.model, output_path)
 
-#             stats = fs.Stats(state.cache_dir, state.build_name, state.evaluation_id)
-#             stats.save_model_eval_stat(
-#                 fs.Keys.ONNX_FILE,
-#                 output_path,
-#             )
-#         else:
-#             msg = f"""
-#             Unable to process ONNX Model. We recommend that you verify the source of the model.
-#             Any optimizations performed on the model could result in an error.
-#             More information may be available in the log file at **{self.logfile_path}**
-#             """
-#             raise exp.StageError(msg)
+        tensor_helpers.save_inputs(
+            [state.inputs],
+            original_inputs_file(state.cache_dir, state.build_name),
+            downcast=False,
+        )
 
-#         return state
+        # Check the if the base mode has been exported successfully
+        success_msg = "\tSuccess receiving ONNX Model"
+        fail_msg = "\tFailed receiving ONNX Model"
+
+        if check_model(output_path, success_msg, fail_msg):
+            state.intermediate_results = output_path
+
+            stats = fs.Stats(state.cache_dir, state.build_name, state.evaluation_id)
+            stats.save_model_eval_stat(
+                fs.Keys.ONNX_FILE,
+                output_path,
+            )
+        else:
+            msg = f"""
+            Unable to process ONNX Model. We recommend that you verify the source of the model.
+            Any optimizations performed on the model could result in an error.
+            More information may be available in the log file at **{self.logfile_path}**
+            """
+            raise exp.StageError(msg)
+
+        return state
 
 
 class ExportPytorchModel(stage.Stage):

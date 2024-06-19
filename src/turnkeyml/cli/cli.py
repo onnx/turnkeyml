@@ -10,6 +10,7 @@ from turnkeyml.build.export import (
     ExportPytorchModel,
     OptimizeOnnxModel,
     ConvertOnnxToFp16,
+    OnnxLoad,
 )
 from turnkeyml.files_api import benchmark_files
 
@@ -64,6 +65,7 @@ def main():
         ExportPytorchModel,
         OptimizeOnnxModel,
         ConvertOnnxToFp16,
+        OnnxLoad,
     ]
 
     stage_parsers = {stage.unique_name: stage.parser() for stage in stages}
