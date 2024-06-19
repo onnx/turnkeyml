@@ -44,8 +44,8 @@ class Testing(unittest.TestCase):
         # Check if default part and config were assigned
         expected_device = "example_family::part1::config1"
         assert (
-            build_state.config.device == expected_device
-        ), f"Got {build_state.config.device}, expected {expected_device}"
+            build_state.device == expected_device
+        ), f"Got {build_state.device}, expected {expected_device}"
 
 
 if __name__ == "__main__":

@@ -1,11 +1,9 @@
-from typing import Optional, List, Tuple, Union, Dict, Any, Type, Callable
-import sys
+from typing import Optional, List, Tuple, Union, Dict, Any
 import os
 import copy
 import torch
-import onnx
 import turnkeyml.common.build as build
-import turnkeyml.common.filesystem as filesystem
+import turnkeyml.common.filesystem as fs
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.printing as printing
 import turnkeyml.build.onnx_helpers as onnx_helpers
@@ -16,79 +14,15 @@ import turnkeyml.build.sequences as sequences
 from turnkeyml.version import __version__ as turnkey_version
 
 
-def lock_config(
-    model: build.UnionValidModelInstanceTypes,
-    build_name: Optional[str] = None,
-    sequence: stage.Sequence = None,
-    onnx_opset: Optional[int] = None,
-    device: Optional[str] = None,
-) -> build.Config:
-    """
-    Process the user's configuration arguments to build_model():
-    1. Raise exceptions for illegal arguments
-    2. Replace unset arguments with default values
-    3. Lock the configuration into an immutable object
-    """
-
-    # The default model name is the name of the python file that calls build_model()
-    auto_name = False
-    if build_name is None:
-        build_name = os.path.basename(sys.argv[0])
-        auto_name = True
-
-    if sequence is None:
-        # The value ["default"] indicates that build_model() will be assigning some
-        # default sequence later in the program
-        stage_names = ["default"]
-    else:
-        stage_names = sequence.get_names()
-
-    # Detect and validate ONNX opset
-    if isinstance(model, str) and model.endswith(".onnx"):
-        onnx_file_opset = onnx_helpers.get_opset(onnx.load(model))
-
-        if onnx_opset is not None and onnx_opset != onnx_file_opset:
-            raise ValueError(
-                "When using a '.onnx' file as input, the onnx_opset argument must "
-                "be None or exactly match the ONNX opset of the '.onnx' file. However, the "
-                f"'.onnx' file has opset {onnx_file_opset}, while onnx_opset was set "
-                f"to {onnx_opset}"
-            )
-
-        opset_to_use = onnx_file_opset
-    else:
-        if onnx_opset is None:
-            opset_to_use = build.DEFAULT_ONNX_OPSET
-        else:
-            opset_to_use = onnx_opset
-
-    if device is None:
-        device_to_use = build.DEFAULT_DEVICE
-    else:
-        device_to_use = device
-
-    # Store the args that should be immutable
-    config = build.Config(
-        build_name=build_name,
-        auto_name=auto_name,
-        sequence=stage_names,
-        onnx_opset=opset_to_use,
-        device=device_to_use,
-    )
-
-    return config
-
-
 def decode_version_number(version: str) -> Dict[str, int]:
     numbers = [int(x) for x in version.split(".")]
     return {"major": numbers[0], "minor": numbers[1], "patch": numbers[0]}
 
 
 def validate_cached_model(
-    config: build.Config,
+    new_state: fs.State,
+    cached_state: fs.State,
     model_type: build.ModelType,
-    state: build.State,
-    model: build.UnionValidModelInstanceTypes = None,
     inputs: Optional[Dict[str, Any]] = None,
 ) -> List[str]:
     """
@@ -100,10 +34,46 @@ def validate_cached_model(
     the cached model is valid to use in the build.
     """
 
-    result = []
+    # The first few cache miss conditions (e.g., failed build, failed state load,
+    # out-of-date package) return that specific condition as the reason the cache
+    # missed. Any other conditions are aggregated into a multi-condition return
+    # message.
+
+    # We required that a build was successful to load it from cache
+    if vars(cached_state).get(fs.Keys.BUILD_STATUS) != build.FunctionStatus.SUCCESSFUL:
+        return ["Your cached build was not successful."]
+
+    # All of the state properties analyzed by this function
+    # should be listed here.
+    cache_analysis_properties = [
+        fs.Keys.BUILD_NAME,
+        fs.Keys.ONNX_OPSET,
+        fs.Keys.DEVICE,
+        fs.Keys.SEQUENCE,
+        fs.Keys.BUILD_STATUS,
+        fs.Keys.TURNKEY_VERSION,
+        fs.Keys.MODEL_HASH,
+        fs.Keys.EXPECTED_INPUT_DTYPES,
+        fs.Keys.EXPECTED_INPUT_SHAPES,
+        fs.Keys.DOWNCAST_APPLIED,
+        fs.Keys.UID,
+        fs.Keys.EVALUATION_ID,
+        fs.Keys.MODEL_TYPE,
+    ]
+
+    # Make sure the cached state contains all information needed to assess a cache hit
+    # so that we don't hit an attribute error down the function
+    for key in cache_analysis_properties:
+        if key not in vars(cached_state).keys():
+            return [
+                (
+                    f"Your cached build is missing state key {key}. This is a bug in "
+                    "turnkey itself, please contact the developers."
+                )
+            ]
 
     current_version_decoded = decode_version_number(turnkey_version)
-    state_version_decoded = decode_version_number(state.turnkey_version)
+    state_version_decoded = decode_version_number(cached_state.turnkey_version)
 
     out_of_date: Union[str, bool] = False
     if current_version_decoded["major"] > state_version_decoded["major"]:
@@ -112,17 +82,25 @@ def validate_cached_model(
         out_of_date = "minor"
 
     if out_of_date:
-        msg = (
-            f"Your build {state.config.build_name} was previously built against "
-            f"turnkey version {state.turnkey_version}, "
-            f"however you are now using turnkey version {turnkey_version}. The previous build is "
-            f"incompatible with this version of turnkey, as indicated by the {out_of_date} "
-            "version number changing. See **docs/versioning.md** for details."
-        )
-        result.append(msg)
+        return [
+            (
+                f"Your build {cached_state.build_name} was previously built against "
+                f"turnkey version {cached_state.turnkey_version}, "
+                f"however you are now using turnkey version {turnkey_version}. "
+                "The previous build is "
+                f"incompatible with this version of turnkey, as indicated by the {out_of_date} "
+                "version number changing. See **docs/versioning.md** for details."
+            )
+        ]
 
-    if model is not None:
-        model_changed = state.model_hash != build.hash_model(model, model_type)
+    # Below are the cache miss properties that we will aggregate into
+    # a multi-property cache miss message
+    result = []
+
+    if new_state.model is not None:
+        model_changed = cached_state.model_hash != build.hash_model(
+            new_state.model, model_type
+        )
     else:
         model_changed = False
 
@@ -132,19 +110,25 @@ def validate_cached_model(
             input_dtypes_changed,
         ) = tensor_helpers.check_shapes_and_dtypes(
             inputs,
-            state.expected_input_shapes,
-            state.expected_input_dtypes,
-            expect_downcast=state.downcast_applied,
+            cached_state.expected_input_shapes,
+            cached_state.expected_input_dtypes,
+            expect_downcast=cached_state.downcast_applied,
             raise_error=False,
         )
     else:
         input_shapes_changed = False
         input_dtypes_changed = False
 
+    # Check if the results-impacting arguments have changed
     changed_args = []
-    for key in vars(state.config):
-        if vars(config)[key] != vars(state.config)[key]:
-            changed_args.append((key, vars(config)[key], vars(state.config)[key]))
+    for key in [
+        fs.Keys.BUILD_NAME,
+        fs.Keys.ONNX_OPSET,
+        fs.Keys.DEVICE,
+        fs.Keys.SEQUENCE,
+    ]:
+        if vars(new_state)[key] != vars(cached_state)[key]:
+            changed_args.append((key, vars(new_state)[key], vars(cached_state)[key]))
 
     # Show an error if the model changed
     build_conditions_changed = (
@@ -154,8 +138,9 @@ def validate_cached_model(
         or len(changed_args) > 0
     )
     if build_conditions_changed:
+
         # Show an error if build_name is not specified for different models on the same script
-        if state.uid == build.unique_id():
+        if cached_state.uid == new_state.unique_id():
             msg = (
                 "You are building multiple different models in the same script "
                 "without specifying a unique build_model(..., build_name=) for each build."
@@ -163,16 +148,14 @@ def validate_cached_model(
             result.append(msg)
 
         if model_changed:
-            msg = (
-                f'Model "{config.build_name}" changed since the last time it was built.'
-            )
+            msg = f'Model "{new_state.build_name}" changed since the last time it was built.'
             result.append(msg)
 
         if input_shapes_changed:
             input_shapes, _ = build.get_shapes_and_dtypes(inputs)
             msg = (
-                f'Input shape of model "{config.build_name}" changed from '
-                f"{state.expected_input_shapes} to {input_shapes} "
+                f'Input shape of model "{new_state.build_name}" changed from '
+                f"{cached_state.expected_input_shapes} to {input_shapes} "
                 f"since the last time it was built."
             )
             result.append(msg)
@@ -180,8 +163,8 @@ def validate_cached_model(
         if input_dtypes_changed:
             _, input_dtypes = build.get_shapes_and_dtypes(inputs)
             msg = (
-                f'Input data type of model "{config.build_name}" changed from '
-                f"{state.expected_input_dtypes} to {input_dtypes} "
+                f'Input data type of model "{new_state.build_name}" changed from '
+                f"{cached_state.expected_input_dtypes} to {input_dtypes} "
                 f"since the last time it was built."
             )
             result.append(msg)
@@ -190,57 +173,38 @@ def validate_cached_model(
             for key_name, current_arg, previous_arg in changed_args:
                 msg = (
                     f'build_model() argument "{key_name}" for build '
-                    f"{config.build_name} changed from "
+                    f"{new_state.build_name} changed from "
                     f"{previous_arg} to {current_arg} since the last build."
                 )
                 result.append(msg)
-    else:
-        if (
-            state.build_status == build.FunctionStatus.ERROR
-            or state.build_status == build.FunctionStatus.INCOMPLETE
-            or state.build_status == build.FunctionStatus.KILLED
-        ) and turnkey_version == state.turnkey_version:
-            msg = (
-                "build_model() has detected that you already attempted building "
-                "this model with the exact same model, inputs, options, and version of "
-                "turnkey, and that build failed."
-            )
-            result.append(msg)
 
     return result
 
 
 def _begin_fresh_build(
-    state_args: Dict,
-    state_type: Type = build.State,
-) -> build.State:
+    new_state: fs.State,
+) -> fs.State:
     # Wipe everything in this model's build directory, except for the stats file,
     # start with a fresh State.
-    stats = filesystem.Stats(state_args["cache_dir"], state_args["config"].build_name)
+    stats = fs.Stats(new_state.cache_dir, new_state.build_name)
 
-    build_dir = build.output_dir(
-        state_args["cache_dir"], state_args["config"].build_name
-    )
+    build_dir = build.output_dir(new_state.cache_dir, new_state.build_name)
 
-    filesystem.rmdir(
+    fs.rmdir(
         build_dir,
         excludes=[
             stats.file,
-            os.path.join(build_dir, filesystem.BUILD_MARKER),
+            os.path.join(build_dir, fs.BUILD_MARKER),
         ],
     )
-    state = state_type(**state_args)
-    state.save()
+    new_state.save()
 
-    return state
+    return new_state
 
 
-def _rebuild_if_needed(
-    problem_report: str, state_args: Dict, state_type: Type = build.State
-):
-    build_name = state_args["config"].build_name
+def _rebuild_if_needed(problem_report: str, state: fs.State):
     msg = (
-        f"build_model() discovered a cached build of {build_name}, but decided to "
+        f"build_model() discovered a cached build of {state.build_name}, but decided to "
         "rebuild for the following reasons: \n\n"
         f"{problem_report} \n\n"
         "build_model() will now rebuild your model to ensure correctness. You can change this "
@@ -248,40 +212,24 @@ def _rebuild_if_needed(
     )
     printing.log_warning(msg)
 
-    return _begin_fresh_build(state_args, state_type=state_type)
+    return _begin_fresh_build(state)
 
 
-def load_or_make_state(
-    config: build.Config,
-    evaluation_id: str,
-    cache_dir: str,
+def load_from_cache(
+    new_state: fs.State,
     rebuild: str,
     model_type: build.ModelType,
-    monitor: bool,
-    model: build.UnionValidModelInstanceTypes = None,
     inputs: Optional[Dict[str, Any]] = None,
-    state_type: Type = build.State,
-    cache_validation_func: Callable = validate_cached_model,
-    extra_state_args: Optional[Dict] = None,
-) -> build.State:
+) -> fs.State:
     """
     Decide whether we can load the model from the model cache
     (return a valid State instance) or whether we need to rebuild it (return
     a new State instance).
-    """
 
-    # Put all the args for making a new State instance into a dict
-    # to help the following code be cleaner
-    state_args = {
-        "model": model,
-        "inputs": inputs,
-        "monitor": monitor,
-        "rebuild": rebuild,
-        "evaluation_id": evaluation_id,
-        "cache_dir": cache_dir,
-        "config": config,
-        "model_type": model_type,
-    }
+    We make this decision on the basis of whether the cached state used
+    the same model, inputs, and build arguments as the new state generated
+    by this call to the tool.
+    """
 
     # Ensure that `rebuild` has a valid value
     if rebuild not in build.REBUILD_OPTIONS:
@@ -290,103 +238,50 @@ def load_or_make_state(
             f"however the only allowed values of `rebuild` are {build.REBUILD_OPTIONS}"
         )
 
-    # Allow customizations of turnkey to supply additional args
-    if extra_state_args is not None:
-        state_args.update(extra_state_args)
-
     if rebuild == "always":
-        return _begin_fresh_build(state_args, state_type)
+        return _begin_fresh_build(new_state)
     else:
         # Try to load state and check if model successfully built before
-        if os.path.isfile(build.state_file(cache_dir, config.build_name)):
-            try:
-                state = build.load_state(
-                    cache_dir,
-                    config.build_name,
-                    state_type=state_type,
-                )
+        if os.path.isfile(build.state_file(new_state.cache_dir, new_state.build_name)):
+            cached_state = fs.load_state(
+                new_state.cache_dir,
+                new_state.build_name,
+            )
 
-            except exp.StateError as e:
-                problem = (
-                    "- build_model() failed to load "
-                    f"{build.state_file(cache_dir, config.build_name)}"
-                )
+            cache_problems = validate_cached_model(
+                new_state=new_state,
+                cached_state=cached_state,
+                model_type=model_type,
+                inputs=inputs,
+            )
+
+            if len(cache_problems) > 0:
+                cache_problems = [f"- {msg}" for msg in cache_problems]
+                problem_report = "\n".join(cache_problems)
 
                 if rebuild == "if_needed":
-                    return _rebuild_if_needed(problem, state_args, state_type)
-                else:
-                    # Give the rebuild="never" users a chance to address the problem
-                    raise exp.CacheError(e)
+                    return _rebuild_if_needed(problem_report, new_state)
+                if rebuild == "never":
+                    msg = (
+                        "build_model() discovered a cached build of "
+                        f"{new_state.build_name}, and found that it "
+                        "is likely invalid for the following reasons: \n\n"
+                        f"{problem_report} \n\n"
+                        "build_model() will raise a SkipBuild exception because you have "
+                        "set rebuild=never. "
+                    )
+                    printing.log_warning(msg)
 
-            if (
-                model_type == build.ModelType.UNKNOWN
-                and state.build_status == build.FunctionStatus.SUCCESSFUL
-            ):
-                msg = (
-                    "Model caching is disabled for successful builds against custom Sequences. "
-                    "Your model will rebuild whenever you call build_model() on it."
-                )
-                printing.log_warning(msg)
+                    raise exp.SkipBuild(
+                        "Skipping this build, by raising an exception, because it previously "
+                        "failed and the `rebuild` argument is set to `never`."
+                    )
 
-                return _begin_fresh_build(state_args, state_type)
-            elif (
-                model_type == build.ModelType.UNKNOWN
-                and state.build_status == build.FunctionStatus.INCOMPLETE
-            ):
-                msg = (
-                    f"Model {config.build_name} was partially built in a previous call to "
-                    "build_model(). This call to build_model() found that partial build and "
-                    "is loading it from the build cache."
-                )
-
-                printing.log_info(msg)
-            else:
-                cache_problems = cache_validation_func(
-                    config=config,
-                    model_type=model_type,
-                    state=state,
-                    model=model,
-                    inputs=inputs,
-                )
-
-                if len(cache_problems) > 0:
-                    cache_problems = [f"- {msg}" for msg in cache_problems]
-                    problem_report = "\n".join(cache_problems)
-
-                    if rebuild == "if_needed":
-                        return _rebuild_if_needed(
-                            problem_report, state_args, state_type
-                        )
-                    if rebuild == "never":
-                        msg = (
-                            "build_model() discovered a cached build of "
-                            f"{config.build_name}, and found that it "
-                            "is likely invalid for the following reasons: \n\n"
-                            f"{problem_report} \n\n"
-                            "build_model() will raise a SkipBuild exception because you have "
-                            "set rebuild=never. "
-                        )
-                        printing.log_warning(msg)
-
-                        raise exp.SkipBuild(
-                            "Skipping this build, by raising an exception, because it previously "
-                            "failed and the `rebuild` argument is set to `never`."
-                        )
-
-            # Ensure the model and inputs are part of the state
-            # This is useful  when loading models that still need to be built
-            state.save_when_setting_attribute = False
-            if state.model is None:
-                state.model = model
-            if state.inputs is None:
-                state.inputs = inputs
-            state.save_when_setting_attribute = True
-
-            return state
+            return cached_state
 
         else:
             # No state file found, so we have to build
-            return _begin_fresh_build(state_args, state_type)
+            return _begin_fresh_build(new_state)
 
 
 export_map = {
@@ -509,4 +404,4 @@ def model_intake(
         sequence = user_sequence
         model_type = build.ModelType.UNKNOWN
 
-    return (user_model, inputs, sequence, model_type)
+    return (inputs, sequence, model_type)

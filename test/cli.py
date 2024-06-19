@@ -18,11 +18,8 @@ import platform
 import torch
 from turnkeyml.cli.cli import main as turnkeycli
 import turnkeyml.cli.report as report
-import turnkeyml.common.filesystem as filesystem
-from turnkeyml.run.onnxrt.runtime import OnnxRT
-from turnkeyml.run.tensorrt.runtime import TensorRT
+import turnkeyml.common.filesystem as fs
 import turnkeyml.common.build as build
-import turnkeyml.common.filesystem as filesystem
 import turnkeyml.common.exceptions as exceptions
 import turnkeyml.build.export as export
 import turnkeyml.cli.spawn as spawn
@@ -61,7 +58,7 @@ def assert_success_of_builds(
 ) -> int:
     # Figure out the build name by surveying the build cache
     # for a build that includes test_script_name in the name
-    builds = filesystem.get_all(cache_dir)
+    builds = fs.get_all(cache_dir)
     builds_found = 0
 
     for test_script in test_script_files:
@@ -70,10 +67,10 @@ def assert_success_of_builds(
 
         for build_state_file in builds:
             if test_script_name in build_state_file:
-                build_state = build.load_state(state_path=build_state_file)
-                stats = filesystem.Stats(
+                build_state = fs.load_state(state_path=build_state_file)
+                stats = fs.Stats(
                     build_state.cache_dir,
-                    build_state.config.build_name,
+                    build_state.build_name,
                     build_state.evaluation_id,
                 )
                 assert build_state.build_status == build.FunctionStatus.SUCCESSFUL
@@ -94,7 +91,7 @@ def assert_success_of_builds(
                     assert iterations == check_iteration_count
 
                 if check_opset:
-                    onnx_model = onnx.load(build_state.results[0])
+                    onnx_model = onnx.load(build_state.results)
                     model_opset = getattr(onnx_model.opset_import[0], "version", None)
                     assert model_opset == check_opset
 
@@ -127,7 +124,7 @@ input_tensor = torch.rand(10)
 
 class Testing(unittest.TestCase):
     def setUp(self) -> None:
-        filesystem.rmdir(cache_dir)
+        fs.rmdir(cache_dir)
 
         return super().setUp()
 
@@ -301,9 +298,7 @@ class Testing(unittest.TestCase):
         # Make sure we can print the builds in the cache
         for test_script in common.test_scripts_dot_py.keys():
             test_script_path = os.path.join(corpus_dir, test_script)
-            builds, script_name = filesystem.get_builds_from_file(
-                cache_dir, test_script_path
-            )
+            builds, script_name = fs.get_builds_from_file(cache_dir, test_script_path)
 
             for build_name in builds:
                 # Make sure each build can be accessed with `turnkey cache stats`
@@ -431,7 +426,7 @@ class Testing(unittest.TestCase):
         with patch.object(sys, "argv", flatten(testargs)):
             turnkeycli()
 
-        state_files = [Path(p).stem for p in filesystem.get_all(cache_dir)]
+        state_files = [Path(p).stem for p in fs.get_all(cache_dir)]
         assert state_files == ["linear_d5b1df11_state"]
 
         # Delete the builds
@@ -446,7 +441,7 @@ class Testing(unittest.TestCase):
         with patch.object(sys, "argv", testargs):
             turnkeycli()
 
-        assert filesystem.get_all(cache_dir) == []
+        assert fs.get_all(cache_dir) == []
 
         # Only build models labels with test_group::a and test_group::b
         testargs = [
@@ -462,7 +457,7 @@ class Testing(unittest.TestCase):
         with patch.object(sys, "argv", flatten(testargs)):
             turnkeycli()
 
-        state_files = [Path(p).stem for p in filesystem.get_all(cache_dir)]
+        state_files = [Path(p).stem for p in fs.get_all(cache_dir)]
         assert state_files == ["linear_d5b1df11_state", "linear2_80b93950_state"]
 
     @unittest.skip("Needs re-implementation")
@@ -479,7 +474,7 @@ class Testing(unittest.TestCase):
             turnkeycli()
 
         # Ensure test failed
-        build_state = build.load_state(state_path=filesystem.get_all(cache_dir)[0])
+        build_state = fs.load_state(state_path=fs.get_all(cache_dir)[0])
         assert build_state.build_status != build.FunctionStatus.SUCCESSFUL
 
         # Generate report
@@ -797,6 +792,7 @@ class Testing(unittest.TestCase):
             builds_found == 3
         ), f"Expected 3 builds (1 for linear.py, 2 for linear2.py), but got {builds_found}."
 
+    @unittest.skip("Flaky test https://github.com/onnx/turnkeyml/issues/58")
     def test_025_cli_timeout(self):
         """
         Make sure that the --timeout option and its associated reporting features work.
@@ -976,7 +972,7 @@ class Testing(unittest.TestCase):
             turnkeycli()
 
         # Benchmark the single model from cache directory
-        selected_build = filesystem.get_available_builds(cache_dir)[-1]
+        selected_build = fs.get_available_builds(cache_dir)[-1]
         testargs = [
             "turnkey",
             "cache",

@@ -97,7 +97,7 @@ class Stage(abc.ABC):
         self.stages = None
 
     @abc.abstractmethod
-    def fire(self, state: build.State) -> build.State:
+    def fire(self, state: fs.State) -> fs.State:
         """
         Developer-defined function to fire the stage.
         In less punny terms, this is the function that
@@ -105,7 +105,7 @@ class Stage(abc.ABC):
         transformation on the flow to producing a Model.
         """
 
-    def fire_helper(self, state: build.State) -> Tuple[build.State, int]:
+    def fire_helper(self, state: fs.State) -> Tuple[fs.State, int]:
         """
         Wraps the user-defined .fire method with helper functionality.
         Specifically:
@@ -121,7 +121,7 @@ class Stage(abc.ABC):
         state.build_status = build.FunctionStatus.INCOMPLETE
 
         self.logfile_path = os.path.join(
-            build.output_dir(state.cache_dir, state.config.build_name),
+            build.output_dir(state.cache_dir, state.build_name),
             f"log_{self.unique_name}.txt",
         )
 
@@ -245,7 +245,7 @@ class Sequence(Stage):
             """
             raise ValueError(msg)
 
-    def show_monitor(self, config: build.Config, verbosity: bool):
+    def show_monitor(self, state: fs.State, verbosity: bool):
         """
         Displays the monitor on the terminal. The purpose of the monitor
         is to show the status of each stage (success, failure, not started yet,
@@ -256,7 +256,7 @@ class Sequence(Stage):
             print("\n\n")
 
             printing.logn(
-                f'Building "{config.build_name}"',
+                f'Building "{state.build_name}"',
                 c=printing.Colors.BOLD,
             )
 
@@ -265,7 +265,7 @@ class Sequence(Stage):
 
             _rewind_stdout(self.get_depth())
 
-    def launch(self, state: build.State) -> build.State:
+    def launch(self, state: fs.State) -> fs.State:
         """
         Executes a launch sequence.
         In less punny terms, this method is called by the top-level
@@ -284,7 +284,7 @@ class Sequence(Stage):
             raise exp.Error(msg)
 
         # Collect telemetry for the build
-        stats = fs.Stats(state.cache_dir, state.config.build_name, state.evaluation_id)
+        stats = fs.Stats(state.cache_dir, state.build_name, state.evaluation_id)
         stats.save_model_eval_stat(
             fs.Keys.SELECTED_SEQUENCE_OF_STAGES,
             self.get_names(),
@@ -293,7 +293,7 @@ class Sequence(Stage):
         # At the beginning of a sequence no stage has started
         for stage in self.stages:
             stats.save_model_eval_stat(
-                stage.status_key, build.FunctionStatus.NOT_STARTED.value
+                stage.status_key, build.FunctionStatus.NOT_STARTED
             )
             stats.save_model_eval_stat(stage.duration_key, "-")
 
@@ -305,7 +305,7 @@ class Sequence(Stage):
 
                 # Set status as incomplete, since stage just started
                 stats.save_model_eval_stat(
-                    stage.status_key, build.FunctionStatus.INCOMPLETE.value
+                    stage.status_key, build.FunctionStatus.INCOMPLETE
                 )
 
                 # Collect telemetry about the stage
@@ -319,9 +319,7 @@ class Sequence(Stage):
             except Exception as e:  # pylint: disable=broad-except
 
                 # Update Stage Status
-                stats.save_model_eval_stat(
-                    stage.status_key, build.FunctionStatus.ERROR.value
-                )
+                stats.save_model_eval_stat(stage.status_key, build.FunctionStatus.ERROR)
 
                 # Save the log file for the failed stage to stats for easy reference
                 stats.save_eval_error_log(stage.logfile_path)
@@ -343,7 +341,7 @@ class Sequence(Stage):
             else:
                 # Update Stage Status
                 stats.save_model_eval_stat(
-                    stage.status_key, build.FunctionStatus.SUCCESSFUL.value
+                    stage.status_key, build.FunctionStatus.SUCCESSFUL
                 )
 
             finally:
@@ -360,6 +358,9 @@ class Sequence(Stage):
         # are free to take any action with.
         state.results = copy.deepcopy(state.intermediate_results)
 
+        # Save the state so that it can be assessed for a cache hit
+        state.save()
+
         return state
 
     def status_line(self, successful, verbosity):
@@ -371,7 +372,7 @@ class Sequence(Stage):
         for stage in self.stages:
             stage.status_line(successful=None, verbosity=verbosity)
 
-    def fire(self, state: build.State) -> build.State:
+    def fire(self, state: fs.State) -> fs.State:
         """
         This override of fire simply propagates fire()
         to every Stage in the Sequence
@@ -382,7 +383,7 @@ class Sequence(Stage):
 
         return state
 
-    def fire_helper(self, state: build.State) -> build.State:
+    def fire_helper(self, state: fs.State) -> fs.State:
         """
         Sequence doesn't need any help calling self.fire(), so it's fire_helper
         is just to call self.fire()

@@ -1,5 +1,5 @@
 from turnkeyml.build.stage import Sequence, Stage
-import turnkeyml.common.build as build
+import turnkeyml.common.filesystem as fs
 import turnkeyml.build.export as export
 
 combined_seq_name = "example-combined-seq"
@@ -17,7 +17,7 @@ class CombinedExampleStage(Stage):
             monitor_message="Special step expected by CombinedExampleRT",
         )
 
-    def fire(self, state: build.State):
+    def fire(self, state: fs.State):
         return state
 
 

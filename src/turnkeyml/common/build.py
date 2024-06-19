@@ -1,14 +1,10 @@
 import os
 import logging
 import sys
-import pathlib
-import copy
 import traceback
 import platform
 import subprocess
-import enum
-from typing import Optional, Any, List, Dict, Union, Type
-import dataclasses
+from typing import Dict, Union
 import hashlib
 import pkg_resources
 import psutil
@@ -16,7 +12,6 @@ import yaml
 import torch
 import numpy as np
 import turnkeyml.common.exceptions as exp
-from turnkeyml.version import __version__ as turnkey_version
 
 
 UnionValidModelInstanceTypes = Union[
@@ -37,7 +32,7 @@ DEFAULT_REBUILD_POLICY = "if_needed"
 REBUILD_OPTIONS = ["if_needed", "always", "never"]
 
 
-class ModelType(enum.Enum):
+class ModelType:
     PYTORCH = "pytorch"
     PYTORCH_COMPILED = "pytorch_compiled"
     ONNX_FILE = "onnx_file"
@@ -48,7 +43,7 @@ class ModelType(enum.Enum):
 DEFAULT_DEVICE = "default"
 
 
-def load_yaml(file_path):
+def load_yaml(file_path) -> Dict:
     with open(file_path, "r", encoding="utf8") as stream:
         try:
             return yaml.load(stream, Loader=yaml.FullLoader)
@@ -107,7 +102,7 @@ def hash_model(model, model_type: ModelType, hash_params: bool = True):
         raise ValueError(msg)
 
 
-class FunctionStatus(enum.Enum):
+class FunctionStatus:
     """
     Status values that are assigned to stages, builds, benchmarks, and other
     functionality to help the user understand whether that function completed
@@ -203,185 +198,6 @@ def get_shapes_and_dtypes(inputs: dict):
             )
 
     return shapes, dtypes
-
-
-@dataclasses.dataclass(frozen=True)
-class Config:
-    """
-    User-provided build configuration. Instances of Config should not be modified
-    once they have been instantiated (frozen=True enforces this).
-
-    Note: modifying this struct can create a breaking change that
-    requires users to rebuild their models. Increment the minor
-    version number of the turnkey package if you do make a build-
-    breaking change.
-    """
-
-    build_name: str
-    auto_name: bool
-    sequence: List[str]
-    onnx_opset: int
-    device: Optional[str]
-
-
-@dataclasses.dataclass
-class State:
-    # User-provided args that influence the generated model
-    config: Config
-
-    # User-provided args that do not influence the generated model
-    monitor: bool = False
-    rebuild: str = ""
-    cache_dir: str = ""
-    evaluation_id: str = ""
-
-    # User-provided args that will not be saved as part of state.yaml
-    model: UnionValidModelInstanceTypes = None
-    inputs: Optional[Dict[str, Any]] = None
-
-    # Member variable that helps the code know if State has called
-    # __post_init__ yet
-    save_when_setting_attribute: bool = False
-
-    # All of the following are critical aspects of the build,
-    # including properties of the tool and choices made
-    # while building the model, which determine the outcome of the build.
-    # NOTE: adding or changing a member name in this struct can create
-    # a breaking change that requires users to rebuild their models.
-    # Increment the minor version number of the turnkey package if you
-    # do make a build-breaking change.
-
-    turnkey_version: str = turnkey_version
-    model_type: ModelType = ModelType.UNKNOWN
-    uid: Optional[int] = None
-    model_hash: Optional[int] = None
-    build_status: FunctionStatus = FunctionStatus.NOT_STARTED
-    expected_input_shapes: Optional[Dict[str, list]] = None
-    expected_input_dtypes: Optional[Dict[str, list]] = None
-    expected_output_names: Optional[List] = None
-
-    # Whether or not inputs must be downcasted during inference
-    downcast_applied: bool = False
-
-    # The results of the most recent stage that was executed
-    current_build_stage: str = None
-    intermediate_results: Any = None
-
-    # Results of a successful build
-    results: Any = None
-
-    def __post_init__(self):
-        if self.uid is None:
-            self.uid = unique_id()
-        if self.inputs is not None:
-            (
-                self.expected_input_shapes,
-                self.expected_input_dtypes,
-            ) = get_shapes_and_dtypes(self.inputs)
-        if self.model is not None and self.model_type != ModelType.UNKNOWN:
-            self.model_hash = hash_model(self.model, self.model_type)
-
-        self.save_when_setting_attribute = True
-
-    def __setattr__(self, name, val):
-        super().__setattr__(name, val)
-
-        # Always automatically save the state.yaml whenever State is modified
-        # But don't bother saving until after __post_init__ is done (indicated
-        # by the save_when_setting_attribute flag)
-        # Note: This only works when elements of the state are set directly.
-        if self.save_when_setting_attribute and name != "save_when_setting_attribute":
-            self.save()
-
-    @property
-    def original_inputs_file(self):
-        return os.path.join(
-            output_dir(self.cache_dir, self.config.build_name), "inputs.npy"
-        )
-
-    def prepare_file_system(self):
-        # Create output folder if it doesn't exist
-        os.makedirs(output_dir(self.cache_dir, self.config.build_name), exist_ok=True)
-
-    def prepare_state_dict(self) -> Dict:
-        state_dict = {
-            key: value
-            for key, value in vars(self).items()
-            if not key == "inputs"
-            and not key == "model"
-            and not key == "save_when_setting_attribute"
-        }
-
-        # Special case for saving objects
-        state_dict["config"] = copy.deepcopy(vars(self.config))
-
-        state_dict["model_type"] = self.model_type.value
-        state_dict["build_status"] = self.build_status.value
-
-        return state_dict
-
-    def save_yaml(self, state_dict: Dict):
-        with open(
-            state_file(self.cache_dir, self.config.build_name), "w", encoding="utf8"
-        ) as outfile:
-            yaml.dump(state_dict, outfile)
-
-    def save(self):
-        self.prepare_file_system()
-
-        state_dict = self.prepare_state_dict()
-
-        self.save_yaml(state_dict)
-
-
-def load_state(
-    cache_dir=None,
-    build_name=None,
-    state_path=None,
-    state_type: Type = State,
-) -> State:
-    if state_path is not None:
-        file_path = state_path
-    elif build_name is not None and cache_dir is not None:
-        file_path = state_file(cache_dir, build_name)
-    else:
-        raise ValueError(
-            "This function requires either build_name and cache_dir to be set, "
-            "or state_path to be set, not both or neither"
-        )
-
-    state_dict = load_yaml(file_path)
-
-    # Get the type of Config and Info in case they have been overloaded
-    field_types = {field.name: field.type for field in dataclasses.fields(state_type)}
-    config_type = field_types["config"]
-
-    try:
-        # Special case for loading enums
-        state_dict["model_type"] = ModelType(state_dict["model_type"])
-        state_dict["build_status"] = FunctionStatus(state_dict["build_status"])
-        state_dict["config"] = config_type(**state_dict["config"])
-
-        state = state_type(**state_dict)
-
-    except (KeyError, TypeError) as e:
-        if state_path is not None:
-            path_suggestion = pathlib.Path(state_path).parent
-        else:
-            path_suggestion = output_dir(cache_dir, build_name)
-        msg = f"""
-        The cached build of this model was built with an
-        incompatible older version of the tool.
-
-        Suggested solution: delete the build with
-        rm -rf {path_suggestion}
-
-        The underlying code raised this exception:
-        {e}
-        """
-        raise exp.StateError(msg)
-
-    return state
 
 
 class Logger:

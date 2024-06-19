@@ -1,24 +1,23 @@
-import os
 from typing import Optional, List, Dict, Any
 import turnkeyml.build.ignition as ignition
 import turnkeyml.build.stage as stage
 import turnkeyml.common.printing as printing
 import turnkeyml.common.build as build
-import turnkeyml.common.filesystem as filesystem
+import turnkeyml.common.filesystem as fs
 
 
 def build_model(
     model: build.UnionValidModelInstanceTypes = None,
     inputs: Optional[Dict[str, Any]] = None,
     build_name: Optional[str] = None,
-    evaluation_id: Optional[str] = "build",
-    cache_dir: str = filesystem.DEFAULT_CACHE_DIR,
+    evaluation_id: str = "build",
+    cache_dir: str = fs.DEFAULT_CACHE_DIR,
     monitor: Optional[bool] = None,
     rebuild: Optional[str] = None,
     sequence: Optional[List[stage.Stage]] = None,
     onnx_opset: Optional[int] = None,
     device: Optional[str] = None,
-) -> build.State:
+) -> fs.State:
     """Use build a model instance into an optimized ONNX file.
 
     Args:
@@ -55,32 +54,9 @@ def build_model(
             https://github.com/onnx/turnkeyml/blob/main/docs/tools_user_guide.md
     """
 
-    # Allow monitor to be globally disabled by an environment variable
-    if monitor is None:
-        if os.environ.get("TURNKEY_BUILD_MONITOR") == "False":
-            monitor_setting = False
-        else:
-            monitor_setting = True
-    else:
-        monitor_setting = monitor
-
-    # Support "~" in the cache_dir argument
-    parsed_cache_dir = os.path.expanduser(cache_dir)
-
-    # Validate and lock in the config (user arguments that
-    # configure the build) that will be used by the rest of the toolchain
-    config = ignition.lock_config(
-        model=model,
-        build_name=build_name,
-        sequence=sequence,
-        onnx_opset=onnx_opset,
-        device=device,
-    )
-
     # Analyze the user's model argument and lock in the model, inputs,
     # and sequence that will be used by the rest of the toolchain
     (
-        model_locked,
         inputs_locked,
         sequence_locked,
         model_type,
@@ -90,15 +66,26 @@ def build_model(
         sequence,
     )
 
-    # Get the state of the model from the cache if a valid build is available
-    state = ignition.load_or_make_state(
-        config=config,
+    # Validate and apply defaults to the initial user arguments that
+    # configure the build
+    state = fs.State(
+        model=model,
+        model_type=model_type,
+        inputs=inputs_locked,
+        monitor=monitor,
         evaluation_id=evaluation_id,
-        cache_dir=parsed_cache_dir,
+        cache_dir=cache_dir,
+        build_name=build_name,
+        sequence=sequence,
+        onnx_opset=onnx_opset,
+        device=device,
+    )
+
+    # Get the state of the model from the cache if a valid build is available
+    state = ignition.load_from_cache(
+        new_state=state,
         rebuild=rebuild or build.DEFAULT_REBUILD_POLICY,
         model_type=model_type,
-        monitor=monitor_setting,
-        model=model_locked,
         inputs=inputs_locked,
     )
 
@@ -107,18 +94,17 @@ def build_model(
     if state.build_status == build.FunctionStatus.SUCCESSFUL:
         # Successful builds can be loaded from cache and returned with
         # no additional steps
-        additional_msg = " (build_name auto-selected)" if config.auto_name else ""
         printing.log_success(
-            f' Build "{config.build_name}"{additional_msg} found in cache. Loading it!',
+            f' Build "{state.build_name}" found in cache. Loading it!',
         )
 
         return state
 
-    sequence_locked.show_monitor(config, state.monitor)
+    sequence_locked.show_monitor(state, state.monitor)
     state = sequence_locked.launch(state)
 
     printing.log_success(
-        f"\n    Saved to **{build.output_dir(state.cache_dir, config.build_name)}**"
+        f"\n    Saved to **{build.output_dir(state.cache_dir, state.build_name)}**"
     )
 
     return state

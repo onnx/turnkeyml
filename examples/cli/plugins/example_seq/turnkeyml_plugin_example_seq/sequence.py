@@ -13,7 +13,7 @@ After you install the plugin, you can tell `turnkey` to use this sequence with:
 """
 
 from turnkeyml.build.stage import Sequence, Stage
-import turnkeyml.common.build as build
+import turnkeyml.common.filesystem as fs
 import turnkeyml.build.export as export
 
 
@@ -33,7 +33,7 @@ class ExampleStage(Stage):
             monitor_message="Teaching by example",
         )
 
-    def fire(self, state: build.State):
+    def fire(self, state: fs.State):
         return state
 
 
