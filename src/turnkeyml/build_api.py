@@ -58,12 +58,10 @@ def build_model(
     # and sequence that will be used by the rest of the toolchain
     (
         inputs_locked,
-        sequence_locked,
         model_type,
     ) = ignition.model_intake(
         model,
         inputs,
-        sequence,
     )
 
     # Validate and apply defaults to the initial user arguments that
@@ -76,7 +74,7 @@ def build_model(
         evaluation_id=evaluation_id,
         cache_dir=cache_dir,
         build_name=build_name,
-        sequence=sequence,
+        sequence_info=sequence.info,
         onnx_opset=onnx_opset,
         device=device,
     )
@@ -100,8 +98,8 @@ def build_model(
 
         return state
 
-    sequence_locked.show_monitor(state, state.monitor)
-    state = sequence_locked.launch(state)
+    sequence.show_monitor(state, state.monitor)
+    state = sequence.launch(state)
 
     printing.log_success(
         f"\n    Saved to **{build.output_dir(state.cache_dir, state.build_name)}**"

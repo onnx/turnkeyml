@@ -381,10 +381,8 @@ class Keys:
     ERROR_LOG = "error_log"
     # Name of the build in the cache
     BUILD_NAME = "build_name"
-    # Sequence of stages used for this build
-    SEQUENCE = "sequence"
-    # ONNX opset used during model export
-    ONNX_OPSET = "onnx_opset"
+    # Sequence of stages used for this build, along with their args
+    SEQUENCE_INFO = "sequence_info"
     # Unique ID for an evaluation (build of a model against a specfic device/runtime/sequence)
     EVALUATION_ID = "evaluation_id"
     # Version of TurnkeyML used for the build
@@ -614,7 +612,7 @@ class State:
         model_type: Optional[build.ModelType] = None,
         monitor: Optional[bool] = None,
         build_name: Optional[str] = None,
-        sequence=None,
+        sequence_info: Dict[str, Dict] = None,
         onnx_opset: Optional[int] = None,
         device: Optional[str] = None,
         **kwargs,
@@ -632,15 +630,6 @@ class State:
         # The default model name is the name of the python file that calls build_model()
         if build_name is None:
             build_name = os.path.basename(sys.argv[0])
-
-        if sequence is None:
-            # The value ["default"] indicates that build_model() will be assigning some
-            # default sequence later in the program
-            stage_names = ["default"]
-        elif isinstance(sequence, list):
-            stage_names = sequence
-        else:
-            stage_names = sequence.get_names()
 
         # Detect and validate ONNX opset
         if isinstance(model, str) and model.endswith(".onnx"):
@@ -677,7 +666,7 @@ class State:
         self.evaluation_id = evaluation_id
         self.cache_dir = parsed_cache_dir
         self.build_name = build_name
-        self.sequence = stage_names
+        self.sequence_info = sequence_info
         self.onnx_opset = opset_to_use
         self.device = device_to_use
         self.turnkey_version = turnkey_version

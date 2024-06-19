@@ -116,7 +116,7 @@ class TracerArgs:
                 # `sequence` can be a str or Sequence
                 # If we receive an instance of Sequence, we need to convert it
                 # to a string to save it to YAML
-                saved_value = arg_value.sequence.__class__.__name__
+                saved_value = arg_value.stage_names
             elif isinstance(arg_value, status.Verbosity):
                 saved_value = arg_value.value
             elif isinstance(arg_value, list) and any(
@@ -521,6 +521,8 @@ def explore_invocation(
         )
 
         _store_traceback(invocation_info)
+
+        raise e
 
     finally:
         # Ensure that stdout/stderr is not being forwarded before updating status

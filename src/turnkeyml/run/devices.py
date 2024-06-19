@@ -5,7 +5,6 @@ import turnkeyml.run.tensorrt as tensorrt
 import turnkeyml.run.torchrt as torchrt
 import turnkeyml.common.plugins as plugins
 from turnkeyml.build.stage import Sequence
-import turnkeyml.build.sequences as sequences
 import turnkeyml.common.exceptions as exp
 
 
@@ -108,27 +107,28 @@ def select_runtime_and_sequence(
 
     # Perform a build, if necessary
     if runtime_info["build_required"]:
-        # Get the build sequence that will be used for the model
-        if sequence is None:
-            # Automatically choose a Sequence based on what the runtime expects
-            sequence_selected = runtime_info["default_sequence"]
-        else:
-            # User-specified Sequence
-            if isinstance(sequence, str):
-                # Sequence is defined by a plugin
-                if sequence in sequences.SUPPORTED_SEQUENCES.keys():
-                    sequence_selected = sequences.SUPPORTED_SEQUENCES[sequence]
-                else:
-                    raise ValueError(
-                        f"Sequence argument {sequence} is not one of the "
-                        "available sequences installed: "
-                        f"{sequences.SUPPORTED_SEQUENCES.keys()} \n"
-                        f"{_check_suggestion(sequence)}"
-                    )
+        sequence_selected = sequence
+        # # Get the build sequence that will be used for the model
+        # if sequence is None:
+        #     # Automatically choose a Sequence based on what the runtime expects
+        #     sequence_selected = runtime_info["default_sequence"]
+        # else:
+        #     # User-specified Sequence
+        #     if isinstance(sequence, str):
+        #         # Sequence is defined by a plugin
+        #         if sequence in sequences.SUPPORTED_SEQUENCES.keys():
+        #             sequence_selected = sequences.SUPPORTED_SEQUENCES[sequence]
+        #         else:
+        #             raise ValueError(
+        #                 f"Sequence argument {sequence} is not one of the "
+        #                 "available sequences installed: "
+        #                 f"{sequences.SUPPORTED_SEQUENCES.keys()} \n"
+        #                 f"{_check_suggestion(sequence)}"
+        #             )
 
-            elif isinstance(sequence, Sequence):
-                # Sequence is a user-defined instance of Sequence
-                sequence_selected = sequence
+        #     elif isinstance(sequence, Sequence):
+        #         # Sequence is a user-defined instance of Sequence
+        #         sequence_selected = sequence
 
     else:
         # Sequence is only needed for builds
