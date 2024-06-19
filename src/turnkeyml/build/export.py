@@ -4,6 +4,7 @@ import shutil
 import warnings
 import sys
 import copy
+import argparse
 from typing import Union
 import torch
 import torch.onnx.verification
@@ -221,6 +222,21 @@ class ExportPytorchModel(stage.Stage):
             unique_name="export_pytorch",
             monitor_message="Exporting PyTorch to ONNX",
         )
+
+    @staticmethod
+    def parser(add_help: bool = True) -> argparse.ArgumentParser:
+        parser = argparse.ArgumentParser(
+            description="Export a PyTorch model to ONNX",
+            add_help=add_help,
+        )
+
+        parser.add_argument(
+            "--opset",
+            default=build.DEFAULT_ONNX_OPSET,
+            help="ONNX opset to export into",
+        )
+
+        return parser
 
     def fire(self, state: fs.State):
         if not isinstance(state.model, (torch.nn.Module, torch.jit.ScriptModule)):

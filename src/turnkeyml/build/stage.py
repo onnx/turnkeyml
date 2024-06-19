@@ -3,7 +3,8 @@ import sys
 import time
 import os
 import copy
-from typing import List, Tuple
+import argparse
+from typing import List, Tuple, Dict
 from multiprocessing import Process
 import psutil
 import turnkeyml.common.printing as printing
@@ -104,6 +105,47 @@ class Stage(abc.ABC):
         build_model() will run to implement a model-to-model
         transformation on the flow to producing a Model.
         """
+
+    @staticmethod
+    @abc.abstractmethod
+    def parser() -> argparse.ArgumentParser:
+        """
+        Static method that returns an ArgumentParser that defines the command
+        line interface for this Stage.
+        """
+
+    # pylint: disable=unused-argument
+    def parse(self, state: fs.State, args, known_only=True) -> argparse.Namespace:
+        """
+        Run the parser and return a Namespace of keyword arguments that the user
+        passed to the Stage via the command line.
+
+        Stages should extend this function only if they require specific parsing
+        logic, for example decoding the name of a data type into a data type class.
+
+        Args:
+            state: the same state passed into the run method of the Stage, useful if
+                the parse decoding logic needs to take the state into account.
+            args: command line arguments passed from the CLI.
+            known_only: this argument allows the CLI framework to
+                incrementally parse complex commands.
+        """
+
+        if known_only:
+            parsed_args = self.__class__.parser().parse_args(args)
+        else:
+            parsed_args, _ = self.__class__.parser().parse_known_args(args)
+
+        return parsed_args
+
+    def parse_and_fire(self, state: fs.State, args, known_only=True) -> Dict:
+        """
+        Helper function to parse CLI arguments into the args expected
+        by run(), and then forward them into the fire() method.
+        """
+
+        parsed_args = self.parse(state, args, known_only)
+        return self.fire_helper(state, **parsed_args.__dict__)
 
     def fire_helper(self, state: fs.State) -> Tuple[fs.State, int]:
         """
