@@ -575,7 +575,7 @@ def is_nice_to_write(value):
 
 def sanitize_for_yaml(input_dict: Dict) -> Dict:
     """
-    Creates a new dictionary  containing only nice-to-write values
+    Creates a new dictionary containing only nice-to-write values
     from the original dictionary.
     """
     result = {}
@@ -597,7 +597,7 @@ class State:
     Stage developers can also add any members they wish. To get or set an
     attribute, reference it as an attribute:
         1. get: `my_variable = state.attribute_name`
-        1. set: `state.attribute_name = my_variable`
+        2. set: `state.attribute_name = my_variable`
 
     Build State can be saved and loaded from disk in the form of a state.yaml file
     via State.save() and load_state(), respectively. Note that while State can
