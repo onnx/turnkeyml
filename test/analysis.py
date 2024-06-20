@@ -185,9 +185,9 @@ class Testing(unittest.TestCase):
                 "turnkey",
                 "-i",
                 os.path.join(corpus_dir, "linear_pytorch.py"),
+                "--analyze-only",
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
-                "--analyze-only",
                 "export-pytorch",  # FIXME: replace with `discover` when Discovery is a stage
             ]
         )
@@ -201,9 +201,9 @@ class Testing(unittest.TestCase):
                 os.path.join(corpus_dir, "linear_pytorch.py"),
                 "--max-depth",
                 "1",
+                "--analyze-only",
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
-                "--analyze-only",
                 "export-pytorch",  # FIXME: replace with `discover` when Discovery is a stage
             ]
         )
@@ -217,11 +217,11 @@ class Testing(unittest.TestCase):
                 os.path.join(corpus_dir, "linear_pytorch.py::76af2f62"),
                 "--max-depth",
                 "1",
+                "--build-only",
                 "--cache-dir",
                 cache_dir,
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
-                "--build-only",
                 "export-pytorch",
             ]
         )
@@ -239,9 +239,9 @@ class Testing(unittest.TestCase):
                 "--cache-dir",
                 cache_dir,
                 "--lean-cache",
+                "--build-only",
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
-                "--build-only",
                 "export-pytorch",
             ]
         )
@@ -261,9 +261,9 @@ class Testing(unittest.TestCase):
                 "1",
                 "--script-args",
                 "--my-arg test_arg",
+                "--analyze-only",
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
-                "--analyze-only",
                 "export-pytorch",  # FIXME: replace with `discover` when Discovery is a stage
             ]
         )
@@ -314,9 +314,9 @@ class Testing(unittest.TestCase):
                 "turnkey",
                 "-i",
                 os.path.join(corpus_dir, "pipeline.py"),
+                "--analyze-only",
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
-                "--analyze-only",
                 "export-pytorch",  # FIXME: replace with `discover` when Discovery is a stage
             ]
         )
@@ -328,9 +328,9 @@ class Testing(unittest.TestCase):
                 "turnkey",
                 "-i",
                 os.path.join(corpus_dir, "activation.py"),
+                "--analyze-only",
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
-                "--analyze-only",
                 "export-pytorch",  # FIXME: replace with `discover` when Discovery is a stage
             ]
         )
@@ -342,9 +342,9 @@ class Testing(unittest.TestCase):
                 "turnkey",
                 "-i",
                 os.path.join(corpus_dir, "linear_pytorch.py"),
+                "--analyze-only",
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
-                "--analyze-only",
                 "export-pytorch",  # FIXME: replace with `discover` when Discovery is a stage
             ]
         )
@@ -356,13 +356,13 @@ class Testing(unittest.TestCase):
                 "turnkey",
                 "-i",
                 os.path.join(corpus_dir, "linear_pytorch.py::76af2f62"),
+                "--build-only",
                 "--max-depth",
                 "1",
                 "--cache-dir",
                 cache_dir,
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
-                "--build-only",
                 "export-pytorch",
             ]
         )
@@ -379,9 +379,9 @@ class Testing(unittest.TestCase):
                 "1",
                 "--cache-dir",
                 cache_dir,
+                "--build-only",
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
-                "--build-only",
                 "export-pytorch",
             ]
         )
@@ -406,9 +406,9 @@ class Testing(unittest.TestCase):
                 "turnkey",
                 "-i",
                 os.path.join(corpus_dir, "two_executions.py"),
+                "--analyze-only",
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
-                "--analyze-only",
                 "export-pytorch",  # FIXME: replace with `discover` when Discovery is a stage
             ]
         )
@@ -420,11 +420,11 @@ class Testing(unittest.TestCase):
                 "turnkey",
                 "-i",
                 os.path.join(corpus_dir, "two_executions.py"),
+                "--analyze-only",
                 "--max-depth",
                 "1",
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
-                "--analyze-only",
                 "export-pytorch",  # FIXME: replace with `discover` when Discovery is a stage
             ]
         )
