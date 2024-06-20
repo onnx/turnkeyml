@@ -1,6 +1,6 @@
 import turnkeyml.build.export as export
 import turnkeyml.common.plugins as plugins
-import turnkeyml.common.management_stages as mgmt
+import turnkeyml.common.management_tools as mgmt
 
 # Plugin interface for sequences
 discovered_plugins = plugins.discover()
@@ -9,6 +9,8 @@ discovered_plugins = plugins.discover()
 SUPPORTED_STAGES = [
     mgmt.Version,
     mgmt.Cache,
+    mgmt.ModelsLocation,
+    mgmt.Report,
     export.ExportPytorchModel,
     export.OptimizeOnnxModel,
     export.OnnxLoad,

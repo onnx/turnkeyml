@@ -13,7 +13,7 @@ from turnkeyml.files_api import benchmark_files
 from turnkeyml.analyze.status import Verbosity
 import turnkeyml.common.build as build
 import turnkeyml.common.exceptions as exp
-from turnkeyml.common.management_stages import ManagementTool
+from turnkeyml.common.management_tools import ManagementTool
 
 
 class PreserveWhiteSpaceWrapRawTextHelpFormatter(argparse.RawDescriptionHelpFormatter):
@@ -277,7 +277,9 @@ Management tool choices:
     else:
         # Run the management stages
         for management_stage, argv in stage_instances.items():
-            management_stage.parse_and_run(argv)
+            # Support "~" in the cache_dir argument
+            parsed_cache_dir = os.path.expanduser(global_args[fs.Keys.CACHE_DIR])
+            management_stage.parse_and_run(parsed_cache_dir, argv)
 
 
 if __name__ == "__main__":

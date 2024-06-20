@@ -35,11 +35,11 @@ def _good_get(
         return "-"
 
 
-def summary_spreadsheets(args) -> None:
+def summary_spreadsheets(cache_dirs, report_dir) -> None:
     # Input arguments from CLI
-    cache_dirs = [os.path.expanduser(dir) for dir in args.cache_dirs]
+    cache_dirs = [os.path.expanduser(dir) for dir in cache_dirs]
     cache_dirs = fs.expand_inputs(cache_dirs)
-    report_dir = os.path.expanduser(args.report_dir)
+    report_dir = os.path.expanduser(report_dir)
 
     # Name report file
     report_path = os.path.join(report_dir, get_report_name())

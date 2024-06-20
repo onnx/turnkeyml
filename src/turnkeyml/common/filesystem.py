@@ -229,52 +229,6 @@ def get_available_builds(cache_dir):
     return builds
 
 
-def print_available_builds(args):
-    printing.log_info(f"Builds available in cache {args.cache_dir}:")
-    builds = get_available_builds(args.cache_dir)
-    printing.list_table(builds, num_cols=1)
-    print()
-
-
-def delete_builds(args):
-    check_cache_dir(args.cache_dir)
-
-    if args.delete_all:
-        builds = get_available_builds(args.cache_dir)
-    else:
-        builds = [args.build_name]
-
-    for build in builds:
-        build_path = os.path.join(args.cache_dir, build)
-        if is_build_dir(args.cache_dir, build):
-            rmdir(build_path)
-            printing.log_info(f"Deleted build: {build}")
-        else:
-            raise CacheError(
-                f"No build found with name: {build}. "
-                "Try running `turnkey cache list` to see the builds in your build cache."
-            )
-
-
-def clean_builds(args):
-    check_cache_dir(args.cache_dir)
-
-    if args.clean_all:
-        builds = get_available_builds(args.cache_dir)
-    else:
-        builds = [args.build_name]
-
-    for build in builds:
-        if is_build_dir(args.cache_dir, build):
-            clean_output_dir(args.cache_dir, build)
-            printing.log_info(f"Removed the build artifacts from: {build}")
-        else:
-            raise CacheError(
-                f"No build found with name: {build}. "
-                "Try running `turnkey cache list` to see the builds in your build cache."
-            )
-
-
 def clean_build_name(build_name: str) -> str:
     """
     Remove hash from build name
@@ -399,6 +353,8 @@ class Keys:
     EXPECTED_INPUT_DTYPES = "expected_input_dtypes"
     # Whether or not inputs must be downcasted during inference
     DOWNCAST_APPLIED = "downcast_applied"
+    # Directory where the turnkey build cache is stored
+    CACHE_DIR = "cache_dir"
 
 
 def _clean_logfile(logfile_lines: List[str]) -> List[str]:
@@ -507,17 +463,6 @@ class Stats:
                 self.save_model_eval_stat(Keys.ERROR_LOG, stats_log)
 
 
-def print_cache_dir(_=None):
-    printing.log_info(f"The default cache directory is: {DEFAULT_CACHE_DIR}")
-
-
-def print_models_dir(args=None):
-    if args.verbose:
-        printing.log_info(f"The models directory is: {MODELS_DIR}")
-    else:
-        print(MODELS_DIR)
-
-
 def expand_inputs(input_paths: List[str]) -> List[str]:
     """
     Convert regular expressions in input paths
@@ -613,7 +558,6 @@ class State:
         monitor: Optional[bool] = None,
         build_name: Optional[str] = None,
         sequence_info: Dict[str, Dict] = None,
-        onnx_opset: Optional[int] = None,
         device: Optional[str] = None,
         **kwargs,
     ):
@@ -630,25 +574,6 @@ class State:
         # The default model name is the name of the python file that calls build_model()
         if build_name is None:
             build_name = os.path.basename(sys.argv[0])
-
-        # Detect and validate ONNX opset
-        if isinstance(model, str) and model.endswith(".onnx"):
-            onnx_file_opset = onnx_helpers.get_opset(onnx.load(model))
-
-            if onnx_opset is not None and onnx_opset != onnx_file_opset:
-                raise ValueError(
-                    "When using a '.onnx' file as input, the onnx_opset argument must "
-                    "be None or exactly match the ONNX opset of the '.onnx' file. However, the "
-                    f"'.onnx' file has opset {onnx_file_opset}, while onnx_opset was set "
-                    f"to {onnx_opset}"
-                )
-
-            opset_to_use = onnx_file_opset
-        else:
-            if onnx_opset is None:
-                opset_to_use = build.DEFAULT_ONNX_OPSET
-            else:
-                opset_to_use = onnx_opset
 
         if device is None:
             device_to_use = build.DEFAULT_DEVICE
@@ -667,7 +592,6 @@ class State:
         self.cache_dir = parsed_cache_dir
         self.build_name = build_name
         self.sequence_info = sequence_info
-        self.onnx_opset = opset_to_use
         self.device = device_to_use
         self.turnkey_version = turnkey_version
         self.build_status = build.FunctionStatus.NOT_STARTED
