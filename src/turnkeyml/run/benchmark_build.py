@@ -197,7 +197,7 @@ class BenchmarkBuild(ManagementTool):
 
         cache_benchmark_group.add_argument(
             "--build-names",
-            nargs="?",
+            nargs="+",
             help="Name of the specific build to be benchmarked, within the cache directory",
         )
 
