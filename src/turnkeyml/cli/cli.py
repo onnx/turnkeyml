@@ -6,12 +6,7 @@ import re
 from typing import List
 import turnkeyml.common.filesystem as fs
 from turnkeyml.build.stage import Stage, ManagementStage, Sequence
-from turnkeyml.build.export import (
-    ExportPytorchModel,
-    OptimizeOnnxModel,
-    ConvertOnnxToFp16,
-    OnnxLoad,
-)
+from turnkeyml.build.stage_plugins import SUPPORTED_STAGES
 from turnkeyml.files_api import benchmark_files
 
 
@@ -60,16 +55,9 @@ def _check_extension(choices, file_name, error_func):
 
 
 def main():
-    # FIXME: get these from a plugin importer instead
-    stages = [
-        ExportPytorchModel,
-        OptimizeOnnxModel,
-        ConvertOnnxToFp16,
-        OnnxLoad,
-    ]
 
-    stage_parsers = {stage.unique_name: stage.parser() for stage in stages}
-    stage_classes = {stage.unique_name: stage for stage in stages}
+    stage_parsers = {stage.unique_name: stage.parser() for stage in SUPPORTED_STAGES}
+    stage_classes = {stage.unique_name: stage for stage in SUPPORTED_STAGES}
 
     # Define the argument parser
     parser = argparse.ArgumentParser(
@@ -81,7 +69,7 @@ def main():
     )
 
     # Sort stages into categories and format for the help menu
-    eval_stage_choices = _stage_list_help(stages, Stage)
+    eval_stage_choices = _stage_list_help(SUPPORTED_STAGES, Stage)
 
     parser.add_argument(
         "stages",
