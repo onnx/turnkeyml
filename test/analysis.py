@@ -165,6 +165,7 @@ def run_cli(args):
 
 def run_analysis(args):
     output = run_cli(args)
+    print(output)
 
     # Process outputs
     output = output[output.rfind("Models discovered") :]
@@ -186,6 +187,7 @@ class Testing(unittest.TestCase):
                 os.path.join(corpus_dir, "linear_pytorch.py"),
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
+                "--analyze-only",
                 "export-pytorch",  # FIXME: replace with `discover` when Discovery is a stage
             ]
         )
@@ -201,6 +203,7 @@ class Testing(unittest.TestCase):
                 "1",
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
+                "--analyze-only",
                 "export-pytorch",  # FIXME: replace with `discover` when Discovery is a stage
             ]
         )
@@ -218,6 +221,7 @@ class Testing(unittest.TestCase):
                 cache_dir,
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
+                "--build-only",
                 "export-pytorch",
             ]
         )
@@ -237,7 +241,8 @@ class Testing(unittest.TestCase):
                 "--lean-cache",
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
-                "export-pytorch",  # FIXME: replace with `discover` when Discovery is a stage
+                "--build-only",
+                "export-pytorch",
             ]
         )
         build_name = f"linear_pytorch_{model_hash}"
@@ -258,6 +263,7 @@ class Testing(unittest.TestCase):
                 "--my-arg test_arg",
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
+                "--analyze-only",
                 "export-pytorch",  # FIXME: replace with `discover` when Discovery is a stage
             ]
         )
@@ -310,6 +316,7 @@ class Testing(unittest.TestCase):
                 os.path.join(corpus_dir, "pipeline.py"),
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
+                "--analyze-only",
                 "export-pytorch",  # FIXME: replace with `discover` when Discovery is a stage
             ]
         )
@@ -323,6 +330,7 @@ class Testing(unittest.TestCase):
                 os.path.join(corpus_dir, "activation.py"),
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
+                "--analyze-only",
                 "export-pytorch",  # FIXME: replace with `discover` when Discovery is a stage
             ]
         )
@@ -336,6 +344,7 @@ class Testing(unittest.TestCase):
                 os.path.join(corpus_dir, "linear_pytorch.py"),
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
+                "--analyze-only",
                 "export-pytorch",  # FIXME: replace with `discover` when Discovery is a stage
             ]
         )
@@ -353,6 +362,7 @@ class Testing(unittest.TestCase):
                 cache_dir,
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
+                "--build-only",
                 "export-pytorch",
             ]
         )
@@ -371,7 +381,8 @@ class Testing(unittest.TestCase):
                 cache_dir,
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
-                "export-pytorch",  # FIXME: replace with `discover` when Discovery is a stage
+                "--build-only",
+                "export-pytorch",
             ]
         )
         build_name = f"linear_pytorch_{model_hash}"
@@ -381,7 +392,7 @@ class Testing(unittest.TestCase):
             "--cache-dir",
             cache_dir,
             "cache",
-            "--all",
+            "--clean",
             "--build-names",
             build_name,
         ]
@@ -397,6 +408,7 @@ class Testing(unittest.TestCase):
                 os.path.join(corpus_dir, "two_executions.py"),
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
+                "--analyze-only",
                 "export-pytorch",  # FIXME: replace with `discover` when Discovery is a stage
             ]
         )
@@ -412,6 +424,7 @@ class Testing(unittest.TestCase):
                 "1",
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
+                "--analyze-only",
                 "export-pytorch",  # FIXME: replace with `discover` when Discovery is a stage
             ]
         )

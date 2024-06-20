@@ -251,11 +251,9 @@ def explore_invocation(
     (
         selected_runtime,
         runtime_info,
-        sequence_selected,
-    ) = plugins.select_runtime_and_sequence(
+    ) = plugins.select_runtime(
         tracer_args.device,
         tracer_args.runtime,
-        tracer_args.sequence,
     )
 
     if "status_stats" in runtime_info.keys():
@@ -406,7 +404,7 @@ def explore_invocation(
                 build_name=build_name,
                 cache_dir=tracer_args.cache_dir,
                 rebuild=tracer_args.rebuild,
-                sequence=sequence_selected,
+                sequence=tracer_args.sequence,
                 onnx_opset=tracer_args.onnx_opset,
                 device=tracer_args.device,
             )

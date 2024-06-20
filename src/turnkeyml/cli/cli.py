@@ -113,6 +113,29 @@ Management tool choices:
     )
 
     parser.add_argument(
+        "--lean-cache",
+        dest="lean_cache",
+        help="Delete all build artifacts except for log files when the command completes",
+        action="store_true",
+    )
+
+    parser.add_argument(
+        "-a",
+        "--analyze-only",
+        dest="analyze_only",
+        help="Stop this command after the analyze phase",
+        action="store_true",
+    )
+
+    parser.add_argument(
+        "-b",
+        "--build-only",
+        dest="build_only",
+        help="Stop this command after the analyze and build phases",
+        action="store_true",
+    )
+
+    parser.add_argument(
         "--labels",
         dest="labels",
         help="Only benchmark the scripts that have the provided labels",
@@ -263,6 +286,12 @@ Management tool choices:
             "is only allowed to invoke one or the other. "
             f"Management stages: {management_stages};"
             f"Evaluation stages: {evaluation_stages}."
+        )
+
+    if len(management_stages) == 0 and len(evaluation_stages) == 0:
+        raise exp.ArgError(
+            "Calls to tunrkey are required to call at least "
+            "one stage or management tool."
         )
 
     # Convert stage names into Stage instaces
