@@ -142,7 +142,7 @@ class Stage(abc.ABC):
     def parse_and_fire(self, state: fs.State, args, known_only=True) -> Dict:
         """
         Helper function to parse CLI arguments into the args expected
-        by run(), and then forward them into the fire() method.
+        by fire(), and then forward them into the fire() method.
         """
 
         parsed_args = self.parse(state, args, known_only)
@@ -313,9 +313,6 @@ class Sequence:
             # all exceptions (including those we can't anticipate)
             except Exception as e:  # pylint: disable=broad-except
 
-                # FIXME: REMOVE BEFORE COMMIT
-                raise
-
                 # Update Stage Status
                 stats.save_model_eval_stat(stage.status_key, build.FunctionStatus.ERROR)
 
@@ -363,11 +360,9 @@ class Sequence:
 
         return state
 
-    def status_line(self, successful, verbosity):
+    def status_line(self, verbosity):
         """
-        This override of status_line simply propagates status_line()
-        to every Stage in the Sequence
-        FIXME: A cleaner implementation of Stage/Sequence might not need this
+        Print a status line in the monitor for every Stage in the sequence
         """
         for stage in self.stages:
             stage.status_line(successful=None, verbosity=verbosity)
@@ -381,10 +376,3 @@ class Sequence:
         return {
             stage.__class__.unique_name: argv for stage, argv in self.stages.items()
         }
-
-
-class ManagementStage(Stage):
-    """
-    Special kind of stage intended for management functions,
-    such as managing the cache or printing the version number.
-    """
