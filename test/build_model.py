@@ -1,4 +1,5 @@
 import os
+import argparse
 import unittest
 import torch
 import onnx
@@ -9,10 +10,9 @@ from onnxmltools.utils import load_model
 from turnkeyml import build_model
 import turnkeyml.build.export as export
 import turnkeyml.build.stage as stage
-import turnkeyml.common.filesystem as filesystem
+import turnkeyml.common.filesystem as fs
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.build as build
-import turnkeyml.build.sequences as sequences
 
 
 class SmallPytorchModel(torch.nn.Module):
@@ -46,12 +46,21 @@ inputs_2 = {"x": torch.rand(5)}
 input_tensor = torch.rand(10)
 
 
+def basic_pytorch_sequence():
+    return stage.Sequence(stages={export.ExportPytorchModel(): []})
+
+
+def basic_onnx_sequence():
+    return stage.Sequence(stages={export.OnnxLoad(): []})
+
+
 # Run build_model() and get results
 def full_compilation_pytorch_model():
     build_name = "full_compilation_pytorch_model"
     state = build_model(
-        pytorch_model,
-        inputs,
+        sequence=basic_pytorch_sequence(),
+        model=pytorch_model,
+        inputs=inputs,
         build_name=build_name,
         rebuild="always",
         monitor=False,
@@ -71,8 +80,9 @@ def full_compilation_onnx_model():
         output_names=["output"],
     )
     state = build_model(
-        "small_onnx_model.onnx",
-        inputs,
+        sequence=basic_onnx_sequence(),
+        model="small_onnx_model.onnx",
+        inputs=inputs,
         build_name=build_name,
         rebuild="always",
         monitor=False,
@@ -88,8 +98,9 @@ def scriptmodule_functional_check():
     input_dict = {"forward": forward_input}
     pytorch_module = torch.jit.trace_module(pytorch_model, input_dict)
     state = build_model(
-        pytorch_module,
-        inputs,
+        sequence=basic_pytorch_sequence(),
+        model=pytorch_module,
+        inputs=inputs,
         build_name=build_name,
         rebuild="always",
         monitor=False,
@@ -102,13 +113,23 @@ def custom_stage():
     build_name = "custom_stage"
 
     class MyCustomStage(stage.Stage):
+        unique_name = "funny-fp16"
+
         def __init__(self, funny_saying):
             super().__init__(
-                unique_name="funny_fp16_convert",
                 monitor_message="Funny FP16 conversion",
             )
 
             self.funny_saying = funny_saying
+
+        @staticmethod
+        def parser(add_help: bool = True) -> argparse.ArgumentParser:
+            parser = argparse.ArgumentParser(
+                description="Parser for a test stage",
+                add_help=add_help,
+            )
+
+            return parser
 
         def fire(self, state):
             input_onnx = state.intermediate_results
@@ -127,22 +148,20 @@ def custom_stage():
         funny_saying="Is a fail whale a fail at all if it makes you smile?"
     )
     my_sequence = stage.Sequence(
-        unique_name="my_sequence",
-        monitor_message="Running My Sequence",
-        stages=[
-            export.ExportPytorchModel(),
-            export.OptimizeOnnxModel(),
-            my_custom_stage,
-        ],
+        stages={
+            export.ExportPytorchModel(): [],
+            export.OptimizeOnnxModel(): [],
+            my_custom_stage: [],
+        },
     )
 
     state = build_model(
-        pytorch_model,
-        inputs,
+        sequence=my_sequence,
+        model=pytorch_model,
+        inputs=inputs,
         build_name=build_name,
         rebuild="always",
         monitor=False,
-        sequence=my_sequence,
         cache_dir=cache_location,
     )
 
@@ -150,13 +169,23 @@ def custom_stage():
 
 
 class FullyCustomStage(stage.Stage):
+    unique_name = "fully-custom"
+
     def __init__(self, saying, name):
         super().__init__(
-            unique_name=name,
             monitor_message=f"Running {name}",
         )
 
         self.saying = saying
+
+    @staticmethod
+    def parser(add_help: bool = True) -> argparse.ArgumentParser:
+        parser = argparse.ArgumentParser(
+            description="Parser for a test stage",
+            add_help=add_help,
+        )
+
+        return parser
 
     def fire(self, state):
         print(self.saying)
@@ -166,28 +195,36 @@ class FullyCustomStage(stage.Stage):
         return state
 
 
+class FullyCustomStage1(FullyCustomStage):
+    unique_name = "fully-custom-1"
+
+
+class FullyCustomStage2(FullyCustomStage):
+    unique_name = "fully-custom-2"
+
+
 def custom_sequence():
     build_name = "custom_sequence"
-    stage_1_name = "Stage1"
-    stage_2_name = "Stage2"
-    stage_3_name = "Stage3"
+    stage_1_name = "fully-custom"
+    stage_2_name = "fully-custom-1"
+    stage_3_name = "fully-custom-2"
     stage_1_msg = "Developer Velocity is"
     stage_2_msg = "Innovating"
     stage_3_msg = "Faster than ever"
 
     stage_1 = FullyCustomStage(stage_1_msg, stage_1_name)
-    stage_2 = FullyCustomStage(stage_2_msg, stage_2_name)
-    stage_3 = FullyCustomStage(stage_3_msg, stage_3_name)
+    stage_2 = FullyCustomStage1(stage_2_msg, stage_2_name)
+    stage_3 = FullyCustomStage2(stage_3_msg, stage_3_name)
 
-    my_sequence = stage.Sequence(
-        "my_stage", "Running my Sequence", stages=[stage_1, stage_2, stage_3]
-    )
+    my_sequence = stage.Sequence(stages={stage_1: [], stage_2: [], stage_3: []})
 
     build_model(
+        sequence=my_sequence,
+        model=pytorch_model,
+        inputs=inputs,
         build_name=build_name,
         monitor=False,
         rebuild="always",
-        sequence=my_sequence,
         cache_dir=cache_location,
     )
 
@@ -232,8 +269,9 @@ def rebuild_always():
     # Build Initial model, rebuild, and load from cache
     for build_purpose, rebuild_setting in build_purpose_to_rebuild_setting.items():
         build_model(
-            pytorch_model,
-            inputs,
+            sequence=basic_pytorch_sequence(),
+            model=pytorch_model,
+            inputs=inputs,
             build_name=build_name,
             rebuild=rebuild_setting,
             monitor=False,
@@ -290,8 +328,9 @@ def rebuild_if_needed():
     # Build Initial model, rebuild, and load from cache
     for build_purpose, rebuild_setting in build_purpose_to_rebuild_setting.items():
         state = build_model(
-            pytorch_model,
-            inputs,
+            sequence=basic_pytorch_sequence(),
+            model=pytorch_model,
+            inputs=inputs,
             build_name=build_name,
             rebuild=rebuild_setting,
             monitor=False,
@@ -333,8 +372,9 @@ def illegal_onnx_opset():
         output_names=["output"],
     )
     build_model(
-        "illegal_onnx_opset.onnx",
-        inputs,
+        sequence=basic_onnx_sequence(),
+        model="illegal_onnx_opset.onnx",
+        inputs=inputs,
         build_name=build_name,
         rebuild="always",
         monitor=False,
@@ -344,7 +384,7 @@ def illegal_onnx_opset():
 
 class Testing(unittest.TestCase):
     def setUp(self) -> None:
-        filesystem.rmdir(cache_location)
+        fs.rmdir(cache_location)
 
         return super().setUp()
 
@@ -363,54 +403,6 @@ class Testing(unittest.TestCase):
     def test_009_custom_stage(self):
         assert custom_stage()
 
-    def test_010_nested_sequence(self):
-        build_name = "nested_sequence"
-        stage_1_name = "Stage1"
-        stage_2_name = "Stage2"
-        stage_3_name = "Stage3"
-        stage_1_msg = "Did you know"
-        stage_2_msg = "sequences can go in sequences?"
-        stage_3_msg = "Indeed they can!"
-
-        stage_1 = FullyCustomStage(stage_1_msg, stage_1_name)
-        stage_2 = FullyCustomStage(stage_2_msg, stage_2_name)
-        stage_3 = FullyCustomStage(stage_3_msg, stage_3_name)
-
-        inner_sequence = stage.Sequence(
-            "inner_sequence", "Running my Inner Sequence", stages=[stage_1, stage_2]
-        )
-
-        outer_sequence = stage.Sequence(
-            "outer_sequence",
-            "Running my Outer Sequence",
-            stages=[inner_sequence, stage_3],
-        )
-
-        build_model(
-            build_name=build_name,
-            monitor=False,
-            rebuild="always",
-            sequence=outer_sequence,
-            cache_dir=cache_location,
-        )
-
-        log_1_path = os.path.join(cache_location, build_name, f"log_{stage_1_name}.txt")
-        log_2_path = os.path.join(cache_location, build_name, f"log_{stage_2_name}.txt")
-        log_3_path = os.path.join(cache_location, build_name, f"log_{stage_3_name}.txt")
-
-        with open(log_1_path, "r", encoding="utf8") as f:
-            log_1 = f.readlines()[1]
-
-        with open(log_2_path, "r", encoding="utf8") as f:
-            log_2 = f.readlines()[1]
-
-        with open(log_3_path, "r", encoding="utf8") as f:
-            log_3 = f.readlines()[1]
-
-        assert stage_1_msg in log_1, f"{stage_1_msg} not in {log_1}"
-        assert stage_2_msg in log_2, f"{stage_2_msg} not in {log_2}"
-        assert stage_3_msg in log_3, f"{stage_3_msg} not in {log_3}"
-
     def test_011_custom_sequence(self):
         assert custom_sequence()
 
@@ -425,15 +417,22 @@ class Testing(unittest.TestCase):
         user_opset = 15
         assert user_opset != build.DEFAULT_ONNX_OPSET
 
+        sequence = stage.Sequence(
+            stages={
+                export.ExportPytorchModel(): ["--opset", str(user_opset)],
+                export.OptimizeOnnxModel(): [],
+            }
+        )
+
         state = build_model(
-            pytorch_model,
-            inputs,
+            sequence=sequence,
+            model=pytorch_model,
+            inputs=inputs,
             build_name=build_name,
             rebuild="always",
             monitor=False,
             cache_dir=cache_location,
             onnx_opset=user_opset,
-            sequence=sequences.optimize_fp16,
         )
 
         assert state.build_status == build.FunctionStatus.SUCCESSFUL
@@ -446,13 +445,13 @@ class Testing(unittest.TestCase):
         build_name = "export_only"
 
         state = build_model(
-            pytorch_model,
-            inputs,
+            sequence=basic_pytorch_sequence(),
+            model=pytorch_model,
+            inputs=inputs,
             build_name=build_name,
             rebuild="always",
             monitor=False,
             cache_dir=cache_location,
-            sequence=sequences.onnx_fp32,
         )
 
         assert state.build_status == build.FunctionStatus.SUCCESSFUL
@@ -483,8 +482,9 @@ class Testing(unittest.TestCase):
 
         # Build the ONNX file
         state = build_model(
-            onnx_file,
-            inputs,
+            sequence=basic_onnx_sequence(),
+            model=onnx_file,
+            inputs=inputs,
             build_name=build_name,
             rebuild="always",
             monitor=False,
@@ -500,41 +500,32 @@ class Testing(unittest.TestCase):
         # Make sure the ONNX file matches the opset we asked for
         assert user_opset == model_opset
 
-        # Make sure the ONNX file matches the state file
-        assert model_opset == state.onnx_opset
-
     def test_017_inputs_conversion(self):
         custom_sequence_fp32 = stage.Sequence(
-            "custom_sequence_fp32",
-            "Building Pytorch Model without fp16 conversion",
-            [
-                export.ExportPytorchModel(),
-                export.OptimizeOnnxModel(),
-            ],
-            enable_model_validation=True,
+            stages={
+                export.ExportPytorchModel(): [],
+                export.OptimizeOnnxModel(): [],
+            },
         )
 
         custom_sequence_fp16 = stage.Sequence(
-            "custom_sequence_fp16",
-            "Building Pytorch Model with fp16 conversion",
-            [
-                export.ExportPytorchModel(),
-                export.OptimizeOnnxModel(),
-                export.ConvertOnnxToFp16(),
-            ],
-            enable_model_validation=True,
+            stages={
+                export.ExportPytorchModel(): [],
+                export.OptimizeOnnxModel(): [],
+                export.ConvertOnnxToFp16(): [],
+            },
         )
 
         # Build model using fp32 inputs
         build_name = "custom_sequence_fp32"
         build_model(
-            pytorch_model,
-            inputs,
+            sequence=custom_sequence_fp32,
+            model=pytorch_model,
+            inputs=inputs,
             build_name=build_name,
             rebuild="always",
             monitor=False,
             cache_dir=cache_location,
-            sequence=custom_sequence_fp32,
         )
 
         inputs_path = os.path.join(cache_location, build_name, "inputs.npy")
@@ -543,13 +534,13 @@ class Testing(unittest.TestCase):
         # Build model using fp16 inputs
         build_name = "custom_sequence_fp16"
         build_model(
-            pytorch_model,
-            inputs,
+            sequence=custom_sequence_fp16,
+            model=pytorch_model,
+            inputs=inputs,
             build_name="custom_sequence_fp16",
             rebuild="always",
             monitor=False,
             cache_dir=cache_location,
-            sequence=custom_sequence_fp16,
         )
 
         inputs_path = os.path.join(cache_location, build_name, "inputs.npy")

@@ -6,13 +6,11 @@ import pathlib
 from typing import Dict, List, Optional, Any
 import importlib.util
 import yaml
-import onnx
 import turnkeyml.common.printing as printing
 import turnkeyml.common.build as build
 import turnkeyml.common.exceptions as exp
 from turnkeyml.common import labels
 from turnkeyml.version import __version__ as turnkey_version
-import turnkeyml.build.onnx_helpers as onnx_helpers
 
 # Allow an environment variable to override the default
 # location for the build cache

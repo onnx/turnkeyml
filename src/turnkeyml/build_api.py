@@ -1,4 +1,4 @@
-from typing import Optional, List, Dict, Any
+from typing import Optional, Dict, Any
 import turnkeyml.build.ignition as ignition
 import turnkeyml.build.stage as stage
 import turnkeyml.common.printing as printing
@@ -7,6 +7,7 @@ import turnkeyml.common.filesystem as fs
 
 
 def build_model(
+    sequence: stage.Sequence,
     model: build.UnionValidModelInstanceTypes = None,
     inputs: Optional[Dict[str, Any]] = None,
     build_name: Optional[str] = None,
@@ -14,7 +15,6 @@ def build_model(
     cache_dir: str = fs.DEFAULT_CACHE_DIR,
     monitor: Optional[bool] = None,
     rebuild: Optional[str] = None,
-    sequence: Optional[List[stage.Stage]] = None,
     onnx_opset: Optional[int] = None,
     device: Optional[str] = None,
 ) -> fs.State:

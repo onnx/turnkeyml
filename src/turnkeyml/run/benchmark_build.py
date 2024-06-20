@@ -212,12 +212,14 @@ class BenchmarkBuild(ManagementTool):
             "--skip",
             choices=[skip_policy_default, "failed", "successful", "none"],
             dest="skip_policy",
-            help=f"Sets the policy for skipping benchmark attempts (defaults to {skip_policy_default})."
+            help="Sets the policy for skipping benchmark attempts "
+            f"(defaults to {skip_policy_default})."
             "`attempted` means to skip any previously-attempted benchmark, "
             "whether it succeeded or failed."
             "`failed` skips benchmarks that have already failed once."
             "`successful` skips benchmarks that have already succeeded."
-            "`none` will attempt all benchmarks, regardless of whether they were previously attempted.",
+            "`none` will attempt all benchmarks, regardless of whether "
+            "they were previously attempted.",
             required=False,
             default=skip_policy_default,
         )

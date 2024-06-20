@@ -272,7 +272,8 @@ class Report(ManagementTool):
         parser.add_argument(
             "-o",
             "--output-dir",
-            help="Path to folder where report will be saved (defaults to current working directory)",
+            help="Path to folder where report will be saved "
+            "(defaults to current working directory)",
             required=False,
             default=os.getcwd(),
         )
