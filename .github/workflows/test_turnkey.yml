@@ -74,19 +74,19 @@ jobs:
         run: |
           rm -rf ~/.cache/turnkey
           pip install -e examples/cli/plugins/example_rt
-          turnkey examples/cli/scripts/hello_world.py --runtime example-rt
+          turnkey -i examples/cli/scripts/hello_world.py --runtime example-rt export-pytorch
 
           rm -rf ~/.cache/turnkey
-          pip install -e examples/cli/plugins/example_seq
-          turnkey examples/cli/scripts/hello_world.py --sequence example-seq
+          pip install -e examples/cli/plugins/example_stage
+          turnkey -i examples/cli/scripts/hello_world.py  export-pytorch example-plugin-stage
 
           rm -rf ~/.cache/turnkey
           pip install -e examples/cli/plugins/example_combined
-          turnkey examples/cli/scripts/hello_world.py --runtime example-combined-rt --rt-args delay_before_benchmarking::5
-          turnkey examples/cli/scripts/hello_world.py --device example_family::part1::config2
-          turnkey examples/cli/scripts/hello_world.py --device example_family::part1::config1
-          turnkey examples/cli/scripts/hello_world.py --device example_family::part1
-          turnkey examples/cli/scripts/hello_world.py --device example_family
+          turnkey -i examples/cli/scripts/hello_world.py --runtime example-combined-rt --rt-args delay_before_benchmarking::5 export-pytorch combined-example-stage
+          turnkey -i examples/cli/scripts/hello_world.py --device example_family::part1::config2 export-pytorch combined-example-stage
+          turnkey -i examples/cli/scripts/hello_world.py --device example_family::part1::config1 export-pytorch combined-example-stage
+          turnkey -i examples/cli/scripts/hello_world.py --device example_family::part1 export-pytorch combined-example-stage
+          turnkey -i examples/cli/scripts/hello_world.py --device example_family export-pytorch combined-example-stage
 
           # E2E tests
           cd test

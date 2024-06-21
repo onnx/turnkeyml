@@ -14,6 +14,7 @@ from turnkeyml.analyze.status import Verbosity
 import turnkeyml.common.build as build
 import turnkeyml.common.exceptions as exp
 from turnkeyml.common.management_tools import ManagementTool
+import turnkeyml.cli.parser_helpers as parser_helpers
 
 
 class PreserveWhiteSpaceWrapRawTextHelpFormatter(argparse.RawDescriptionHelpFormatter):
@@ -294,6 +295,9 @@ Management tool choices:
             "one stage or management tool."
         )
 
+    # Decode CLI arguments before calling the API
+    global_args["rt_args"] = parser_helpers.decode_args(global_args["rt_args"])
+
     # Convert stage names into Stage instaces
     stage_instances = {
         stage_classes[cmd](): argv for cmd, argv in stages_invoked.items()
@@ -302,7 +306,7 @@ Management tool choices:
     if len(evaluation_stages) > 0:
         # Run the evaluation stages as a build
         sequence = Sequence(stages=stage_instances)
-        benchmark_files(**global_args, sequence=sequence)
+        benchmark_files(sequence=sequence, **global_args)
     else:
         # Run the management stages
         for management_stage, argv in stage_instances.items():
