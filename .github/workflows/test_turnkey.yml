@@ -55,15 +55,15 @@ jobs:
           rm -rf ~/.cache/turnkey
           python examples/files_api/onnx_opset.py --onnx-opset 15
           rm -rf ~/.cache/turnkey
-          turnkey examples/cli/scripts/hello_world.py
+          turnkey -i examples/cli/scripts/hello_world.py export-pytorch
           rm -rf ~/.cache/turnkey
-          turnkey examples/cli/scripts/multiple_invocations.py
+          turnkey -i examples/cli/scripts/multiple_invocations.py export-pytorch
           rm -rf ~/.cache/turnkey
-          turnkey examples/cli/scripts/max_depth.py --max-depth 1
+          turnkey -i examples/cli/scripts/max_depth.py --max-depth 1 export-pytorch
           rm -rf ~/.cache/turnkey
-          turnkey examples/cli/scripts/two_models.py
+          turnkey -i examples/cli/scripts/two_models.py export-pytorch
           rm -rf ~/.cache/turnkey
-          turnkey examples/cli/onnx/hello_world.onnx
+          turnkey -i examples/cli/onnx/hello_world.onnx export-pytorch
 
           # E2E tests
           cd test/
