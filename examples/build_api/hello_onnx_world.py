@@ -13,6 +13,8 @@
 import os
 import torch
 from turnkeyml import build_model
+from turnkeyml.build.stage import Sequence
+from turnkeyml.build.export import ExportPytorchModel
 
 torch.manual_seed(0)
 
@@ -56,9 +58,11 @@ def to_numpy(tensor):
 
 
 # Build the model
+sequence = Sequence(stages={ExportPytorchModel(): []})
 state = build_model(
-    onnx_model,
-    inputs,
+    sequence=sequence,
+    model=onnx_model,
+    inputs=inputs,
     cache_dir="~/.cache/turnkey_test_cache",
 )
 

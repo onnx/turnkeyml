@@ -11,6 +11,8 @@
 
 import torch
 from turnkeyml import build_model
+from turnkeyml.build.stage import Sequence
+from turnkeyml.build.export import ExportPytorchModel
 
 torch.manual_seed(0)
 
@@ -33,9 +35,11 @@ pytorch_model = SmallModel(input_size, output_size)
 inputs = {"x": torch.rand(input_size)}
 
 # Build the model
+sequence = Sequence(stages={ExportPytorchModel(): []})
 state = build_model(
-    pytorch_model,
-    inputs,
+    sequence=sequence,
+    model=pytorch_model,
+    inputs=inputs,
     cache_dir="~/.cache/turnkey_test_cache",
 )
 

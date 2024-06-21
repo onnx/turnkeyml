@@ -16,6 +16,8 @@
 
 import torch
 from turnkeyml import build_model
+from turnkeyml.build.stage import Sequence
+from turnkeyml.build.export import ExportPytorchModel
 
 torch.manual_seed(0)
 
@@ -42,11 +44,23 @@ pytorch_model_1 = SmallModel(input_size, output_size_1)
 pytorch_model_2 = SmallModel(input_size, output_size_2)
 inputs = {"x": torch.rand(input_size)}
 
+
 # Build pytorch_model_1 and write build files to ~/.cache/turnkey/Thing_1
-build_model(pytorch_model_1, inputs, build_name="Thing_1")
+sequence = Sequence(stages={ExportPytorchModel(): []})
+build_model(
+    sequence=sequence,
+    model=pytorch_model_1,
+    inputs=inputs,
+    build_name="Thing_1",
+)
 
 # Build pytorch_model_2 and write build files to ~/.cache/turnkey/Thing_2
-build_model(pytorch_model_2, inputs, build_name="Thing_2")
+build_model(
+    sequence=sequence,
+    model=pytorch_model_2,
+    inputs=inputs,
+    build_name="Thing_2",
+)
 
 print("\nNote that each build is saved to their own build directories")
 print("as indicated at the completion of each build above.")
