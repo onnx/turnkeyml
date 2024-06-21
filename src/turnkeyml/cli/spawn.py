@@ -19,6 +19,7 @@ import turnkeyml.common.printing as printing
 import turnkeyml.common.build as build
 from turnkeyml.cli.parser_helpers import encode_args
 from turnkeyml.analyze.status import Verbosity
+from turnkeyml.build.stage import Sequence
 
 
 class WatchdogTimer(Thread):
@@ -189,8 +190,16 @@ def dict_arg(key: str, value: Dict):
         return ""
 
 
+def sequence_arg(value: Sequence) -> Dict[str, Dict[str, str]]:
+    result = ""
+    for stage, args in value.info.items():
+        result = result + f"{stage} {' '.join(args)}"
+
+    return result
+
+
 def run_turnkey(
-    op: str,
+    sequence: Sequence,
     file_name: str,
     target: Target,
     cache_dir: str,
@@ -217,7 +226,7 @@ def run_turnkey(
         Verbosity: verbosity_arg,
     }
 
-    invocation_args = f"{op} {file_name}"
+    invocation_args = f"-i {file_name}"
 
     # Add cache_dir to kwargs so that it gets processed
     # with the other arguments
@@ -227,6 +236,8 @@ def run_turnkey(
         if value is not None:
             arg_str = type_to_formatter[type(value)](arg_format(key), value)
             invocation_args = invocation_args + " " + arg_str
+
+    invocation_args = invocation_args + " " + sequence_arg(sequence)
 
     if target == Target.SLURM:
         # Change args into the format expected by Slurm

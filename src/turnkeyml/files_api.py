@@ -140,11 +140,10 @@ def benchmark_files(
     build_only: bool = False,
     script_args: Optional[str] = None,
     max_depth: int = 0,
-    onnx_opset: Optional[int] = None,
     timeout: Optional[int] = None,
-    sequence: Union[Dict, stage.Sequence] = None,
     rt_args: Optional[Dict] = None,
     verbosity: str = Verbosity.STATIC.value,
+    sequence: Union[Dict, stage.Sequence] = None,
 ):
 
     # Capture the function arguments so that we can forward them
@@ -324,8 +323,11 @@ def benchmark_files(
                     "but both are False"
                 )
 
+            # We want to pass sequence in explicity
+            benchmarking_args.pop("sequence")
+
             spawn.run_turnkey(
-                op="benchmark",
+                sequence=sequence,
                 target=process_type,
                 file_name=encoded_input,
                 **benchmarking_args,

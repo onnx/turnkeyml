@@ -63,7 +63,6 @@ class TracerArgs:
     lean_cache: bool
     targets: List[str]
     max_depth: int
-    onnx_opset: int
     cache_dir: str
     rebuild: str
     models_found: Dict[str, status.ModelInfo] = dataclasses.field(default_factory=dict)
@@ -405,7 +404,6 @@ def explore_invocation(
                 cache_dir=tracer_args.cache_dir,
                 rebuild=tracer_args.rebuild,
                 sequence=tracer_args.sequence,
-                onnx_opset=tracer_args.onnx_opset,
                 device=tracer_args.device,
             )
 

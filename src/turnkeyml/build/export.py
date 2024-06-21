@@ -128,6 +128,7 @@ class OnnxLoad(stage.Stage):
 
         model = onnx.load(state.model)
         opset = onnx_helpers.get_opset(model)
+        state.onnx_opset = opset
         input_shapes = [
             [d.dim_value for d in _input.type.tensor_type.shape.dim]
             for _input in model.graph.input  # pylint: disable=no-member
@@ -236,6 +237,8 @@ class ExportPytorchModel(stage.Stage):
             the stage received a model of type {type(state.model)}.
             """
             raise exp.StageError(msg)
+
+        state.onnx_opset = opset
 
         # The `torch.onnx.export()` function accepts a tuple of positional inputs
         # followed by a dictionary with all keyword inputs.
