@@ -114,7 +114,7 @@ jobs:
 
           # Run tests on Slurm
           export TURNKEY_SLURM_USE_DEFAULT_MEMORY="True"
-          turnkey benchmark models/selftest/linear.py --build-only --use-slurm --cache-dir local_cache
+          turnkey -i models/selftest/linear.py --build-only --use-slurm --cache-dir local_cache export-pytorch
           bash test/helpers/check_slurm_output.sh slurm-2.out
 
       # Below tests are commented out as the GitHub runner runs out of space installing the requirements
