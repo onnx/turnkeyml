@@ -63,7 +63,6 @@ class TracerArgs:
     lean_cache: bool
     targets: List[str]
     max_depth: int
-    onnx_opset: int
     cache_dir: str
     rebuild: str
     models_found: Dict[str, status.ModelInfo] = dataclasses.field(default_factory=dict)
@@ -116,7 +115,7 @@ class TracerArgs:
                 # `sequence` can be a str or Sequence
                 # If we receive an instance of Sequence, we need to convert it
                 # to a string to save it to YAML
-                saved_value = arg_value.sequence.__class__.__name__
+                saved_value = arg_value.stage_names
             elif isinstance(arg_value, status.Verbosity):
                 saved_value = arg_value.value
             elif isinstance(arg_value, list) and any(
@@ -251,11 +250,9 @@ def explore_invocation(
     (
         selected_runtime,
         runtime_info,
-        sequence_selected,
-    ) = plugins.select_runtime_and_sequence(
+    ) = plugins.select_runtime(
         tracer_args.device,
         tracer_args.runtime,
-        tracer_args.sequence,
     )
 
     if "status_stats" in runtime_info.keys():
@@ -406,8 +403,7 @@ def explore_invocation(
                 build_name=build_name,
                 cache_dir=tracer_args.cache_dir,
                 rebuild=tracer_args.rebuild,
-                sequence=sequence_selected,
-                onnx_opset=tracer_args.onnx_opset,
+                sequence=tracer_args.sequence,
                 device=tracer_args.device,
             )
 
@@ -521,6 +517,9 @@ def explore_invocation(
         )
 
         _store_traceback(invocation_info)
+
+        if os.environ.get("TURNKEY_DEBUG"):
+            raise e
 
     finally:
         # Ensure that stdout/stderr is not being forwarded before updating status

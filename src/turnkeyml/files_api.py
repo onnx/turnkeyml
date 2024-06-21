@@ -102,27 +102,6 @@ def decode_input_arg(input: str) -> Tuple[str, List[str], str]:
     return file_path, targets, encoded_input
 
 
-def check_sequence_type(
-    sequence: Union[str, stage.Sequence],
-    use_slurm: bool,
-    process_isolation: bool,
-):
-    """
-    Check to make sure the user's sequence argument is valid.
-    use_slurm or process_isolation: only work with names of installed sequences
-    otherwise: sequence instances and sequence names are allowed
-    """
-
-    if sequence is not None:
-        if use_slurm or process_isolation:
-            # The spawned process will need to load a sequence file
-            if not isinstance(sequence, str):
-                raise ValueError(
-                    "The 'sequence' arg must be a str (name of an installed sequence) "
-                    "when use_slurm=True or process_isolation=True."
-                )
-
-
 def unpack_txt_inputs(input_files: List[str]) -> List[str]:
     """
     Replace txt inputs with models listed inside those files
@@ -161,11 +140,10 @@ def benchmark_files(
     build_only: bool = False,
     script_args: Optional[str] = None,
     max_depth: int = 0,
-    onnx_opset: Optional[int] = None,
     timeout: Optional[int] = None,
-    sequence: Union[str, stage.Sequence] = None,
     rt_args: Optional[Dict] = None,
     verbosity: str = Verbosity.STATIC.value,
+    sequence: Union[Dict, stage.Sequence] = None,
 ):
 
     # Capture the function arguments so that we can forward them
@@ -220,8 +198,6 @@ def benchmark_files(
     # Make sure the cache directory exists
     filesystem.make_cache_dir(cache_dir)
 
-    check_sequence_type(sequence, use_slurm, process_isolation)
-
     if device is None:
         device = "x86"
 
@@ -274,6 +250,13 @@ def benchmark_files(
             Action.BUILD,
             Action.BENCHMARK,
         ]
+
+    if Action.BENCHMARK in actions:
+        printing.log_warning(
+            "The benchmarking functionality of ONNX TurnkeyML has been "
+            "deprecated. See https://github.com/onnx/turnkeyml/milestone/3 "
+            "for details."
+        )
 
     if use_slurm:
         jobs = spawn.slurm_jobs_in_queue()
@@ -340,8 +323,11 @@ def benchmark_files(
                     "but both are False"
                 )
 
+            # We want to pass sequence in explicity
+            benchmarking_args.pop("sequence")
+
             spawn.run_turnkey(
-                op="benchmark",
+                sequence=sequence,
                 target=process_type,
                 file_name=encoded_input,
                 **benchmarking_args,

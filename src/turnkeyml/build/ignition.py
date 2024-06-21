@@ -1,6 +1,5 @@
 from typing import Optional, List, Tuple, Union, Dict, Any
 import os
-import copy
 import torch
 import turnkeyml.common.build as build
 import turnkeyml.common.filesystem as fs
@@ -8,9 +7,7 @@ import turnkeyml.common.exceptions as exp
 import turnkeyml.common.printing as printing
 import turnkeyml.build.onnx_helpers as onnx_helpers
 import turnkeyml.build.tensor_helpers as tensor_helpers
-import turnkeyml.build.export as export
 import turnkeyml.build.stage as stage
-import turnkeyml.build.sequences as sequences
 from turnkeyml.version import __version__ as turnkey_version
 
 
@@ -47,9 +44,8 @@ def validate_cached_model(
     # should be listed here.
     cache_analysis_properties = [
         fs.Keys.BUILD_NAME,
-        fs.Keys.ONNX_OPSET,
         fs.Keys.DEVICE,
-        fs.Keys.SEQUENCE,
+        fs.Keys.SEQUENCE_INFO,
         fs.Keys.BUILD_STATUS,
         fs.Keys.TURNKEY_VERSION,
         fs.Keys.MODEL_HASH,
@@ -123,9 +119,8 @@ def validate_cached_model(
     changed_args = []
     for key in [
         fs.Keys.BUILD_NAME,
-        fs.Keys.ONNX_OPSET,
         fs.Keys.DEVICE,
-        fs.Keys.SEQUENCE,
+        fs.Keys.SEQUENCE_INFO,
     ]:
         if vars(new_state)[key] != vars(cached_state)[key]:
             changed_args.append((key, vars(new_state)[key], vars(cached_state)[key]))
@@ -140,7 +135,7 @@ def validate_cached_model(
     if build_conditions_changed:
 
         # Show an error if build_name is not specified for different models on the same script
-        if cached_state.uid == new_state.unique_id():
+        if cached_state.uid == new_state.uid:
             msg = (
                 "You are building multiple different models in the same script "
                 "without specifying a unique build_model(..., build_name=) for each build."
@@ -284,12 +279,6 @@ def load_from_cache(
             return _begin_fresh_build(new_state)
 
 
-export_map = {
-    build.ModelType.PYTORCH: export.ExportPytorchModel(),
-    build.ModelType.ONNX_FILE: export.ReceiveOnnxModel(),
-}
-
-
 def validate_inputs(inputs: Dict):
     """
     Check the model's inputs and make sure they are legal. Raise an exception
@@ -334,7 +323,6 @@ def identify_model_type(model) -> build.ModelType:
 def model_intake(
     user_model,
     user_inputs,
-    user_sequence: Optional[stage.Sequence],
 ) -> Tuple[Any, Any, stage.Sequence, build.ModelType, str]:
     # Model intake structure options:
     # user_model
@@ -343,65 +331,40 @@ def model_intake(
     #    |
     #    |------- pytorch model object
 
-    if user_sequence is None or user_sequence.enable_model_validation:
-        if user_model is None and user_inputs is None:
-            msg = """
-            You are running build_model() without any model, inputs, or custom Sequence. The purpose
-            of non-customized build_model() is to build a model against some inputs, so you need to
-            provide both.
+    if user_model is None and user_inputs is None:
+        msg = """
+        You are running build_model() without any model, inputs, or custom Sequence. The purpose
+        of non-customized build_model() is to build a model against some inputs, so you need to
+        provide both.
+        """
+        raise exp.IntakeError(msg)
+
+    # Make sure that if the model is a file path, it is valid
+    if isinstance(user_model, str):
+        if not os.path.isfile(user_model):
+            msg = f"""
+            build_model() model argument was passed a string (path to a model file),
+            however no file was found at {user_model}.
             """
             raise exp.IntakeError(msg)
 
-        # Make sure that if the model is a file path, it is valid
-        if isinstance(user_model, str):
-            if not os.path.isfile(user_model):
-                msg = f"""
-                build_model() model argument was passed a string (path to a model file),
-                however no file was found at {user_model}.
-                """
-                raise exp.IntakeError(msg)
+        if not user_model.endswith(".onnx"):
+            msg = f"""
+            build_model() received a model argument that was a string. However, model string
+            arguments are required to be a path to a .onnx file, but the argument was: {user_model}
+            """
+            raise exp.IntakeError(msg)
 
-            if not user_model.endswith(".onnx"):
-                msg = f"""
-                build_model() received a model argument that was a string. However, model string
-                arguments are required to be a path to a .onnx file, but the argument was: {user_model}
-                """
-                raise exp.IntakeError(msg)
-
-            # Create dummy inputs based on the ONNX spec, if none were provided by the user
-            if user_inputs is None:
-                inputs = onnx_helpers.dummy_inputs(user_model)
-            else:
-                inputs = user_inputs
+        # Create dummy inputs based on the ONNX spec, if none were provided by the user
+        if user_inputs is None:
+            inputs = onnx_helpers.dummy_inputs(user_model)
         else:
             inputs = user_inputs
-
-        model_type = identify_model_type(user_model)
-
-        sequence = copy.deepcopy(user_sequence)
-        if sequence is None:
-            sequence = stage.Sequence(
-                "top_level_sequence",
-                "Top Level Sequence",
-                [sequences.onnx_fp32],
-            )
-
-        # If there is an ExportPlaceholder Stage in the sequence, replace it with
-        # a framework-specific export Stage.
-        # First, make a deepcopy of any sequence we bring in here. We do not want to modify
-        # the original.
-        sequence = copy.deepcopy(sequence)
-        for index, stage_instance in enumerate(sequence.stages):
-            if isinstance(stage_instance, export.ExportPlaceholder):
-                sequence.stages[index] = export_map[model_type]
-
-        validate_inputs(inputs)
-
     else:
-        # We turn off a significant amount of automation and validation
-        # to provide custom stages and sequences with maximum flexibility
         inputs = user_inputs
-        sequence = user_sequence
-        model_type = build.ModelType.UNKNOWN
 
-    return (inputs, sequence, model_type)
+    model_type = identify_model_type(user_model)
+
+    validate_inputs(inputs)
+
+    return (inputs, model_type)

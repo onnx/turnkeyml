@@ -1,4 +1,4 @@
-from typing import Optional, List, Dict, Any
+from typing import Optional, Dict, Any
 import turnkeyml.build.ignition as ignition
 import turnkeyml.build.stage as stage
 import turnkeyml.common.printing as printing
@@ -7,6 +7,7 @@ import turnkeyml.common.filesystem as fs
 
 
 def build_model(
+    sequence: stage.Sequence,
     model: build.UnionValidModelInstanceTypes = None,
     inputs: Optional[Dict[str, Any]] = None,
     build_name: Optional[str] = None,
@@ -14,13 +15,12 @@ def build_model(
     cache_dir: str = fs.DEFAULT_CACHE_DIR,
     monitor: Optional[bool] = None,
     rebuild: Optional[str] = None,
-    sequence: Optional[List[stage.Stage]] = None,
-    onnx_opset: Optional[int] = None,
     device: Optional[str] = None,
 ) -> fs.State:
     """Use build a model instance into an optimized ONNX file.
 
     Args:
+        sequence: the build stages and their arguments used to build the model.
         model: Model to be mapped to an optimized ONNX file, which can be a PyTorch
             model instance or a path to an ONNX file.
         inputs: Example inputs to the user's model. The ONNX file will be
@@ -42,9 +42,6 @@ def build_model(
             - "never": load cached builds without checking validity, with no guarantee
                 of functionality or correctness
             - None: Falls back to default
-        sequence: Override the default sequence of build stages. Power
-            users only.
-        onnx_opset: ONNX opset to use during ONNX export.
         device: Specific device target to take into account during the build sequence.
             Use the format "device_family", "device_family::part", or
             "device_family::part::configuration" to refer to a family of devices,
@@ -58,12 +55,10 @@ def build_model(
     # and sequence that will be used by the rest of the toolchain
     (
         inputs_locked,
-        sequence_locked,
         model_type,
     ) = ignition.model_intake(
         model,
         inputs,
-        sequence,
     )
 
     # Validate and apply defaults to the initial user arguments that
@@ -76,8 +71,7 @@ def build_model(
         evaluation_id=evaluation_id,
         cache_dir=cache_dir,
         build_name=build_name,
-        sequence=sequence,
-        onnx_opset=onnx_opset,
+        sequence_info=sequence.info,
         device=device,
     )
 
@@ -100,8 +94,8 @@ def build_model(
 
         return state
 
-    sequence_locked.show_monitor(state, state.monitor)
-    state = sequence_locked.launch(state)
+    sequence.show_monitor(state, state.monitor)
+    state = sequence.launch(state)
 
     printing.log_success(
         f"\n    Saved to **{build.output_dir(state.cache_dir, state.build_name)}**"

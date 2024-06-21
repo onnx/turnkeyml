@@ -165,6 +165,7 @@ def run_cli(args):
 
 def run_analysis(args):
     output = run_cli(args)
+    print(output)
 
     # Process outputs
     output = output[output.rfind("Models discovered") :]
@@ -182,10 +183,12 @@ class Testing(unittest.TestCase):
         pytorch_output = run_analysis(
             [
                 "turnkey",
+                "-i",
                 os.path.join(corpus_dir, "linear_pytorch.py"),
                 "--analyze-only",
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
+                "export-pytorch",  # FIXME: replace with `discover` when Discovery is a stage
             ]
         )
         assert np.array_equal(pytorch_output, (1, 0, 0))
@@ -194,12 +197,14 @@ class Testing(unittest.TestCase):
         output = run_analysis(
             [
                 "turnkey",
+                "-i",
                 os.path.join(corpus_dir, "linear_pytorch.py"),
                 "--max-depth",
                 "1",
                 "--analyze-only",
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
+                "export-pytorch",  # FIXME: replace with `discover` when Discovery is a stage
             ]
         )
         assert np.array_equal(output, (2, 0, 0))
@@ -208,6 +213,7 @@ class Testing(unittest.TestCase):
         output = run_analysis(
             [
                 "turnkey",
+                "-i",
                 os.path.join(corpus_dir, "linear_pytorch.py::76af2f62"),
                 "--max-depth",
                 "1",
@@ -216,6 +222,7 @@ class Testing(unittest.TestCase):
                 cache_dir,
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
+                "export-pytorch",
             ]
         )
         assert np.array_equal(output, (2, 0, 1))
@@ -225,6 +232,7 @@ class Testing(unittest.TestCase):
         run_analysis(
             [
                 "turnkey",
+                "-i",
                 os.path.join(corpus_dir, f"linear_pytorch.py::{model_hash}"),
                 "--max-depth",
                 "1",
@@ -234,6 +242,7 @@ class Testing(unittest.TestCase):
                 "--build-only",
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
+                "export-pytorch",
             ]
         )
         build_name = f"linear_pytorch_{model_hash}"
@@ -246,6 +255,7 @@ class Testing(unittest.TestCase):
         output = run_cli(
             [
                 "turnkey",
+                "-i",
                 os.path.join(corpus_dir, "linear_pytorch.py"),
                 "--max-depth",
                 "1",
@@ -254,6 +264,7 @@ class Testing(unittest.TestCase):
                 "--analyze-only",
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
+                "export-pytorch",  # FIXME: replace with `discover` when Discovery is a stage
             ]
         )
         assert "Received arg test_arg" in output
@@ -268,11 +279,13 @@ class Testing(unittest.TestCase):
         height, width, num_channels = parse(["height", "width", "num_channels"])
         cmd = [
             "turnkey",
+            "-i",
             os.path.join(corpus_dir, "turnkey_parser.py"),
             "--script-args",
             f"--num_channels {num_channels+1}",
             "--verbosity",
             Verbosity.DYNAMIC.value,
+            "export-pytorch",  # FIXME: add `benchmark` when Benchmarking is a stage
         ]
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, _ = process.communicate()
@@ -283,11 +296,13 @@ class Testing(unittest.TestCase):
     def test_08_invalid_turnkey_args(self):
         cmd = [
             "turnkey",
+            "-i",
             os.path.join(corpus_dir, "turnkey_parser.py"),
             "--script-args",
             "--invalid_arg 123",
             "--verbosity",
             Verbosity.DYNAMIC.value,
+            "export-pytorch",  # FIXME: add `benchmark` when Benchmarking is a stage
         ]
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         _, stderr = process.communicate()
@@ -297,10 +312,12 @@ class Testing(unittest.TestCase):
         output = run_analysis(
             [
                 "turnkey",
+                "-i",
                 os.path.join(corpus_dir, "pipeline.py"),
                 "--analyze-only",
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
+                "export-pytorch",  # FIXME: replace with `discover` when Discovery is a stage
             ]
         )
         assert np.array_equal(output, (1, 0, 0))
@@ -309,10 +326,12 @@ class Testing(unittest.TestCase):
         output = run_analysis(
             [
                 "turnkey",
+                "-i",
                 os.path.join(corpus_dir, "activation.py"),
                 "--analyze-only",
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
+                "export-pytorch",  # FIXME: replace with `discover` when Discovery is a stage
             ]
         )
         assert np.array_equal(output, (0, 0, 0))
@@ -321,10 +340,12 @@ class Testing(unittest.TestCase):
         output = run_analysis(
             [
                 "turnkey",
+                "-i",
                 os.path.join(corpus_dir, "linear_pytorch.py"),
                 "--analyze-only",
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
+                "export-pytorch",  # FIXME: replace with `discover` when Discovery is a stage
             ]
         )
         assert np.array_equal(output, (1, 0, 0))
@@ -333,6 +354,7 @@ class Testing(unittest.TestCase):
         output = run_analysis(
             [
                 "turnkey",
+                "-i",
                 os.path.join(corpus_dir, "linear_pytorch.py::76af2f62"),
                 "--build-only",
                 "--max-depth",
@@ -341,6 +363,7 @@ class Testing(unittest.TestCase):
                 cache_dir,
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
+                "export-pytorch",
             ]
         )
         assert np.array_equal(output, (2, 0, 1))
@@ -350,6 +373,7 @@ class Testing(unittest.TestCase):
         run_analysis(
             [
                 "turnkey",
+                "-i",
                 os.path.join(corpus_dir, f"linear_pytorch.py::{model_hash}"),
                 "--max-depth",
                 "1",
@@ -358,17 +382,19 @@ class Testing(unittest.TestCase):
                 "--build-only",
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
+                "export-pytorch",
             ]
         )
         build_name = f"linear_pytorch_{model_hash}"
 
         cmd = [
             "turnkey",
-            "cache",
-            "clean",
-            build_name,
             "--cache-dir",
             cache_dir,
+            "cache",
+            "--clean",
+            "--build-names",
+            build_name,
         ]
         subprocess.run(cmd, check=True)
 
@@ -378,10 +404,12 @@ class Testing(unittest.TestCase):
         output = run_analysis(
             [
                 "turnkey",
+                "-i",
                 os.path.join(corpus_dir, "two_executions.py"),
                 "--analyze-only",
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
+                "export-pytorch",  # FIXME: replace with `discover` when Discovery is a stage
             ]
         )
         assert np.array_equal(output, (2, 0, 0))
@@ -390,12 +418,14 @@ class Testing(unittest.TestCase):
         output = run_analysis(
             [
                 "turnkey",
+                "-i",
                 os.path.join(corpus_dir, "two_executions.py"),
                 "--analyze-only",
                 "--max-depth",
                 "1",
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
+                "export-pytorch",  # FIXME: replace with `discover` when Discovery is a stage
             ]
         )
         assert np.array_equal(output, (6, 0, 0))

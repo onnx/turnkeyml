@@ -1,13 +1,7 @@
 """
-
-    By default, build_model() completes the following steps:
-     > Convert to ONNX
-     > Optimize ONNX file
-     > Convert to FP16
-     > Finish up
-
-    This example illustrates how to alter the default sequence of steps. In this
-    example, the conversion to FP16 is skipped.
+    This example illustrates how to set the build sequence. In this
+    example, we apply onnx optimization, whereas in most other examples
+    we only perform a torch to onnx export.
 """
 
 import torch
@@ -38,15 +32,8 @@ pytorch_model = SmallModel(input_size, output_size)
 inputs = {"x": torch.rand(input_size, dtype=torch.float32)}
 
 onnx_sequence = stage.Sequence(
-    "onnx_sequence",
-    "Building ONNX Model without fp16 conversion",
-    [
-        export.ExportPytorchModel(),
-        export.OptimizeOnnxModel(),
-        # export.ConvertOnnxToFp16(),  #<-- This is the step we want to skip
-    ],
-    enable_model_validation=True,
+    stages={export.ExportPytorchModel(): [], export.OptimizeOnnxModel(): []}
 )
 
 # Build model
-build_model(pytorch_model, inputs, sequence=onnx_sequence)
+build_model(sequence=onnx_sequence, model=pytorch_model, inputs=inputs)

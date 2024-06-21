@@ -11,6 +11,8 @@ And then you can observe the ONNX opset in the resulting ONNX files with:
 import pathlib
 import argparse
 from turnkeyml import benchmark_files
+from turnkeyml.build.stage import Sequence
+from turnkeyml.build.export import ExportPytorchModel
 
 
 def main():
@@ -22,8 +24,7 @@ def main():
     # Add the arguments
     parser.add_argument(
         "--onnx-opset",
-        type=int,
-        default=16,
+        default="16",
         help="ONNX opset to use when creating ONNX files",
     )
 
@@ -34,8 +35,10 @@ def main():
         pathlib.Path(__file__).parent.resolve() / "scripts" / "hello_world.py"
     )
 
+    sequence = Sequence(stages={ExportPytorchModel(): ["--opset", args.onnx_opset]})
     benchmark_files(
-        input_files=[path_to_hello_world_script], onnx_opset=args.onnx_opset
+        input_files=[path_to_hello_world_script],
+        sequence=sequence,
     )
 
 

@@ -55,15 +55,15 @@ jobs:
           rm -rf ~/.cache/turnkey
           python examples/files_api/onnx_opset.py --onnx-opset 15
           rm -rf ~/.cache/turnkey
-          turnkey examples/cli/scripts/hello_world.py
+          turnkey -i examples/cli/scripts/hello_world.py export-pytorch
           rm -rf ~/.cache/turnkey
-          turnkey examples/cli/scripts/multiple_invocations.py
+          turnkey -i examples/cli/scripts/multiple_invocations.py export-pytorch
           rm -rf ~/.cache/turnkey
-          turnkey examples/cli/scripts/max_depth.py --max-depth 1
+          turnkey -i examples/cli/scripts/max_depth.py --max-depth 1 export-pytorch
           rm -rf ~/.cache/turnkey
-          turnkey examples/cli/scripts/two_models.py
+          turnkey -i examples/cli/scripts/two_models.py export-pytorch
           rm -rf ~/.cache/turnkey
-          turnkey examples/cli/onnx/hello_world.onnx
+          turnkey -i examples/cli/onnx/hello_world.onnx export-pytorch
 
           # E2E tests
           cd test/
@@ -74,19 +74,19 @@ jobs:
         run: |
           rm -rf ~/.cache/turnkey
           pip install -e examples/cli/plugins/example_rt
-          turnkey examples/cli/scripts/hello_world.py --runtime example-rt
+          turnkey -i examples/cli/scripts/hello_world.py --runtime example-rt export-pytorch
 
           rm -rf ~/.cache/turnkey
-          pip install -e examples/cli/plugins/example_seq
-          turnkey examples/cli/scripts/hello_world.py --sequence example-seq
+          pip install -e examples/cli/plugins/example_stage
+          turnkey -i examples/cli/scripts/hello_world.py  export-pytorch example-plugin-stage
 
           rm -rf ~/.cache/turnkey
           pip install -e examples/cli/plugins/example_combined
-          turnkey examples/cli/scripts/hello_world.py --runtime example-combined-rt --rt-args delay_before_benchmarking::5
-          turnkey examples/cli/scripts/hello_world.py --device example_family::part1::config2
-          turnkey examples/cli/scripts/hello_world.py --device example_family::part1::config1
-          turnkey examples/cli/scripts/hello_world.py --device example_family::part1
-          turnkey examples/cli/scripts/hello_world.py --device example_family
+          turnkey -i examples/cli/scripts/hello_world.py --runtime example-combined-rt --rt-args delay_before_benchmarking::5 export-pytorch combined-example-stage
+          turnkey -i examples/cli/scripts/hello_world.py --device example_family::part1::config2 export-pytorch combined-example-stage
+          turnkey -i examples/cli/scripts/hello_world.py --device example_family::part1::config1 export-pytorch combined-example-stage
+          turnkey -i examples/cli/scripts/hello_world.py --device example_family::part1 export-pytorch combined-example-stage
+          turnkey -i examples/cli/scripts/hello_world.py --device example_family export-pytorch combined-example-stage
 
           # E2E tests
           cd test
@@ -114,7 +114,7 @@ jobs:
 
           # Run tests on Slurm
           export TURNKEY_SLURM_USE_DEFAULT_MEMORY="True"
-          turnkey benchmark models/selftest/linear.py --build-only --use-slurm --cache-dir local_cache
+          turnkey -i models/selftest/linear.py --build-only --use-slurm --cache-dir local_cache export-pytorch
           bash test/helpers/check_slurm_output.sh slurm-2.out
 
       # Below tests are commented out as the GitHub runner runs out of space installing the requirements

@@ -4,6 +4,7 @@ import shutil
 import warnings
 import sys
 import copy
+import argparse
 from typing import Union
 import torch
 import torch.onnx.verification
@@ -79,28 +80,10 @@ def converted_onnx_file(state: fs.State):
     )
 
 
-class ExportPlaceholder(stage.Stage):
+class OnnxLoad(stage.Stage):
     """
-    Placeholder Stage that should be replaced by a framework-specific export stage,
-    typically during ignition.model_intake()
-    """
-
-    def __init__(self):
-        super().__init__(
-            unique_name="export_placeholder",
-            monitor_message="Placeholder for an Export Stage",
-        )
-
-    def fire(self, _: fs.State):
-        raise exp.StageError(
-            "This Sequence includes an ExportPlaceholder Stage that should have "
-            "been replaced with an export Stage."
-        )
-
-
-class ReceiveOnnxModel(stage.Stage):
-    """
-    Stage that takes an ONNX model as input.
+    Stage that takes an ONNX model as input and passes it to the following
+    stages.
 
     Expected inputs:
      - state.model is a path to the ONNX model
@@ -110,11 +93,19 @@ class ReceiveOnnxModel(stage.Stage):
      - A *-base.onnx file that implements state.model given state.inputs.
     """
 
+    unique_name = "onnx-load"
+
     def __init__(self):
-        super().__init__(
-            unique_name="receive_onnx",
-            monitor_message="Receiving ONNX Model",
+        super().__init__(monitor_message="Loading ONNX Model")
+
+    @staticmethod
+    def parser(add_help: bool = True) -> argparse.ArgumentParser:
+        parser = argparse.ArgumentParser(
+            description="Load an ONNX model",
+            add_help=add_help,
         )
+
+        return parser
 
     def fire(self, state: fs.State):
         if not isinstance(state.model, str):
@@ -137,6 +128,7 @@ class ReceiveOnnxModel(stage.Stage):
 
         model = onnx.load(state.model)
         opset = onnx_helpers.get_opset(model)
+        state.onnx_opset = opset
         input_shapes = [
             [d.dim_value for d in _input.type.tensor_type.shape.dim]
             for _input in model.graph.input  # pylint: disable=no-member
@@ -216,13 +208,28 @@ class ExportPytorchModel(stage.Stage):
      - A *-base.onnx file that implements state.model given state.inputs
     """
 
+    unique_name = "export-pytorch"
+
     def __init__(self):
-        super().__init__(
-            unique_name="export_pytorch",
-            monitor_message="Exporting PyTorch to ONNX",
+        super().__init__(monitor_message="Exporting PyTorch to ONNX")
+
+    @staticmethod
+    def parser(add_help: bool = True) -> argparse.ArgumentParser:
+        parser = argparse.ArgumentParser(
+            description="Export a PyTorch model to ONNX",
+            add_help=add_help,
         )
 
-    def fire(self, state: fs.State):
+        parser.add_argument(
+            "--opset",
+            type=int,
+            default=build.DEFAULT_ONNX_OPSET,
+            help=f"ONNX opset to export into (default: {build.DEFAULT_ONNX_OPSET})",
+        )
+
+        return parser
+
+    def fire(self, state: fs.State, opset: int = build.DEFAULT_ONNX_OPSET):
         if not isinstance(state.model, (torch.nn.Module, torch.jit.ScriptModule)):
             msg = f"""
             The current stage (ExportPytorchModel) is only compatible with
@@ -230,6 +237,8 @@ class ExportPytorchModel(stage.Stage):
             the stage received a model of type {type(state.model)}.
             """
             raise exp.StageError(msg)
+
+        state.onnx_opset = opset
 
         # The `torch.onnx.export()` function accepts a tuple of positional inputs
         # followed by a dictionary with all keyword inputs.
@@ -297,7 +306,7 @@ class ExportPytorchModel(stage.Stage):
             export_verification = torch.onnx.verification.find_mismatch(
                 state.model,
                 tuple(state.inputs.values()),
-                opset_version=state.onnx_opset,
+                opset_version=opset,
                 options=fp32_tolerance,
             )
 
@@ -333,7 +342,7 @@ class ExportPytorchModel(stage.Stage):
             output_path,
             input_names=dummy_input_names,
             do_constant_folding=True,
-            opset_version=state.onnx_opset,
+            opset_version=opset,
             verbose=False,
         )
 
@@ -385,11 +394,19 @@ class OptimizeOnnxModel(stage.Stage):
      - A *-opt.onnx file
     """
 
+    unique_name = "optimize-onnx"
+
     def __init__(self):
-        super().__init__(
-            unique_name="optimize_onnx",
-            monitor_message="Optimizing ONNX file",
+        super().__init__(monitor_message="Optimizing ONNX file")
+
+    @staticmethod
+    def parser(add_help: bool = True) -> argparse.ArgumentParser:
+        parser = argparse.ArgumentParser(
+            description="Use OnnxRuntime to optimize an ONNX model",
+            add_help=add_help,
         )
+
+        return parser
 
     def fire(self, state: fs.State):
         input_onnx = state.intermediate_results
@@ -448,11 +465,21 @@ class ConvertOnnxToFp16(stage.Stage):
      - A *-f16.onnx file with FP16 trained parameters
     """
 
+    unique_name = "fp16-conversion"
+
     def __init__(self):
         super().__init__(
-            unique_name="fp16_conversion",
             monitor_message="Converting to FP16",
         )
+
+    @staticmethod
+    def parser(add_help: bool = True) -> argparse.ArgumentParser:
+        parser = argparse.ArgumentParser(
+            description="Use OnnxMLTools to convert an ONNX model to fp16",
+            add_help=add_help,
+        )
+
+        return parser
 
     def fire(self, state: fs.State):
         input_onnx = state.intermediate_results
