@@ -432,7 +432,6 @@ class Testing(unittest.TestCase):
             rebuild="always",
             monitor=False,
             cache_dir=cache_location,
-            onnx_opset=user_opset,
         )
 
         assert state.build_status == build.FunctionStatus.SUCCESSFUL
