@@ -508,17 +508,17 @@ def explore_invocation(
 
     # This broad exception is ok since enumerating all exceptions is
     # not possible, as the tested software continuously evolves.
-    # except Exception as e:  # pylint: disable=broad-except
-    #     invocation_info.status_message = f"Unknown turnkey error: {e}"
-    #     invocation_info.status_message_color = printing.Colors.WARNING
+    except Exception as e:  # pylint: disable=broad-except
+        invocation_info.status_message = f"Unknown turnkey error: {e}"
+        invocation_info.status_message_color = printing.Colors.WARNING
 
-    #     set_status_on_exception(
-    #         runtime_info["build_required"], build_state, stats, benchmark_logfile_path
-    #     )
+        set_status_on_exception(
+            runtime_info["build_required"], build_state, stats, benchmark_logfile_path
+        )
 
-    #     _store_traceback(invocation_info)
+        _store_traceback(invocation_info)
 
-    #     raise e
+        raise e
 
     finally:
         # Ensure that stdout/stderr is not being forwarded before updating status
