@@ -6,7 +6,6 @@ import turnkeyml.common.filesystem as fs
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.printing as printing
 from turnkeyml.version import __version__ as turnkey_version
-from turnkeyml.cli.report import summary_spreadsheets
 
 
 class ManagementTool(abc.ABC):
@@ -14,6 +13,8 @@ class ManagementTool(abc.ABC):
     Intended for management functions, such as managing the cache
     or printing the version number.
     """
+
+    unique_name: str
 
     @staticmethod
     @abc.abstractmethod
@@ -241,49 +242,3 @@ class ModelsLocation(ManagementTool):
             print(fs.MODELS_DIR)
         else:
             printing.log_info(f"The models directory is: {fs.MODELS_DIR}")
-
-
-class Report(ManagementTool):
-    """
-    Analyzes the input turnkeyml cache(s) and produces an aggregated report
-    in csv format that contains the build stats for all builds in all cache(s).
-    """
-
-    unique_name = "report"
-
-    @staticmethod
-    def parser(add_help: bool = True) -> argparse.ArgumentParser:
-        parser = argparse.ArgumentParser(
-            description="Print the turnkeyml version number",
-            add_help=add_help,
-        )
-
-        parser.add_argument(
-            "-i",
-            "--input-caches",
-            nargs="*",
-            default=[fs.DEFAULT_CACHE_DIR],
-            help=(
-                "One or more build cache directories to generate the report "
-                f"(defaults to {fs.DEFAULT_CACHE_DIR})"
-            ),
-        )
-
-        parser.add_argument(
-            "-o",
-            "--output-dir",
-            help="Path to folder where report will be saved "
-            "(defaults to current working directory)",
-            required=False,
-            default=os.getcwd(),
-        )
-
-        return parser
-
-    def run(
-        self,
-        _,
-        input_caches: List[str] = None,
-        output_dir: str = os.getcwd(),
-    ):
-        summary_spreadsheets(input_caches, output_dir)

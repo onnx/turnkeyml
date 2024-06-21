@@ -2,6 +2,7 @@ import turnkeyml.build.export as export
 import turnkeyml.common.plugins as plugins
 import turnkeyml.common.management_tools as mgmt
 import turnkeyml.run.benchmark_build as bench
+import turnkeyml.cli.report as report
 
 # Plugin interface for sequences
 discovered_plugins = plugins.discover()
@@ -11,7 +12,7 @@ SUPPORTED_STAGES = [
     mgmt.Version,
     mgmt.Cache,
     mgmt.ModelsLocation,
-    mgmt.Report,
+    report.Report,
     bench.BenchmarkBuild,
     export.ExportPytorchModel,
     export.OptimizeOnnxModel,
