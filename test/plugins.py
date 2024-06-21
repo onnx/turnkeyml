@@ -25,13 +25,15 @@ class Testing(unittest.TestCase):
         test_script = "linear.py"
         testargs = [
             "turnkey",
-            "benchmark",
+            "-i",
             os.path.join(corpus_dir, test_script),
             "--device",
             "example_family",
             "--build-only",
             "--cache-dir",
             cache_dir,
+            "export-pytorch",
+            "optimize-onnx",
         ]
         with patch.object(sys, "argv", testargs):
             turnkeycli()
