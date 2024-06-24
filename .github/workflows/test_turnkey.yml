@@ -74,7 +74,7 @@ jobs:
         run: |
           rm -rf ~/.cache/turnkey
           pip install -e examples/cli/plugins/example_rt
-          turnkey -i examples/cli/scripts/hello_world.py --runtime example-rt export-pytorch benchmark
+          turnkey -i examples/cli/scripts/hello_world.py export-pytorch benchmark --runtime example-rt
 
           rm -rf ~/.cache/turnkey
           pip install -e examples/cli/plugins/example_stage

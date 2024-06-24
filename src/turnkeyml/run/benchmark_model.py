@@ -164,11 +164,6 @@ class Benchmark(stage.Stage):
             stats=stats,
             iterations=iterations,
             model=model_to_use,
-            # The `inputs` argument to BaseRT is only meant for
-            # benchmarking runtimes that have to keep their inputs
-            # in memory (e.g., `torch-eager`). We provide None here
-            # because this function only works with runtimes that
-            # keep their model and inputs on disk.
             inputs=vars(state).get(fs.Keys.INPUTS),
             device_type=specific_device,
             runtime=selected_runtime,
