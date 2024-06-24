@@ -84,7 +84,7 @@ jobs:
           pip install -e examples/cli/plugins/example_combined
           turnkey -i examples/cli/scripts/hello_world.py export-pytorch combined-example-stage benchmark --runtime example-combined-rt --rt-args delay_before_benchmarking::5
           turnkey -i examples/cli/scripts/hello_world.py export-pytorch combined-example-stage benchmark benchmark --device example_family::part1::config2 
-          turnkey -i examples/cli/scripts/hello_world.pyexport-pytorch combined-example-stage benchmark --device example_family::part1::config1 
+          turnkey -i examples/cli/scripts/hello_world.py export-pytorch combined-example-stage benchmark --device example_family::part1::config1 
           turnkey -i examples/cli/scripts/hello_world.py export-pytorch combined-example-stage benchmark --device example_family::part1 
           turnkey -i examples/cli/scripts/hello_world.py export-pytorch combined-example-stage benchmark --device example_family 
 
