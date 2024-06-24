@@ -97,6 +97,10 @@ class Stage(abc.ABC):
         self.progress = None
         self.logfile_path = None
         self.stages = None
+        # Stages can provide a list of keys that can be found in
+        # evaluation stats. Those key:value pairs will be presented
+        # in the status at the end of the build.
+        self.status_stats = []
 
     @abc.abstractmethod
     def fire(self, state: fs.State) -> fs.State:
@@ -309,6 +313,9 @@ class Sequence:
                 # Run the stage
                 state = stage.parse_and_fire(state, argv)
 
+                # Save the state so that it can be assessed for a cache hit
+                state.save()
+
             # Broad exception is desirable as we want to capture
             # all exceptions (including those we can't anticipate)
             except Exception as e:  # pylint: disable=broad-except
@@ -354,14 +361,6 @@ class Sequence:
 
         state.current_build_stage = None
         state.build_status = build.FunctionStatus.SUCCESSFUL
-
-        # We use a deepcopy here because the Stage framework supports
-        # intermediate_results of any type, including model objects in memory.
-        # The deepcopy ensures that we are providing a result that users
-        # are free to take any action with.
-        state.results = copy.deepcopy(state.intermediate_results)
-
-        # Save the state so that it can be assessed for a cache hit
         state.save()
 
         return state

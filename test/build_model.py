@@ -132,7 +132,7 @@ def custom_stage():
             return parser
 
         def fire(self, state):
-            input_onnx = state.intermediate_results
+            input_onnx = state.results
             output_onnx = os.path.join(export.onnx_dir(state), "custom.onnx")
             fp32_model = load_model(input_onnx)
             fp16_model = convert_float_to_float16(fp32_model)
@@ -140,7 +140,7 @@ def custom_stage():
 
             print(f"funny message: {self.funny_saying}")
 
-            state.intermediate_results = output_onnx
+            state.results = output_onnx
 
             return state
 
@@ -190,7 +190,7 @@ class FullyCustomStage(stage.Stage):
     def fire(self, state):
         print(self.saying)
 
-        state.intermediate_results = "great stuff"
+        state.results = "great stuff"
 
         return state
 

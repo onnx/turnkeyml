@@ -15,7 +15,6 @@ def build_model(
     cache_dir: str = fs.DEFAULT_CACHE_DIR,
     monitor: Optional[bool] = None,
     rebuild: Optional[str] = None,
-    device: Optional[str] = None,
 ) -> fs.State:
     """Use build a model instance into an optimized ONNX file.
 
@@ -42,10 +41,6 @@ def build_model(
             - "never": load cached builds without checking validity, with no guarantee
                 of functionality or correctness
             - None: Falls back to default
-        device: Specific device target to take into account during the build sequence.
-            Use the format "device_family", "device_family::part", or
-            "device_family::part::configuration" to refer to a family of devices,
-            part within a family, or configuration of a part model, respectively.
 
         More information is available in the Tools User Guide:
             https://github.com/onnx/turnkeyml/blob/main/docs/tools_user_guide.md
@@ -72,7 +67,6 @@ def build_model(
         cache_dir=cache_dir,
         build_name=build_name,
         sequence_info=sequence.info,
-        device=device,
     )
 
     # Get the state of the model from the cache if a valid build is available

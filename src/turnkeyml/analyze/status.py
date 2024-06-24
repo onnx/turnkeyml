@@ -8,7 +8,6 @@ from typing import Callable, List, Union, Dict, Optional
 import torch
 from turnkeyml.common import printing
 import turnkeyml.common.build as build
-from turnkeyml.common.performance import MeasuredPerformance
 import turnkeyml.common.filesystem as fs
 import turnkeyml.analyze.model as analyze_model
 
@@ -82,7 +81,6 @@ class UniqueInvocationInfo(BasicInfo):
     """
 
     invocation_hash: Union[str, None] = None
-    performance: MeasuredPerformance = None
     traceback: List[str] = None
     inputs: Union[dict, None] = None
     input_shapes: Union[dict, None] = None
@@ -92,7 +90,7 @@ class UniqueInvocationInfo(BasicInfo):
     is_target: bool = False
     status_message_color: printing.Colors = printing.Colors.ENDC
     traceback_message_color: printing.Colors = printing.Colors.FAIL
-    stats_keys: Optional[List[str]] = None
+    stats_keys: List[str] = dataclasses.field(default_factory=list)
     stats: fs.Stats = None
 
     # Fields specific to printing status
@@ -213,57 +211,43 @@ class UniqueInvocationInfo(BasicInfo):
                 # Print some whitespace to help the status stand out
                 print()
 
-        # Print turnkey results if turnkey was run
-        if self.performance:
+        if self.is_target and self.build_model:
             printing.log(f"{self.indent}\tStatus:\t\t")
             printing.logn(
-                f"Successfully benchmarked on {self.performance.device} "
-                f"({self.performance.runtime} "
-                f"v{self.performance.runtime_version}) ",
+                f"{self.status_message}",
                 c=self.status_message_color,
             )
-            printing.logn(
-                f"{self.indent}\t\t\tMean Latency:\t{self.performance.mean_latency:.3f}"
-                f"\t{self.performance.latency_units}"
-            )
-            printing.logn(
-                f"{self.indent}\t\t\tThroughput:\t{self.performance.throughput:.1f}"
-                f"\t{self.performance.throughput_units}"
-            )
+            for key in self.stats_keys:
+                nice_key = _pretty_print_key(key)
+                try:
+                    value = self.stats.evaluation_stats[key]
+                    if isinstance(value, float):
+                        value = "{0:.3f}".format(value)
+                    # Stages may provide a unit of measurement for their status
+                    # stats, whose key name should follow the format
+                    # "STATUS_STATS_KEY_units"
+                    units_key = key + "_units"
+                    units = self.stats.evaluation_stats.get(units_key)
+                    printing.logn(f"{self.indent}\t\t\t{nice_key}:\t{value} {units}")
+                except KeyError:
+                    # Ignore any keys that are missing because that means the
+                    # evaluation did not produce them
+                    pass
 
-            if self.stats_keys is not None:
-                for key in self.stats_keys:
-                    nice_key = _pretty_print_key(key)
-                    try:
-                        value = self.stats.evaluation_stats[key]
-                        printing.logn(f"{self.indent}\t\t\t{nice_key}:\t{value}")
-                    except KeyError:
-                        # Ignore any keys that are missing because that means the
-                        # evaluation did not produce them
-                        pass
-            print()
-        else:
-            if self.is_target and self.build_model:
-                printing.log(f"{self.indent}\tStatus:\t\t")
-                printing.logn(
-                    f"{self.status_message}",
-                    c=self.status_message_color,
-                )
+            if self.traceback is not None:
+                if os.environ.get("TURNKEY_TRACEBACK") != "False":
+                    for line in self.traceback:
+                        for subline in line.split("\n")[:-1]:
+                            print(f"{self.indent}\t{subline}")
 
-                if self.traceback is not None:
-                    if os.environ.get("TURNKEY_TRACEBACK") != "False":
-                        for line in self.traceback:
-                            for subline in line.split("\n")[:-1]:
-                                print(f"{self.indent}\t{subline}")
-
-                    else:
-                        printing.logn(
-                            f"{self.indent}\t\t\tTo see the full stack trace, "
-                            "rerun with `export TURNKEY_TRACEBACK=True`.\n",
-                            c=self.status_message_color,
-                        )
                 else:
-                    print()
+                    printing.logn(
+                        f"{self.indent}\t\t\tTo see the full stack trace, "
+                        "rerun with `export TURNKEY_TRACEBACK=True`.\n",
+                        c=self.status_message_color,
+                    )
+            else:
+                print()
 
         self.skip.previous_status_message = self.status_message
 

@@ -10,9 +10,6 @@ import turnkeyml.build.stage as stage
 import turnkeyml.cli.spawn as spawn
 import turnkeyml.common.filesystem as filesystem
 import turnkeyml.common.labels as labels_library
-import turnkeyml.run.devices as devices
-from turnkeyml.common.performance import Device
-from turnkeyml.run.devices import SUPPORTED_RUNTIMES
 from turnkeyml.analyze.script import (
     evaluate_script,
     TracerArgs,
@@ -133,15 +130,10 @@ def benchmark_files(
     cache_dir: str = filesystem.DEFAULT_CACHE_DIR,
     labels: List[str] = None,
     rebuild: Optional[str] = None,
-    device: str = "x86",
-    runtime: str = None,
-    iterations: int = 100,
     analyze_only: bool = False,
-    build_only: bool = False,
     script_args: Optional[str] = None,
     max_depth: int = 0,
     timeout: Optional[int] = None,
-    rt_args: Optional[Dict] = None,
     verbosity: str = Verbosity.STATIC.value,
     sequence: Union[Dict, stage.Sequence] = None,
 ):
@@ -198,20 +190,6 @@ def benchmark_files(
     # Make sure the cache directory exists
     filesystem.make_cache_dir(cache_dir)
 
-    if device is None:
-        device = "x86"
-
-    # Replace the runtime with a default value, if needed
-    selected_runtime = devices.apply_default_runtime(device, runtime)
-    benchmarking_args["runtime"] = selected_runtime
-
-    # Get the default part and config by providing the Device class with
-    # the supported devices by the runtime
-    runtime_supported_devices = SUPPORTED_RUNTIMES[selected_runtime][
-        "supported_devices"
-    ]
-    benchmarking_args["device"] = str(Device(device, runtime_supported_devices))
-
     # Force the user to specify a legal cache dir in NFS if they are using slurm
     if cache_dir == filesystem.DEFAULT_CACHE_DIR and use_slurm:
         printing.log_warning(
@@ -239,24 +217,11 @@ def benchmark_files(
         actions = [
             Action.ANALYZE,
         ]
-    elif build_only:
-        actions = [
-            Action.ANALYZE,
-            Action.BUILD,
-        ]
     else:
         actions = [
             Action.ANALYZE,
             Action.BUILD,
-            Action.BENCHMARK,
         ]
-
-    if Action.BENCHMARK in actions:
-        printing.log_warning(
-            "The benchmarking functionality of ONNX TurnkeyML has been "
-            "deprecated. See https://github.com/onnx/turnkeyml/milestone/3 "
-            "for details."
-        )
 
     if use_slurm:
         jobs = spawn.slurm_jobs_in_queue()
@@ -277,18 +242,11 @@ def benchmark_files(
     # Fork the args for analysis since they have differences from the spawn args:
     # build_only and analyze_only are encoded into actions
     analysis_args = copy.deepcopy(benchmarking_args)
-    analysis_args.pop("build_only")
     analysis_args.pop("analyze_only")
     analysis_args["actions"] = actions
     analysis_args.pop("timeout")
 
     for file_path_encoded in tqdm(input_files_expanded, disable=not use_progress_bar):
-        # Check runtime requirements if needed. All benchmarking will be halted
-        # if requirements are not met. This happens regardless of whether
-        # process-isolation is used or not.
-        runtime_info = SUPPORTED_RUNTIMES[selected_runtime]
-        if "requirement_check" in runtime_info and Action.BENCHMARK in actions:
-            runtime_info["requirement_check"]()
 
         printing.log_info(f"Running turnkey on {file_path_encoded}")
 
@@ -370,7 +328,7 @@ def benchmark_files(
                     name=onnx_name,
                     script_name=onnx_name,
                     file=file_path_absolute,
-                    build_model=not build_only,
+                    build_model=True,
                     model_type=build.ModelType.ONNX_FILE,
                     executed=1,
                     input_shapes=input_shapes,
@@ -384,7 +342,7 @@ def benchmark_files(
                     name=onnx_name,
                     script_name=onnx_name,
                     file=file_path_absolute,
-                    build_model=not build_only,
+                    build_model=True,
                     model_type=build.ModelType.ONNX_FILE,
                     unique_invocations={onnx_hash: invocation_info},
                     hash=onnx_hash,

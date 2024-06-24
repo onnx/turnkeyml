@@ -7,14 +7,13 @@ from typing import List
 import turnkeyml.common.filesystem as fs
 from turnkeyml.build.stage import Stage, Sequence
 from turnkeyml.build.stage_plugins import SUPPORTED_STAGES
-from turnkeyml.run.devices import SUPPORTED_DEVICES, SUPPORTED_RUNTIMES
+
 from turnkeyml.cli.spawn import DEFAULT_TIMEOUT_SECONDS
 from turnkeyml.files_api import benchmark_files
 from turnkeyml.analyze.status import Verbosity
 import turnkeyml.common.build as build
 import turnkeyml.common.exceptions as exp
 from turnkeyml.common.management_tools import ManagementTool
-import turnkeyml.cli.parser_helpers as parser_helpers
 
 
 class PreserveWhiteSpaceWrapRawTextHelpFormatter(argparse.RawDescriptionHelpFormatter):
@@ -129,14 +128,6 @@ Management tool choices:
     )
 
     parser.add_argument(
-        "-b",
-        "--build-only",
-        dest="build_only",
-        help="Stop this command after the analyze and build phases",
-        action="store_true",
-    )
-
-    parser.add_argument(
         "--labels",
         dest="labels",
         help="Only benchmark the scripts that have the provided labels",
@@ -159,29 +150,6 @@ Management tool choices:
         help="Maximum depth to analyze within the model structure of the target script(s)",
     )
 
-    benchmark_default_device = "x86"
-    parser.add_argument(
-        "--device",
-        choices=SUPPORTED_DEVICES,
-        dest="device",
-        help="Type of hardware device to be used for the benchmark "
-        f'(defaults to "{benchmark_default_device}")',
-        required=False,
-        default=benchmark_default_device,
-    )
-
-    parser.add_argument(
-        "--runtime",
-        choices=SUPPORTED_RUNTIMES.keys(),
-        dest="runtime",
-        help="Software runtime that will be used to collect the benchmark. "
-        "Must be compatible with the selected device. "
-        "Automatically selects a sequence if `--sequence` is not used. "
-        "If this argument is not set, the default runtime of the selected device will be used.",
-        required=False,
-        default=None,
-    )
-
     parser.add_argument(
         "--rebuild",
         choices=build.REBUILD_OPTIONS,
@@ -189,23 +157,6 @@ Management tool choices:
         help=f"Sets the cache rebuild policy (defaults to {build.DEFAULT_REBUILD_POLICY})",
         required=False,
         default=build.DEFAULT_REBUILD_POLICY,
-    )
-
-    parser.add_argument(
-        "--iterations",
-        dest="iterations",
-        type=int,
-        default=100,
-        help="Number of execution iterations of the model to capture\
-              the benchmarking performance (e.g., mean latency)",
-    )
-
-    parser.add_argument(
-        "--rt-args",
-        dest="rt_args",
-        type=str,
-        nargs="*",
-        help="Optional arguments provided to the runtime being used",
     )
 
     slurm_or_processes_group = parser.add_mutually_exclusive_group()
@@ -294,9 +245,6 @@ Management tool choices:
             "Calls to tunrkey are required to call at least "
             "one stage or management tool."
         )
-
-    # Decode CLI arguments before calling the API
-    global_args["rt_args"] = parser_helpers.decode_args(global_args["rt_args"])
 
     # Convert stage names into Stage instaces
     stage_instances = {

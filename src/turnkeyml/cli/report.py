@@ -127,10 +127,7 @@ class Report(ManagementTool):
                                 # reporting time, it must have been killed by a time out,
                                 # out-of-memory (OOM), or some other uncaught exception
                                 if (
-                                    (
-                                        key == fs.Keys.BUILD_STATUS
-                                        or fs.Keys.BENCHMARK_STATUS
-                                    )
+                                    key == fs.Keys.BUILD_STATUS
                                     or fs.Keys.STAGE_STATUS in key
                                 ) and value == build.FunctionStatus.INCOMPLETE:
                                     value = build.FunctionStatus.KILLED
