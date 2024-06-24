@@ -55,15 +55,15 @@ jobs:
           rm -rf ~/.cache/turnkey
           python examples/files_api/onnx_opset.py --onnx-opset 15
           rm -rf ~/.cache/turnkey
-          turnkey -i examples/cli/scripts/hello_world.py export-pytorch
+          turnkey -i examples/cli/scripts/hello_world.py export-pytorch benchmark
           rm -rf ~/.cache/turnkey
-          turnkey -i examples/cli/scripts/multiple_invocations.py export-pytorch
+          turnkey -i examples/cli/scripts/multiple_invocations.py export-pytorch benchmark
           rm -rf ~/.cache/turnkey
-          turnkey -i examples/cli/scripts/max_depth.py --max-depth 1 export-pytorch
+          turnkey -i examples/cli/scripts/max_depth.py --max-depth 1 export-pytorch benchmark
           rm -rf ~/.cache/turnkey
-          turnkey -i examples/cli/scripts/two_models.py export-pytorch
+          turnkey -i examples/cli/scripts/two_models.py export-pytorch benchmark
           rm -rf ~/.cache/turnkey
-          turnkey -i examples/cli/onnx/hello_world.onnx export-pytorch
+          turnkey -i examples/cli/onnx/hello_world.onnx export-pytorch benchmark
 
           # E2E tests
           cd test/
@@ -74,19 +74,19 @@ jobs:
         run: |
           rm -rf ~/.cache/turnkey
           pip install -e examples/cli/plugins/example_rt
-          turnkey -i examples/cli/scripts/hello_world.py --runtime example-rt export-pytorch
+          turnkey -i examples/cli/scripts/hello_world.py --runtime example-rt export-pytorch benchmark
 
           rm -rf ~/.cache/turnkey
           pip install -e examples/cli/plugins/example_stage
-          turnkey -i examples/cli/scripts/hello_world.py  export-pytorch example-plugin-stage
+          turnkey -i examples/cli/scripts/hello_world.py  export-pytorch example-plugin-stage benchmark
 
           rm -rf ~/.cache/turnkey
           pip install -e examples/cli/plugins/example_combined
-          turnkey -i examples/cli/scripts/hello_world.py --runtime example-combined-rt --rt-args delay_before_benchmarking::5 export-pytorch combined-example-stage
-          turnkey -i examples/cli/scripts/hello_world.py --device example_family::part1::config2 export-pytorch combined-example-stage
-          turnkey -i examples/cli/scripts/hello_world.py --device example_family::part1::config1 export-pytorch combined-example-stage
-          turnkey -i examples/cli/scripts/hello_world.py --device example_family::part1 export-pytorch combined-example-stage
-          turnkey -i examples/cli/scripts/hello_world.py --device example_family export-pytorch combined-example-stage
+          turnkey -i examples/cli/scripts/hello_world.py export-pytorch combined-example-stage benchmark --runtime example-combined-rt --rt-args delay_before_benchmarking::5
+          turnkey -i examples/cli/scripts/hello_world.py export-pytorch combined-example-stage benchmark benchmark --device example_family::part1::config2 
+          turnkey -i examples/cli/scripts/hello_world.pyexport-pytorch combined-example-stage benchmark --device example_family::part1::config1 
+          turnkey -i examples/cli/scripts/hello_world.py export-pytorch combined-example-stage benchmark --device example_family::part1 
+          turnkey -i examples/cli/scripts/hello_world.py export-pytorch combined-example-stage benchmark --device example_family 
 
           # E2E tests
           cd test
