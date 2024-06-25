@@ -176,7 +176,7 @@ class OnnxLoad(stage.Stage):
         fail_msg = "\tFailed receiving ONNX Model"
 
         if check_model(output_path, success_msg, fail_msg):
-            state.intermediate_results = output_path
+            state.results = output_path
 
             stats = fs.Stats(state.cache_dir, state.build_name, state.evaluation_id)
             stats.save_model_eval_stat(
@@ -363,7 +363,7 @@ class ExportPytorchModel(stage.Stage):
         fail_msg = "\tFailed exporting model to ONNX"
 
         if check_model(output_path, success_msg, fail_msg):
-            state.intermediate_results = output_path
+            state.results = output_path
 
             stats.save_model_eval_stat(
                 fs.Keys.ONNX_FILE,
@@ -388,7 +388,7 @@ class OptimizeOnnxModel(stage.Stage):
     node eliminations, Semantics-preserving node fusions
 
     Expected inputs:
-     - state.intermediate_results contains a single .onnx file
+     - state.results contains a single .onnx file
 
     Outputs:
      - A *-opt.onnx file
@@ -409,7 +409,7 @@ class OptimizeOnnxModel(stage.Stage):
         return parser
 
     def fire(self, state: fs.State):
-        input_onnx = state.intermediate_results
+        input_onnx = state.results
         output_path = opt_onnx_file(state)
 
         # Perform some basic optimizations on the model to remove shape related
@@ -434,7 +434,7 @@ class OptimizeOnnxModel(stage.Stage):
         fail_msg = "\tFailed optimizing ONNX model"
 
         if check_model(output_path, success_msg, fail_msg):
-            state.intermediate_results = output_path
+            state.results = output_path
 
             stats = fs.Stats(state.cache_dir, state.build_name, state.evaluation_id)
             stats.save_model_eval_stat(
@@ -459,7 +459,7 @@ class ConvertOnnxToFp16(stage.Stage):
     to fp16.
 
     Expected inputs:
-     - state.intermediate_results contains a single .onnx file
+     - state.results contains a single .onnx file
 
     Outputs:
      - A *-f16.onnx file with FP16 trained parameters
@@ -482,7 +482,7 @@ class ConvertOnnxToFp16(stage.Stage):
         return parser
 
     def fire(self, state: fs.State):
-        input_onnx = state.intermediate_results
+        input_onnx = state.results
 
         # Convert the model to FP16
         # Some ops will not be converted to fp16 because they are in a block list
@@ -548,7 +548,7 @@ class ConvertOnnxToFp16(stage.Stage):
         fail_msg = "\tFailed converting ONNX model to fp16"
 
         if check_model(output_path, success_msg, fail_msg):
-            state.intermediate_results = output_path
+            state.results = output_path
 
             stats = fs.Stats(state.cache_dir, state.build_name, state.evaluation_id)
             stats.save_model_eval_stat(

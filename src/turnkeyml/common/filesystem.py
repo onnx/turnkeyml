@@ -312,8 +312,6 @@ class Keys:
     MODEL_SCRIPT = "builtin_model_script"
     # Indicates status of the most recent build tool run: FunctionStatus
     BUILD_STATUS = "build_status"
-    # Indicates status of the most recent benchmark tool run: FunctionStatus
-    BENCHMARK_STATUS = "benchmark_status"
     # Indicates the match between the TorchScript IR graph and
     # the exported onnx model (verified with torch.onnx.verification)
     TORCH_ONNX_EXPORT_VALIDITY = "torch_export_validity"
@@ -353,6 +351,8 @@ class Keys:
     DOWNCAST_APPLIED = "downcast_applied"
     # Directory where the turnkey build cache is stored
     CACHE_DIR = "cache_dir"
+    # Example inputs to the model
+    INPUTS = "inputs"
 
 
 def _clean_logfile(logfile_lines: List[str]) -> List[str]:
@@ -556,7 +556,6 @@ class State:
         monitor: Optional[bool] = None,
         build_name: Optional[str] = None,
         sequence_info: Dict[str, Dict] = None,
-        device: Optional[str] = None,
         **kwargs,
     ):
 
@@ -573,11 +572,6 @@ class State:
         if build_name is None:
             build_name = os.path.basename(sys.argv[0])
 
-        if device is None:
-            device_to_use = build.DEFAULT_DEVICE
-        else:
-            device_to_use = device
-
         # Support "~" in the cache_dir argument
         parsed_cache_dir = os.path.expanduser(cache_dir)
 
@@ -590,7 +584,6 @@ class State:
         self.cache_dir = parsed_cache_dir
         self.build_name = build_name
         self.sequence_info = sequence_info
-        self.device = device_to_use
         self.turnkey_version = turnkey_version
         self.build_status = build.FunctionStatus.NOT_STARTED
         self.downcast_applied = False

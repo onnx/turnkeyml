@@ -7,10 +7,10 @@ import turnkeyml.common.build as build
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.filesystem as fs
 import turnkeyml.common.printing as printing
-from turnkeyml.analyze.script import set_status_on_exception
-from turnkeyml.run.devices import SUPPORTED_RUNTIMES, apply_default_runtime
 import turnkeyml.cli.parser_helpers as parser_helpers
 from turnkeyml.common.management_tools import ManagementTool
+from turnkeyml.run.benchmark_model import Benchmark
+from turnkeyml.run.devices import SUPPORTED_RUNTIMES
 
 # The licensing for tqdm is confusing. Pending a legal scan,
 # the following code provides tqdm to users who have installed
@@ -57,7 +57,6 @@ class Process(multiprocessing.Process):
 
 
 def benchmark_build(
-    first: bool,
     cache_dir: str,
     build_name: str,
     runtime: str,
@@ -78,7 +77,6 @@ def benchmark_build(
         3. Save stats to the same evaluation entry from the original build
 
     Args:
-        first: whether this is the first benchmark in the job
         cache_dir: same as turnkey
         build_name: same as turnkey
         runtime: same as turnkey
@@ -95,82 +93,9 @@ def benchmark_build(
             f"has state: {state.build_status}"
         )
 
-    selected_runtime = apply_default_runtime(state.device, runtime)
-
-    if rt_args is None:
-        rt_args_to_use = {}
-    else:
-        rt_args_to_use = rt_args
-
-    try:
-        runtime_info = SUPPORTED_RUNTIMES[selected_runtime]
-    except KeyError as e:
-        # User should never get this far without hitting an actionable error message,
-        # but let's raise an exception just in case.
-        raise SkippedBenchmark(
-            f"Selected runtime is not supported: {selected_runtime}"
-        ) from e
-
-    # Check whether the device and runtime are ready for use prior to
-    # running the first benchmark in the job
-    # NOTE: we perform this check here, instead of in the outer loop,
-    # because this is where we know `runtime_info`
-    if first and "requirement_check" in runtime_info:
-        runtime_info["requirement_check"]()
-
-    # Load the stats file using the same evaluation ID used in the original build.
-    # This allows us to augment those stats with more data instead of starting a new
-    # evaluation entry.
-    stats = fs.Stats(cache_dir, build_name, state.evaluation_id)
-
-    stats.save_model_eval_stat(
-        fs.Keys.BENCHMARK_STATUS, build.FunctionStatus.INCOMPLETE
+    state = Benchmark().fire(
+        state, runtime=runtime, iterations=iterations, rt_args=rt_args
     )
-
-    benchmark_logfile_path = ""
-    try:
-        # Instantiate BaseRT for the selected runtime
-        runtime_handle = runtime_info["RuntimeClass"](
-            cache_dir=cache_dir,
-            build_name=build_name,
-            stats=stats,
-            iterations=iterations,
-            model=state.results,
-            # The `inputs` argument to BaseRT is only meant for
-            # benchmarking runtimes that have to keep their inputs
-            # in memory (e.g., `torch-eager`). We provide None here
-            # because this function only works with runtimes that
-            # keep their model and inputs on disk.
-            inputs=None,
-            device_type=state.device,
-            runtime=selected_runtime,
-            **rt_args_to_use,
-        )
-        benchmark_logfile_path = runtime_handle.logfile_path
-        perf = runtime_handle.benchmark()
-
-        for key, value in vars(perf).items():
-            stats.save_model_eval_stat(
-                key=key,
-                value=value,
-            )
-
-        # Inform the user of the result
-        perf.print()
-
-        stats.save_model_eval_stat(
-            fs.Keys.BENCHMARK_STATUS, build.FunctionStatus.SUCCESSFUL
-        )
-    except Exception as e:
-        set_status_on_exception(
-            runtime_info["build_required"], state, stats, benchmark_logfile_path
-        )
-
-        raise e
-
-    # Check whether this benchmark left the device and runtime in a good state
-    if "requirement_check" in runtime_info:
-        runtime_info["requirement_check"]()
 
 
 skip_policy_default = "attempted"
@@ -298,9 +223,6 @@ class BenchmarkBuild(ManagementTool):
         else:
             builds = build_names
 
-        # Keep track of whether this is the first build we are benchmarking
-        first = True
-
         # Iterate over all of the selected builds and benchmark them
         for build_name in tqdm(builds):
             if not fs.is_build_dir(cache_dir, build_name):
@@ -316,10 +238,10 @@ class BenchmarkBuild(ManagementTool):
             # loop if the evaluation's pre-existing benchmark status doesn't
             # meet certain criteria
             eval_stats = stats.evaluation_stats
+            benchmark_status_key = "stage_status:benchmark"
             if (
-                fs.Keys.BENCHMARK_STATUS in eval_stats
-                and eval_stats[fs.Keys.BENCHMARK_STATUS]
-                != build.FunctionStatus.NOT_STARTED
+                benchmark_status_key in eval_stats
+                and eval_stats[benchmark_status_key] != build.FunctionStatus.NOT_STARTED
             ):
                 if skip_policy == "attempted":
                     printing.log_warning(
@@ -328,7 +250,7 @@ class BenchmarkBuild(ManagementTool):
                     continue
                 elif (
                     skip_policy == "successful"
-                    and eval_stats[fs.Keys.BENCHMARK_STATUS]
+                    and eval_stats[benchmark_status_key]
                     == build.FunctionStatus.SUCCESSFUL
                 ):
                     printing.log_warning(
@@ -337,7 +259,7 @@ class BenchmarkBuild(ManagementTool):
                     continue
                 elif (
                     skip_policy == "failed"
-                    and eval_stats[fs.Keys.BENCHMARK_STATUS]
+                    and eval_stats[benchmark_status_key]
                     != build.FunctionStatus.SUCCESSFUL
                 ):
                     printing.log_warning(
@@ -352,7 +274,7 @@ class BenchmarkBuild(ManagementTool):
 
             p = Process(
                 target=benchmark_build,
-                args=[first, cache_dir, build_name, runtime, iterations, rt_args],
+                args=[cache_dir, build_name, runtime, iterations, rt_args],
             )
             p.start()
             p.join(timeout=timeout)
@@ -365,7 +287,7 @@ class BenchmarkBuild(ManagementTool):
                     child.kill()
                 parent.kill()
                 stats.save_model_eval_stat(
-                    fs.Keys.BENCHMARK_STATUS, build.FunctionStatus.TIMEOUT
+                    benchmark_status_key, build.FunctionStatus.TIMEOUT
                 )
 
                 printing.log_warning(
@@ -382,11 +304,11 @@ class BenchmarkBuild(ManagementTool):
 
                 if isinstance(p.exception[0], SkippedBenchmark):
                     stats.save_model_eval_stat(
-                        fs.Keys.BENCHMARK_STATUS, build.FunctionStatus.NOT_STARTED
+                        benchmark_status_key, build.FunctionStatus.NOT_STARTED
                     )
                 else:
                     stats.save_model_eval_stat(
-                        fs.Keys.BENCHMARK_STATUS, build.FunctionStatus.ERROR
+                        benchmark_status_key, build.FunctionStatus.ERROR
                     )
 
                 if isinstance(p.exception[0], exp.HardwareError):
@@ -397,5 +319,3 @@ class BenchmarkBuild(ManagementTool):
                     print(p.exception[1])
             else:
                 printing.log_success(f"Done benchmarking: {build_name}")
-
-            first = False

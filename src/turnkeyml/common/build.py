@@ -39,10 +39,6 @@ class ModelType:
     UNKNOWN = "unknown"
 
 
-# Indicates that the build should take take any specific device into account
-DEFAULT_DEVICE = "default"
-
-
 def load_yaml(file_path) -> Dict:
     with open(file_path, "r", encoding="utf8") as stream:
         try:

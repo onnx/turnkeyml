@@ -217,7 +217,6 @@ class Testing(unittest.TestCase):
                 os.path.join(corpus_dir, "linear_pytorch.py::76af2f62"),
                 "--max-depth",
                 "1",
-                "--build-only",
                 "--cache-dir",
                 cache_dir,
                 "--verbosity",
@@ -239,7 +238,6 @@ class Testing(unittest.TestCase):
                 "--cache-dir",
                 cache_dir,
                 "--lean-cache",
-                "--build-only",
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
                 "export-pytorch",
@@ -285,7 +283,8 @@ class Testing(unittest.TestCase):
             f"--num_channels {num_channels+1}",
             "--verbosity",
             Verbosity.DYNAMIC.value,
-            "export-pytorch",  # FIXME: add `benchmark` when Benchmarking is a stage
+            "export-pytorch",
+            "benchmark",
         ]
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, _ = process.communicate()
@@ -302,7 +301,8 @@ class Testing(unittest.TestCase):
             "--invalid_arg 123",
             "--verbosity",
             Verbosity.DYNAMIC.value,
-            "export-pytorch",  # FIXME: add `benchmark` when Benchmarking is a stage
+            "export-pytorch",
+            "benchmark",
         ]
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         _, stderr = process.communicate()
@@ -356,7 +356,6 @@ class Testing(unittest.TestCase):
                 "turnkey",
                 "-i",
                 os.path.join(corpus_dir, "linear_pytorch.py::76af2f62"),
-                "--build-only",
                 "--max-depth",
                 "1",
                 "--cache-dir",
@@ -379,7 +378,6 @@ class Testing(unittest.TestCase):
                 "1",
                 "--cache-dir",
                 cache_dir,
-                "--build-only",
                 "--verbosity",
                 Verbosity.DYNAMIC.value,
                 "export-pytorch",

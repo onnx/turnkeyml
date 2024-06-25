@@ -27,27 +27,28 @@ class Testing(unittest.TestCase):
             "turnkey",
             "-i",
             os.path.join(corpus_dir, test_script),
-            "--device",
-            "example_family",
-            "--build-only",
             "--cache-dir",
             cache_dir,
             "export-pytorch",
             "optimize-onnx",
+            "benchmark",
+            "--device",
+            "example_family",
         ]
         with patch.object(sys, "argv", testargs):
             turnkeycli()
 
-        _, build_state = common.get_stats_and_state(test_script, cache_dir)
+        build_stats, build_state = common.get_stats_and_state(test_script, cache_dir)
 
         # Check if build was successful
         assert build_state.build_status == build.FunctionStatus.SUCCESSFUL
 
         # Check if default part and config were assigned
         expected_device = "example_family::part1::config1"
+        actual_device = build_stats["device_type"]
         assert (
-            build_state.device == expected_device
-        ), f"Got {build_state.device}, expected {expected_device}"
+            actual_device == expected_device
+        ), f"Got {actual_device}, expected {expected_device}"
 
 
 if __name__ == "__main__":

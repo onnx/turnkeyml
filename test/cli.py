@@ -136,7 +136,6 @@ class Testing(unittest.TestCase):
             "turnkey",
             "-i",
             os.path.join(corpus_dir, test_script),
-            "--build-only",
             "--cache-dir",
             cache_dir,
             "export-pytorch",
@@ -156,7 +155,6 @@ class Testing(unittest.TestCase):
             "-i",
             os.path.join(corpus_dir, test_scripts[0]),
             os.path.join(corpus_dir, test_scripts[1]),
-            "--build-only",
             "--cache-dir",
             cache_dir,
             "export-pytorch",
@@ -178,7 +176,6 @@ class Testing(unittest.TestCase):
             "turnkey",
             "-i",
             bash(f"{corpus_dir}/*.py"),
-            "--build-only",
             "--cache-dir",
             cache_dir,
             "export-pytorch",
@@ -199,7 +196,6 @@ class Testing(unittest.TestCase):
             "turnkey",
             "-i",
             bash(f"{corpus_dir}/*.py"),
-            "--build-only",
             "--cache-dir",
             cache_dir,
             "export-pytorch",
@@ -236,7 +232,6 @@ class Testing(unittest.TestCase):
             "turnkey",
             "-i",
             bash(f"{corpus_dir}/*.py"),
-            "--build-only",
             "--cache-dir",
             cache_dir,
             "export-pytorch",
@@ -301,7 +296,6 @@ class Testing(unittest.TestCase):
             "turnkey",
             "-i",
             bash(f"{corpus_dir}/*.py"),
-            "--build-only",
             "--cache-dir",
             cache_dir,
             "export-pytorch",
@@ -398,7 +392,6 @@ class Testing(unittest.TestCase):
             os.path.join(corpus_dir, test_script),
             "--rebuild",
             "always",
-            "--build-only",
             "--cache-dir",
             cache_dir,
             "export-pytorch",
@@ -423,6 +416,7 @@ class Testing(unittest.TestCase):
             cache_dir,
             "export-pytorch",
             "optimize-onnx",
+            "benchmark",
         ]
         with patch.object(sys, "argv", testargs):
             turnkeycli()
@@ -444,6 +438,7 @@ class Testing(unittest.TestCase):
             cache_dir,
             "export-pytorch",
             "optimize-onnx",
+            "benchmark",
         ]
         with patch.object(sys, "argv", flatten(testargs)):
             turnkeycli()
@@ -472,7 +467,6 @@ class Testing(unittest.TestCase):
             bash(f"{corpus_dir}/*.py"),
             "--labels",
             "test_group::a,b",
-            "--build-only",
             "--cache-dir",
             cache_dir,
             "export-pytorch",
@@ -489,12 +483,13 @@ class Testing(unittest.TestCase):
         testargs = [
             "turnkey",
             bash(f"{corpus_dir}/linear.py"),
-            "--device",
-            "reimplement_me",
             "--cache-dir",
             cache_dir,
             "export-pytorch",
             "optimize-onnx",
+            "benchmark",
+            "--device",
+            "reimplement_me",
         ]
         with patch.object(sys, "argv", flatten(testargs)):
             turnkeycli()
@@ -537,12 +532,13 @@ class Testing(unittest.TestCase):
                 bash(f"{corpus_dir}/linear.py"),
                 "--cache-dir",
                 cache_dir,
+                "export-pytorch",
+                "optimize-onnx",
+                "benchmark",
                 "--device",
                 "x86",
                 "--runtime",
                 "trt",
-                "export-pytorch",
-                "optimize-onnx",
             ]
             with patch.object(sys, "argv", flatten(testargs)):
                 turnkeycli()
@@ -554,12 +550,11 @@ class Testing(unittest.TestCase):
             bash(f"{corpus_dir}/linear.py"),
             "--cache-dir",
             cache_dir,
+            "benchmark",
             "--device",
             "x86",
             "--runtime",
             "torch-eager",
-            # FIXME: remove/replace this when discovery/benchmarking are Stages
-            "export-pytorch",
         ]
         with patch.object(sys, "argv", flatten(testargs)):
             turnkeycli()
@@ -571,12 +566,13 @@ class Testing(unittest.TestCase):
             bash(f"{corpus_dir}/linear.py"),
             "--cache-dir",
             cache_dir,
+            "export-pytorch",
+            "optimize-onnx",
+            "benchmark",
             "--device",
             "x86",
             "--runtime",
             "ort",
-            "export-pytorch",
-            "optimize-onnx",
         ]
         with patch.object(sys, "argv", flatten(testargs)):
             turnkeycli()
@@ -600,6 +596,7 @@ class Testing(unittest.TestCase):
             "--opset",
             str(user_opset),
             "optimize-onnx",
+            "benchmark",
         ]
         with patch.object(sys, "argv", testargs):
             turnkeycli()
@@ -619,10 +616,11 @@ class Testing(unittest.TestCase):
             os.path.join(corpus_dir, test_script),
             "--cache-dir",
             cache_dir,
-            "--iterations",
-            str(test_iterations),
             "export-pytorch",
             "optimize-onnx",
+            "benchmark",
+            "--iterations",
+            str(test_iterations),
         ]
         with patch.object(sys, "argv", testargs):
             turnkeycli()
@@ -649,6 +647,7 @@ class Testing(unittest.TestCase):
                 "--process-isolation",
                 "export-pytorch",
                 "optimize-onnx",
+                "benchmark",
             ]
             with patch.object(sys, "argv", testargs):
                 turnkeycli()
@@ -683,6 +682,7 @@ class Testing(unittest.TestCase):
             cache_dir,
             "export-pytorch",
             "optimize-onnx",
+            "benchmark",
         ]
         with patch.object(sys, "argv", testargs):
             turnkeycli()
@@ -702,6 +702,7 @@ class Testing(unittest.TestCase):
                 "gobbledegook",
                 "export-pytorch",
                 "optimize-onnx",
+                "benchmark",
             ]
             with patch.object(sys, "argv", flatten(testargs)):
                 turnkeycli()
@@ -717,6 +718,7 @@ class Testing(unittest.TestCase):
             "--cache-dir",
             cache_dir,
             "export-pytorch",
+            "benchmark",
         ]
         with patch.object(sys, "argv", testargs):
             turnkeycli()
@@ -747,6 +749,7 @@ class Testing(unittest.TestCase):
             "--cache-dir",
             cache_dir,
             "onnx-load",
+            "benchmark",
         ]
         with patch.object(sys, "argv", testargs):
             turnkeycli()
@@ -781,6 +784,7 @@ class Testing(unittest.TestCase):
             "--cache-dir",
             cache_dir,
             "onnx-load",
+            "benchmark",
         ]
         with patch.object(sys, "argv", testargs):
             turnkeycli()
@@ -810,6 +814,7 @@ class Testing(unittest.TestCase):
                     filename,
                     "export-pytorch",
                     "optimize-onnx",
+                    "benchmark",
                 ]
                 with patch.object(sys, "argv", testargs):
                     turnkeycli()
@@ -825,6 +830,7 @@ class Testing(unittest.TestCase):
                     file_prefix,
                     "export-pytorch",
                     "optimize-onnx",
+                    "benchmark",
                 ]
                 with patch.object(sys, "argv", testargs):
                     turnkeycli()
@@ -840,7 +846,6 @@ class Testing(unittest.TestCase):
             os.path.join(extras_dir, "selected_models.txt"),
             "--cache-dir",
             cache_dir,
-            "--build-only",
             "export-pytorch",
             "optimize-onnx",
         ]
@@ -877,6 +882,7 @@ class Testing(unittest.TestCase):
             "--build-only",
             "export-pytorch",
             "optimize-onnx",
+            "benchmark",
         ]
         with patch.object(sys, "argv", flatten(testargs)):
             turnkeycli()
@@ -924,6 +930,7 @@ class Testing(unittest.TestCase):
             cache_dir,
             "export-pytorch",
             "optimize-onnx",
+            "benchmark",
         ]
         with patch.object(sys, "argv", flatten(testargs)):
             turnkeycli()
@@ -1028,7 +1035,6 @@ class Testing(unittest.TestCase):
             bash(f"{corpus_dir}/*.py"),
             "--cache-dir",
             cache_dir,
-            "--build-only",
             "export-pytorch",
             "optimize-onnx",
         ]

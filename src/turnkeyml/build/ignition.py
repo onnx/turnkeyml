@@ -44,7 +44,6 @@ def validate_cached_model(
     # should be listed here.
     cache_analysis_properties = [
         fs.Keys.BUILD_NAME,
-        fs.Keys.DEVICE,
         fs.Keys.SEQUENCE_INFO,
         fs.Keys.BUILD_STATUS,
         fs.Keys.TURNKEY_VERSION,
@@ -119,7 +118,6 @@ def validate_cached_model(
     changed_args = []
     for key in [
         fs.Keys.BUILD_NAME,
-        fs.Keys.DEVICE,
         fs.Keys.SEQUENCE_INFO,
     ]:
         if vars(new_state)[key] != vars(cached_state)[key]:
