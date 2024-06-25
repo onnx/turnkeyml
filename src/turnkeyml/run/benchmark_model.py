@@ -96,8 +96,6 @@ class Benchmark(stage.Stage):
         rt_args: Optional[str] = None,
     ):
 
-        stats = fs.Stats(state.cache_dir, state.build_name, state.evaluation_id)
-
         selected_runtime = apply_default_runtime(device, runtime)
 
         # Get the default part and config by providing the Device class with
@@ -122,21 +120,19 @@ class Benchmark(stage.Stage):
             ) from e
 
         # Save the device name that will be used for the benchmark
-        stats.save_model_eval_stat(
-            fs.Keys.DEVICE, runtime_info["RuntimeClass"].device_name()
-        )
+        state.save_stat(fs.Keys.DEVICE, runtime_info["RuntimeClass"].device_name())
 
         # Save specific information into its own key for easier access
-        stats.save_model_eval_stat(
+        state.save_stat(
             fs.Keys.DEVICE_TYPE,
             specific_device,
         )
-        stats.save_model_eval_stat(
+        state.save_stat(
             fs.Keys.RUNTIME,
             runtime,
         )
 
-        stats.save_model_eval_stat(
+        state.save_stat(
             fs.Keys.ITERATIONS,
             iterations,
         )
@@ -161,7 +157,7 @@ class Benchmark(stage.Stage):
         runtime_handle = runtime_info["RuntimeClass"](
             cache_dir=state.cache_dir,
             build_name=state.build_name,
-            stats=stats,
+            stats=fs.Stats(state.cache_dir, state.build_name),
             iterations=iterations,
             model=model_to_use,
             inputs=vars(state).get(fs.Keys.INPUTS),
@@ -172,7 +168,7 @@ class Benchmark(stage.Stage):
         perf = runtime_handle.benchmark()
 
         for key, value in vars(perf).items():
-            stats.save_model_eval_stat(
+            state.save_stat(
                 key=key,
                 value=value,
             )

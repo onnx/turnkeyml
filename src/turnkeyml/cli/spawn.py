@@ -381,18 +381,14 @@ def run_turnkey(
                         stats = filesystem.Stats(
                             cache_dir,
                             build_name,
-                            evaluation_id,
                         )
 
-                        for key in stats.evaluation_stats.keys():
-                            if (
-                                stats.evaluation_stats[key]
-                                == build.FunctionStatus.INCOMPLETE
-                            ):
-                                stats.save_model_eval_stat(key, evaluation_status)
+                        for key in stats.stats.keys():
+                            if stats.stats[key] == build.FunctionStatus.INCOMPLETE:
+                                stats.save_stat(key, evaluation_status)
 
                         # Save the exception into the error log stat
-                        stats.save_model_eval_stat(filesystem.Keys.ERROR_LOG, str(e))
+                        stats.save_stat(filesystem.Keys.ERROR_LOG, str(e))
 
                     except Exception as stats_exception:  # pylint: disable=broad-except
                         printing.log_info(

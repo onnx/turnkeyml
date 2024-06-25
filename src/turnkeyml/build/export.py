@@ -18,6 +18,7 @@ import turnkeyml.common.build as build
 import turnkeyml.build.tensor_helpers as tensor_helpers
 import turnkeyml.build.onnx_helpers as onnx_helpers
 import turnkeyml.common.filesystem as fs
+from turnkeyml.analyze.status import ModelInfo, UniqueInvocationInfo
 
 
 def check_model(onnx_file, success_message, fail_message) -> bool:
@@ -85,9 +86,7 @@ class OnnxLoad(stage.Stage):
     Stage that takes an ONNX model as input and passes it to the following
     stages.
 
-    Expected inputs:
-     - state.model is a path to the ONNX model
-     - state.inputs is a dict that represents valid inputs for the onnx model
+    Expected inputs: None
 
     Outputs:
      - A *-base.onnx file that implements state.model given state.inputs.
@@ -105,28 +104,28 @@ class OnnxLoad(stage.Stage):
             add_help=add_help,
         )
 
+        # Hidden argument required by TurnkeyML for any stage that starts a sequence
+        parser.add_argument("--input", help=argparse.SUPPRESS)
+
         return parser
 
-    def fire(self, state: fs.State):
-        if not isinstance(state.model, str):
-            msg = f"""
-            The current stage (ReceiveOnnxModel) is only compatible with
-            ONNX files, however the stage received a model of type
-            {type(state.model)}.
-            """
-            raise exp.StageError(msg)
-        if not state.model.endswith(".onnx"):
+    def fire(self, state: fs.State, input: str = ""):
+
+        onnx_file = input
+
+        if not onnx_file.endswith(".onnx"):
             msg = f"""
             The current stage (ReceiveOnnxModel) expects a path to ONNX
-            model, however the stage received {state.model}.
+            model, however the stage received {onnx_file}.
             """
             raise exp.StageError(msg)
 
+        state.inputs = onnx_helpers.dummy_inputs(onnx_file)
         dummy_inputs = tuple(state.inputs.values())
         dummy_input_names = tuple(state.inputs.keys())
         state.inputs = dict(zip(dummy_input_names, dummy_inputs))
 
-        model = onnx.load(state.model)
+        model = onnx.load(onnx_file)
         opset = onnx_helpers.get_opset(model)
         state.onnx_opset = opset
         input_shapes = [
@@ -163,7 +162,7 @@ class OnnxLoad(stage.Stage):
 
         output_path = base_onnx_file(state)
         os.makedirs(onnx_dir(state), exist_ok=True)
-        shutil.copy(state.model, output_path)
+        shutil.copy(onnx_file, output_path)
 
         tensor_helpers.save_inputs(
             [state.inputs],
@@ -178,8 +177,7 @@ class OnnxLoad(stage.Stage):
         if check_model(output_path, success_msg, fail_msg):
             state.results = output_path
 
-            stats = fs.Stats(state.cache_dir, state.build_name, state.evaluation_id)
-            stats.save_model_eval_stat(
+            state.save_stat(
                 fs.Keys.ONNX_FILE,
                 output_path,
             )
@@ -190,6 +188,32 @@ class OnnxLoad(stage.Stage):
             More information may be available in the log file at **{self.logfile_path}**
             """
             raise exp.StageError(msg)
+
+        # Create a UniqueInvocationInfo and ModelInfo so that we can display status
+        # at the end of the sequence
+        state.invocation_info = UniqueInvocationInfo(
+            name=onnx_file,
+            script_name=fs.clean_file_name(onnx_file),
+            file=onnx_file,
+            # build_model=True,
+            # executed=1,
+            input_shapes={key: value.shape for key, value in state.inputs.items()},
+            hash=state.model_hash,
+            is_target=True,
+            extension=".onnx",
+        )
+        state.models_found = {
+            "onnx_file": ModelInfo(
+                model=onnx_file,
+                name=onnx_file,
+                script_name=onnx_file,
+                file=onnx_file,
+                # build_model=True,
+                unique_invocations={state.model_hash: state.invocation_info},
+                hash=state.model_hash,
+            )
+        }
+        state.invocation_info.params = state.models_found["onnx_file"].params
 
         return state
 
@@ -291,8 +315,6 @@ class ExportPytorchModel(stage.Stage):
         default_warnings = warnings.showwarning
         warnings.showwarning = _warn_to_stdout
 
-        stats = fs.Stats(state.cache_dir, state.build_name, state.evaluation_id)
-
         # Verify if the exported model matches the input torch model
         try:
             # Tolerance levels for the torch export are recommended by Pytorch here:
@@ -327,7 +349,7 @@ class ExportPytorchModel(stage.Stage):
         except Exception:  # pylint: disable=broad-except
             is_export_valid = "unverified"
 
-        stats.save_model_eval_stat(
+        state.save_stat(
             fs.Keys.TORCH_ONNX_EXPORT_VALIDITY,
             is_export_valid,
         )
@@ -365,7 +387,7 @@ class ExportPytorchModel(stage.Stage):
         if check_model(output_path, success_msg, fail_msg):
             state.results = output_path
 
-            stats.save_model_eval_stat(
+            state.save_stat(
                 fs.Keys.ONNX_FILE,
                 output_path,
             )
@@ -436,8 +458,7 @@ class OptimizeOnnxModel(stage.Stage):
         if check_model(output_path, success_msg, fail_msg):
             state.results = output_path
 
-            stats = fs.Stats(state.cache_dir, state.build_name, state.evaluation_id)
-            stats.save_model_eval_stat(
+            state.save_stat(
                 fs.Keys.ONNX_FILE,
                 output_path,
             )
@@ -550,8 +571,7 @@ class ConvertOnnxToFp16(stage.Stage):
         if check_model(output_path, success_msg, fail_msg):
             state.results = output_path
 
-            stats = fs.Stats(state.cache_dir, state.build_name, state.evaluation_id)
-            stats.save_model_eval_stat(
+            state.save_stat(
                 fs.Keys.ONNX_FILE,
                 output_path,
             )
