@@ -207,6 +207,12 @@ def benchmark_files(
             file_path_encoded
         )
 
+        build_name = fs.get_build_name(
+            fs.clean_file_name(file_path_absolute),
+            labels,
+            targets[0] if len(targets) > 0 else None,
+        )
+
         if len(targets) > 1:
             raise exceptions.ArgError(
                 "Only one target (number after the ::) is allowed, "
@@ -246,6 +252,7 @@ def benchmark_files(
             benchmarking_args.pop("sequence")
 
             spawn.run_turnkey(
+                build_name=build_name,
                 sequence=sequence,
                 target=process_type,
                 file_name=encoded_input,
@@ -257,12 +264,6 @@ def benchmark_files(
             first_stage_args = next(iter(sequence.stages.values()))
             first_stage_args.append("--input")
             first_stage_args.append(file_path_encoded)
-
-            build_name = fs.get_build_name(
-                fs.clean_file_name(file_path_absolute),
-                labels,
-                targets[0] if len(targets) > 0 else None,
-            )
 
             # Create a build directory and stats file in the cache
             fs.make_build_dir(cache_dir, build_name)

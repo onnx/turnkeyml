@@ -199,6 +199,7 @@ def sequence_arg(value: Sequence) -> Dict[str, Dict[str, str]]:
 
 
 def run_turnkey(
+    build_name: str,
     sequence: Sequence,
     file_name: str,
     target: Target,
@@ -337,70 +338,47 @@ def run_turnkey(
                 f"turnkey will move on to the next input.\n\n{e}"
             )
 
-            # If an evaluation failed, it will be the last build mentioned in the
-            # subprocess's stdout. We look for the last instance because sometimes
-            # a single input file will contain multiple models, and therefore multiple
-            # builds.
-            # NOTE: the turnkey status outputs use the term "build" to refer to both
-            # builds and benchmarks, we collectively we refer to as evaluations here
-            build_name = None
-            evaluation_id = None
-            for line in process_output:
-                evaluation_id = parse_evaluation_id(line, evaluation_id)
-                build_name = parse_build_name(line, build_name)
+            # Perform fault handling
+            printing.log_info(
+                f"Detected failed build {build_name}. "
+                "The parent process will attempt to clean up."
+            )
 
-            # Perform fault handling if we found a failed evaluation
-            if build_name:
-                printing.log_info(
-                    f"Detected failed build {build_name}. "
-                    "The parent process will attempt to clean up."
-                )
+            # Cleaning the cache is the last step in evaluation
+            # If a "lean cache" evaluation was killed, it is safe to assume we still
+            # need to clean the cache
+            # It is also harmless to run clean_output_dir() again even if the subprocess
+            # did have a chance to run it before the subprocess was killed
+            if "--lean-cache" in command:
+                printing.log_info("Removing build artifacts...")
+                filesystem.clean_output_dir(cache_dir, build_name)
 
-                # Cleaning the cache is the last step in evaluation
-                # If a "lean cache" evaluation was killed, it is safe to assume we still
-                # need to clean the cache
-                # It is also harmless to run clean_output_dir() again even if the subprocess
-                # did have a chance to run it before the subprocess was killed
-                if "--lean-cache" in command:
-                    printing.log_info("Removing build artifacts...")
-                    filesystem.clean_output_dir(cache_dir, build_name)
+            # Perform fault handling within the stats file if it exists
+            if os.path.isfile(filesystem.stats_file(cache_dir, build_name)):
+                try:
+                    # Amend the stats with a specific function status if possible
+                    if isinstance(e, subprocess.TimeoutExpired):
+                        evaluation_status = build.FunctionStatus.TIMEOUT
+                    else:
+                        evaluation_status = build.FunctionStatus.KILLED
 
-                # Perform fault handling within the stats file if there is a stats
-                # file and we know the evaluation ID of the failed evaluation
-                if (
-                    os.path.isfile(filesystem.stats_file(cache_dir, build_name))
-                    and evaluation_id
-                ):
-                    try:
-                        # Amend the stats with a specific function status if possible
-                        if isinstance(e, subprocess.TimeoutExpired):
-                            evaluation_status = build.FunctionStatus.TIMEOUT
-                        else:
-                            evaluation_status = build.FunctionStatus.KILLED
+                    stats = filesystem.Stats(
+                        cache_dir,
+                        build_name,
+                    )
 
-                        stats = filesystem.Stats(
-                            cache_dir,
-                            build_name,
-                        )
+                    for key in stats.stats.keys():
+                        if stats.stats[key] == build.FunctionStatus.INCOMPLETE:
+                            stats.save_stat(key, evaluation_status)
 
-                        for key in stats.stats.keys():
-                            if stats.stats[key] == build.FunctionStatus.INCOMPLETE:
-                                stats.save_stat(key, evaluation_status)
+                    # Save the exception into the error log stat
+                    stats.save_stat(filesystem.Keys.ERROR_LOG, str(e))
 
-                        # Save the exception into the error log stat
-                        stats.save_stat(filesystem.Keys.ERROR_LOG, str(e))
-
-                    except Exception as stats_exception:  # pylint: disable=broad-except
-                        printing.log_info(
-                            "Stats file found, but unable to perform cleanup due to "
-                            f"exception: {stats_exception}"
-                        )
-
-            else:
-                printing.log_info(
-                    "Turnkey subprocess was killed before any "
-                    "build or benchmark could start."
-                )
+                except Exception as stats_exception:  # pylint: disable=broad-except
+                    printing.log_info(
+                        "Stats file found, but unable to perform cleanup due to "
+                        f"exception: {stats_exception}"
+                    )
 
     else:
         raise ValueError(f"Unsupported value for target: {target}.")
