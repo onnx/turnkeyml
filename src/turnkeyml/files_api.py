@@ -276,11 +276,16 @@ def benchmark_files(
                 system_info,
             )
 
+            file_labels = fs.read_labels(file_path_absolute)
+
             # Save lables info
-            if fs.Keys.AUTHOR in labels:
-                stats.save_stat(fs.Keys.AUTHOR, labels[fs.Keys.AUTHOR][0])
-            if fs.Keys.TASK in labels:
-                stats.save_stat(fs.Keys.TASK, labels[fs.Keys.TASK][0])
+            if fs.Keys.AUTHOR in file_labels:
+                stats.save_stat(fs.Keys.AUTHOR, file_labels[fs.Keys.AUTHOR][0])
+            if fs.Keys.TASK in file_labels:
+                stats.save_stat(fs.Keys.TASK, file_labels[fs.Keys.TASK][0])
+
+            # Save all of the lables in one place
+            stats.save_stat(fs.Keys.LABELS, file_labels)
 
             # Save a timestamp so that we know the order of builds within a cache
             stats.save_stat(
@@ -318,6 +323,7 @@ def benchmark_files(
                 sequence=sequence,
                 cache_dir=cache_dir,
                 rebuild=rebuild,
+                lean_cache=lean_cache,
             )
 
     # Wait until all the Slurm jobs are done

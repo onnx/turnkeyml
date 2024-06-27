@@ -47,60 +47,10 @@ class TracerArgs:
     script_name: Optional[str] = None
 
     @functools.cached_property
-    def labels(self) -> Dict[str, str]:
-        # Load labels data from python scripts
-        # This is not compatible with ONNX files, so we return
-        # and empty dictionary in that case
-        if self.input.endswith(".py"):
-            return labels.load_from_file(self.input)
-        else:
-            return {}
-
-    @functools.cached_property
     def torch_activations(self) -> List[str]:
         act = _get_classes(torch.nn.modules.activation)
         act += _get_transformers_activations()
         return act
-
-    @property
-    def saveable_dict(self) -> Dict:
-        """
-        Convert TracerArgs data into a dictionary that is safe to save to YAML format.
-        All members must be str, List[str], or Dict[str]
-        """
-
-        result = {}
-
-        # Get each field from this dataclass, which corresponds
-        # all of the turnkey API/CLI args we want to save
-        for field in dataclasses.fields(self):
-            # Get the value corresponding to each field
-            arg_value = getattr(self, field.name)
-
-            # Some of the args have types that are compatible with the YAML
-            # format, so we will need to ignore them or process them before saving
-            saved_value = None
-
-            if field.name == "models_found":
-                # Do not include "models_found" because
-                # 1. It spans multiple invocations
-                # 2. Includes all the weights of all the models
-                continue
-            else:
-                # All other field types can be saved directly
-                saved_value = arg_value
-
-            if saved_value:
-                result[field.name] = saved_value
-
-        return result
-
-    def __str__(self) -> str:
-        result = ""
-        for key, value in self.saveable_dict.items():
-            result = result + f"{key} {value} "
-
-        return result
 
     @property
     def hash(self) -> str:
@@ -320,6 +270,8 @@ def explore_frame(
                         parent_hash=parent_invocation_hash,
                         inputs=[args, kwargs],
                         extension=f".{tracer_args.input.split('.')[-1]}",
+                        forward_function_pointer=local_var.forward,
+                        original_forward_function=old_forward,
                     )
                 )
             model_info.last_unique_invocation_executed = invocation_hash
@@ -336,7 +288,6 @@ def explore_frame(
             invocation_info.executed = invocation_info.executed + 1
 
             # Turn tracing on again after computing the outputs
-            local_var.forward = old_forward
             sys.setprofile(tracer)
 
             return outputs
@@ -504,5 +455,12 @@ def evaluate_script(tracer_args: TracerArgs) -> Dict[str, status.ModelInfo]:
 
     # Stop profiling when we're done executing the module
     sys.setprofile(None)
+
+    # Restore the original forward function for all models
+    for model_info in tracer_args.models_found.values():
+        for invocation_info in model_info.unique_invocations.values():
+            invocation_info.forward_function_pointer = (
+                invocation_info.original_forward_function
+            )
 
     return tracer_args.models_found

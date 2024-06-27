@@ -477,6 +477,16 @@ def expand_inputs(input_paths: List[str]) -> List[str]:
     return input_paths_expanded
 
 
+def read_labels(file_path: str) -> Dict[str, str]:
+    # Load labels data from python scripts
+    # This is not compatible with ONNX files, so we return
+    # and empty dictionary in that case
+    if file_path.endswith(".py"):
+        return labels.load_from_file(file_path)
+    else:
+        return {}
+
+
 def rebase_cache_dir(input_path: str, build_name: str, new_cache_dir: str):
     """
     Rebase a turnkey build path onto a new turnkey cache directory.

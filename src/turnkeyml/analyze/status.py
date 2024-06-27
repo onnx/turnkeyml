@@ -89,7 +89,8 @@ class UniqueInvocationInfo(BasicInfo):
     status_message_color: printing.Colors = printing.Colors.ENDC
     traceback_message_color: printing.Colors = printing.Colors.FAIL
     stats_keys: List[str] = dataclasses.field(default_factory=list)
-
+    forward_function_pointer: callable = None
+    original_forward_function: callable = None
     # Fields specific to printing status
     skip: SkipFields = None
     extension: str = None
