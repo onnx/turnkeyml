@@ -1,5 +1,6 @@
 import argparse
 import copy
+import os
 import inspect
 from typing import Optional, List
 import torch
@@ -10,9 +11,10 @@ from turnkeyml.analyze.script import (
     evaluate_script,
     TracerArgs,
 )
+import turnkeyml.common.printing as printing
 
 
-default_max_depth = 1
+default_max_depth = 0
 
 
 class Discover(stage.Stage):
@@ -51,7 +53,7 @@ class Discover(stage.Stage):
             "--max-depth",
             dest="max_depth",
             type=int,
-            default=0,
+            default=default_max_depth,
             help="Maximum depth to analyze within the model structure of the target script(s)",
         )
 
@@ -100,9 +102,34 @@ class Discover(stage.Stage):
         # a tracer enabled
         models_found = evaluate_script(tracer_args)
 
+        # Count the amount of build-able model invocations discovered
+        # If there is only 1, pass it to the next build stage. Otherwise,
+        # print all the invocations and suggest that the user select one.
+        count = 0
         for model_info in models_found.values():
-            for invocation in model_info.unique_invocations.values():
-                if invocation.is_target:
+            for (
+                invocation_hash,
+                invocation_info,
+            ) in model_info.unique_invocations.items():
+                count += 1
+
+                # Set the same status for all invocations at first
+                # The next code block will be responsible for the selected
+                # invocation.
+
+                invocation_info.status_message = f"Discovered; select with `-i {os.path.basename(model_info.file)}::{invocation_hash}"
+                invocation_info.status_message_color = printing.Colors.OKCYAN
+
+        for model_info in models_found.values():
+            for invocation_info in model_info.unique_invocations.values():
+                if invocation_info.is_target or (
+                    len(targets_to_use) == 0 and count > 1
+                ):
+                    # invocation_info.status_message = f"Model auto-selected (select manually with `-i {os.path.basename(model_info.file)}::{invocation_hash})"
+                    # invocation_info.status_message_color = printing.Colors.OKGREEN
+                    if len(targets_to_use) == 0 and count > 1:
+                        invocation_info.auto_selected = True
+
                     # Save stats about the model
                     state.save_stat(
                         fs.Keys.HASH,
@@ -127,7 +154,7 @@ class Discover(stage.Stage):
                     state.model = model_info.model
 
                     # Organize the inputs to python model instances
-                    args, kwargs = invocation.inputs
+                    args, kwargs = invocation_info.inputs
                     inputs = {}
                     for k in kwargs.keys():
                         if torch.is_tensor(kwargs[k]):
@@ -150,7 +177,9 @@ class Discover(stage.Stage):
                             else:
                                 inputs[all_args[i]] = args[i]
                     state.inputs = inputs
-                    state.invocation_info = invocation
+                    state.invocation_info = invocation_info
                     state.models_found = models_found
+
+                    return state
 
         return state

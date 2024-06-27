@@ -372,9 +372,11 @@ class Sequence:
                 if vars(state).get("models_found") and vars(state).get(
                     "invocation_info"
                 ):
-                    state.invocation_info.status_message = (
-                        "Stages successfully executed!"
-                    )
+                    if state.invocation_info.auto_selected:
+                        msg = f"(auto-selected; select manually with `-i {os.path.basename(state.invocation_info.file)}::{state.invocation_info.invocation_hash})"
+                    else:
+                        msg = ""
+                    state.invocation_info.status_message = f"Successful build! {msg}"
                     state.invocation_info.status_message_color = printing.Colors.OKGREEN
 
             finally:
@@ -389,11 +391,19 @@ class Sequence:
                 state.invocation_info.stats_keys += stage.status_stats
 
             print()
-            status.update(
-                state.models_found,
-                state.build_name,
-                state.invocation_info,
+            # status.update(
+            #     state.models_found,
+            #     state.build_name,
+            #     state.invocation_info,
+            #     cache_dir=state.cache_dir,
+            # )
+            status.recursive_print(
+                models_found=state.models_found,
+                build_name=state.build_name,
                 cache_dir=state.cache_dir,
+                parent_model_hash=None,
+                parent_invocation_hash=None,
+                script_names_visited=[],
             )
 
         if state.lean_cache:

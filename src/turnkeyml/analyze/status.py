@@ -85,6 +85,7 @@ class UniqueInvocationInfo(BasicInfo):
     exec_time: float = 0.0
     status_message: str = ""
     is_target: bool = False
+    auto_selected: bool = False
     status_message_color: printing.Colors = printing.Colors.ENDC
     traceback_message_color: printing.Colors = printing.Colors.FAIL
     stats_keys: List[str] = dataclasses.field(default_factory=list)
@@ -181,7 +182,7 @@ class UniqueInvocationInfo(BasicInfo):
         self.skip.input_shape = True
 
     def _print_build_dir(self, cache_dir: str, build_name: str):
-        if self.skip.build_dir:
+        if self.skip.build_dir or not self.is_target:
             return
 
         print(f"{self.indent}\tBuild dir:\t{build.output_dir(cache_dir, build_name)}")
@@ -200,12 +201,13 @@ class UniqueInvocationInfo(BasicInfo):
                 # Print some whitespace to help the status stand out
                 print()
 
+        printing.log(f"{self.indent}\tStatus:\t\t")
+        printing.logn(
+            f"{self.status_message}",
+            c=self.status_message_color,
+        )
         if self.is_target:
-            printing.log(f"{self.indent}\tStatus:\t\t")
-            printing.logn(
-                f"{self.status_message}",
-                c=self.status_message_color,
-            )
+
             for key in self.stats_keys:
                 nice_key = _pretty_print_key(key)
                 try:

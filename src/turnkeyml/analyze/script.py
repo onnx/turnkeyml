@@ -336,6 +336,7 @@ def explore_frame(
             invocation_info.executed = invocation_info.executed + 1
 
             # Turn tracing on again after computing the outputs
+            local_var.forward = old_forward
             sys.setprofile(tracer)
 
             return outputs
