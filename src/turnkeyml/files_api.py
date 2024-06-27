@@ -207,9 +207,11 @@ def benchmark_files(
             file_path_encoded
         )
 
+        file_labels = fs.read_labels(file_path_absolute)
+
         build_name = fs.get_build_name(
             fs.clean_file_name(file_path_absolute),
-            labels,
+            file_labels,
             targets[0] if len(targets) > 0 else None,
         )
 
@@ -228,8 +230,7 @@ def benchmark_files(
                     file_path_absolute,
                 )
             required_labels = labels_library.to_dict(labels)
-            script_labels = labels_library.load_from_file(encoded_input)
-            if not labels_library.is_subset(required_labels, script_labels):
+            if not labels_library.is_subset(required_labels, file_labels):
                 continue
 
         if use_slurm or process_isolation:
@@ -275,8 +276,6 @@ def benchmark_files(
                 fs.Keys.SYSTEM_INFO,
                 system_info,
             )
-
-            file_labels = fs.read_labels(file_path_absolute)
 
             # Save lables info
             if fs.Keys.AUTHOR in file_labels:

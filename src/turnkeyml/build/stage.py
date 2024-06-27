@@ -373,7 +373,11 @@ class Sequence:
                     "invocation_info"
                 ):
                     if state.invocation_info.auto_selected:
-                        msg = f"(auto-selected; select manually with `-i {os.path.basename(state.invocation_info.file)}::{state.invocation_info.invocation_hash})"
+                        msg = (
+                            "(auto-selected; select manually with "
+                            f"`-i {os.path.basename(state.invocation_info.file)}"
+                            f"::{state.invocation_info.invocation_hash})"
+                        )
                     else:
                         msg = ""
                     state.invocation_info.status_message = f"Successful build! {msg}"

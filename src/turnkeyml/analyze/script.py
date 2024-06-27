@@ -14,7 +14,6 @@ import torch
 import turnkeyml.common.build as build
 import turnkeyml.analyze.status as status
 import turnkeyml.analyze.model as analyze_model
-import turnkeyml.common.labels as labels
 import turnkeyml.common.filesystem as fs
 
 

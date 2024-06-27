@@ -117,7 +117,10 @@ class Discover(stage.Stage):
                 # The next code block will be responsible for the selected
                 # invocation.
 
-                invocation_info.status_message = f"Discovered; select with `-i {os.path.basename(model_info.file)}::{invocation_hash}"
+                invocation_info.status_message = (
+                    "Discovered; select with `-i "
+                    f"{os.path.basename(model_info.file)}::{invocation_hash}"
+                )
                 invocation_info.status_message_color = printing.Colors.OKCYAN
 
         for model_info in models_found.values():
@@ -125,8 +128,6 @@ class Discover(stage.Stage):
                 if invocation_info.is_target or (
                     len(targets_to_use) == 0 and count > 1
                 ):
-                    # invocation_info.status_message = f"Model auto-selected (select manually with `-i {os.path.basename(model_info.file)}::{invocation_hash})"
-                    # invocation_info.status_message_color = printing.Colors.OKGREEN
                     if len(targets_to_use) == 0 and count > 1:
                         invocation_info.auto_selected = True
 

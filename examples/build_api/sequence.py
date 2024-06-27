@@ -8,6 +8,7 @@ import torch
 from turnkeyml import build_model
 import turnkeyml.build.export as export
 import turnkeyml.build.stage as stage
+from turnkeyml.analyze.discover import Discover
 
 
 torch.manual_seed(0)
@@ -32,7 +33,11 @@ pytorch_model = SmallModel(input_size, output_size)
 inputs = {"x": torch.rand(input_size, dtype=torch.float32)}
 
 onnx_sequence = stage.Sequence(
-    stages={export.ExportPytorchModel(): [], export.OptimizeOnnxModel(): []}
+    stages={
+        Discover(): [],
+        export.ExportPytorchModel(): [],
+        export.OptimizeOnnxModel(): [],
+    }
 )
 
 # Build model

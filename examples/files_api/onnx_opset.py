@@ -13,6 +13,7 @@ import argparse
 from turnkeyml import benchmark_files
 from turnkeyml.build.stage import Sequence
 from turnkeyml.build.export import ExportPytorchModel
+from turnkeyml.analyze.discover import Discover
 
 
 def main():
@@ -35,7 +36,9 @@ def main():
         pathlib.Path(__file__).parent.resolve() / "scripts" / "hello_world.py"
     )
 
-    sequence = Sequence(stages={ExportPytorchModel(): ["--opset", args.onnx_opset]})
+    sequence = Sequence(
+        stages={Discover(): [], ExportPytorchModel(): ["--opset", args.onnx_opset]}
+    )
     benchmark_files(
         input_files=[path_to_hello_world_script],
         sequence=sequence,

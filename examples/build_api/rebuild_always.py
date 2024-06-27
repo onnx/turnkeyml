@@ -14,6 +14,7 @@ import torch
 from turnkeyml import build_model
 from turnkeyml.build.stage import Sequence
 from turnkeyml.build.export import ExportPytorchModel
+from turnkeyml.analyze.discover import Discover
 
 torch.manual_seed(0)
 
@@ -36,7 +37,7 @@ pytorch_model = SmallModel(input_size, output_size)
 inputs = {"x": torch.rand(input_size)}
 
 # Build/Rebuild model
-sequence = Sequence(stages={ExportPytorchModel(): []})
+sequence = Sequence(stages={Discover(): [], ExportPytorchModel(): []})
 build_model(sequence=sequence, model=pytorch_model, inputs=inputs, rebuild="always")
 
 print("Example rebuild_always.py finished")
