@@ -112,6 +112,7 @@ class OnnxLoad(stage.Stage):
     def fire(self, state: fs.State, input: str = ""):
 
         onnx_file = input
+        state.model_hash = build.hash_model(onnx_file)
 
         if not onnx_file.endswith(".onnx"):
             msg = f"""
@@ -147,6 +148,7 @@ class OnnxLoad(stage.Stage):
                     """
                     raise exp.StageError(msg)
 
+        print(opset)
         if opset < build.DEFAULT_ONNX_OPSET and opset >= build.MINIMUM_ONNX_OPSET:
             print(
                 f" \n The received model has an opset {opset}. Though this opset is supported \
@@ -154,8 +156,8 @@ class OnnxLoad(stage.Stage):
             )
         elif opset < build.MINIMUM_ONNX_OPSET:
             msg = f"""
-            The received model has an opset {opset}. Opset < 11 is not supported. Please
-            try upgrading the model to opset 13.
+            The received model has an opset {opset}. Opset < {build.MINIMUM_ONNX_OPSET} 
+            is not supported. Please try upgrading the model to opset {build.MINIMUM_ONNX_OPSET}.
             More information may be available in the log file at **{self.logfile_path}**
             """
             raise exp.StageError(msg)
@@ -195,8 +197,6 @@ class OnnxLoad(stage.Stage):
             name=onnx_file,
             script_name=fs.clean_file_name(onnx_file),
             file=onnx_file,
-            # build_model=True,
-            # executed=1,
             input_shapes={key: value.shape for key, value in state.inputs.items()},
             hash=state.model_hash,
             is_target=True,
@@ -208,7 +208,6 @@ class OnnxLoad(stage.Stage):
                 name=onnx_file,
                 script_name=onnx_file,
                 file=onnx_file,
-                # build_model=True,
                 unique_invocations={state.model_hash: state.invocation_info},
                 hash=state.model_hash,
             )
