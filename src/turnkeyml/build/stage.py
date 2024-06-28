@@ -310,6 +310,7 @@ class Sequence:
             state.save_stat(stage.duration_key, "-")
 
         # Run the build
+        saved_exception = None
         for stage, argv in self.stages.items():
             start_time = time.time()
 
@@ -360,14 +361,16 @@ class Sequence:
                 if vars(state).get("invocation_info"):
                     state.invocation_info.status_message = f"Error: {e}."
                     state.invocation_info.status_message_color = printing.Colors.WARNING
-
-                    _store_traceback(state.invocation_info)
                 else:
                     printing.log_error(e)
+
+                saved_exception = e
 
             else:
                 # Update Stage Status
                 state.save_stat(stage.status_key, build.FunctionStatus.SUCCESSFUL)
+                state.current_build_stage = None
+                state.build_status = build.FunctionStatus.SUCCESSFUL
 
                 if vars(state).get("models_found") and vars(state).get(
                     "invocation_info"
@@ -395,12 +398,7 @@ class Sequence:
                 state.invocation_info.stats_keys += stage.status_stats
 
             print()
-            # status.update(
-            #     state.models_found,
-            #     state.build_name,
-            #     state.invocation_info,
-            #     cache_dir=state.cache_dir,
-            # )
+
             status.recursive_print(
                 models_found=state.models_found,
                 build_name=state.build_name,
@@ -414,9 +412,10 @@ class Sequence:
             printing.log_info("Removing build artifacts...")
             fs.clean_output_dir(state.cache_dir, state.build_name)
 
-        state.current_build_stage = None
-        state.build_status = build.FunctionStatus.SUCCESSFUL
         state.save()
+
+        if saved_exception:
+            raise saved_exception
 
         return state
 
