@@ -110,7 +110,6 @@ print(parsed_args)
     "two_executions.py": """
 import torch
 import timm
-from turnkeyml.parser import parse
 
 # Creating model and set it to evaluation mode
 model = timm.create_model("mobilenetv2_035", pretrained=False)
