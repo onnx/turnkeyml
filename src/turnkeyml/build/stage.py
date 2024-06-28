@@ -3,7 +3,6 @@ import sys
 import time
 import os
 import argparse
-import traceback
 from typing import List, Tuple, Dict
 from multiprocessing import Process
 import psutil
