@@ -389,8 +389,8 @@ class Stats:
 
         os.makedirs(os.path.dirname(self.file), exist_ok=True)
         if not os.path.exists(self.file):
-            initial = {}
-            _save_yaml(initial, self.file)
+            # Start an empty stats file
+            _save_yaml({}, self.file)
 
     @property
     def stats(self):

@@ -57,21 +57,6 @@ def _name_is_file_safe(name: str):
             raise ValueError(msg)
 
 
-def _store_traceback(invocation_info: status.UniqueInvocationInfo):
-    """
-    Store the traceback from an exception into invocation_info so that
-    we can print it during the status update.
-    """
-
-    exc_type, exc_value, exc_traceback = sys.exc_info()
-    invocation_info.traceback = traceback.format_exception(
-        exc_type, exc_value, exc_traceback
-    )
-
-    # Remove line breaks and sequences of spaces from status message
-    invocation_info.status_message = " ".join(invocation_info.status_message.split())
-
-
 class Stage(abc.ABC):
 
     unique_name: str

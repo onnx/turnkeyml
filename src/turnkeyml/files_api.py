@@ -194,11 +194,6 @@ def benchmark_files(
     )
     benchmarking_args["verbosity"] = verbosity_policy
 
-    # Fork the args for analysis since they have differences from the spawn args:
-    # build_only and analyze_only are encoded into actions
-    analysis_args = copy.deepcopy(benchmarking_args)
-    analysis_args.pop("timeout")
-
     for file_path_encoded in tqdm(input_files_expanded, disable=not use_progress_bar):
 
         printing.log_info(f"Running turnkey on {file_path_encoded}")
