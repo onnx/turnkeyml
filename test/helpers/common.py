@@ -141,8 +141,7 @@ def get_stats_and_state(
             stats = fs.Stats(
                 build_state.cache_dir,
                 build_state.build_name,
-                build_state.evaluation_id,
             )
-            return stats.evaluation_stats, build_state
+            return stats.stats, build_state
 
     raise Exception(f"Stats not found for {test_script}")

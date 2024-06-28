@@ -29,6 +29,7 @@ class Testing(unittest.TestCase):
             os.path.join(corpus_dir, test_script),
             "--cache-dir",
             cache_dir,
+            "discover",
             "export-pytorch",
             "optimize-onnx",
             "benchmark",
