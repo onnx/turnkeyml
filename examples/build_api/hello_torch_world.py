@@ -13,7 +13,6 @@ import torch
 from turnkeyml import build_model
 from turnkeyml.build.stage import Sequence
 from turnkeyml.build.export import ExportPytorchModel
-from turnkeyml.analyze.discover import Discover
 
 torch.manual_seed(0)
 
@@ -36,7 +35,7 @@ pytorch_model = SmallModel(input_size, output_size)
 inputs = {"x": torch.rand(input_size)}
 
 # Build the model
-sequence = Sequence(stages={Discover(): [], ExportPytorchModel(): []})
+sequence = Sequence(stages={ExportPytorchModel(): []})
 state = build_model(
     sequence=sequence,
     model=pytorch_model,

@@ -59,7 +59,7 @@ jobs:
           rm -rf ~/.cache/turnkey
           turnkey -i examples/cli/scripts/multiple_invocations.py discover export-pytorch benchmark
           rm -rf ~/.cache/turnkey
-          turnkey -i examples/cli/scripts/max_depth.py --max-depth 1 discover export-pytorch benchmark
+          turnkey -i examples/cli/scripts/max_depth.py discover --max-depth 1 export-pytorch benchmark
           rm -rf ~/.cache/turnkey
           turnkey -i examples/cli/scripts/two_models.py discover export-pytorch benchmark
           rm -rf ~/.cache/turnkey

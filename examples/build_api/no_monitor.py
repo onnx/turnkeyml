@@ -7,7 +7,6 @@ import torch
 from turnkeyml import build_model
 from turnkeyml.build.stage import Sequence
 from turnkeyml.build.export import ExportPytorchModel
-from turnkeyml.analyze.discover import Discover
 
 torch.manual_seed(0)
 
@@ -30,7 +29,7 @@ pytorch_model = SmallModel(input_size, output_size)
 inputs = {"x": torch.rand(input_size)}
 
 # Build pytorch_model with `monitor` explicitly set to True
-sequence = Sequence(stages={Discover(): [], ExportPytorchModel(): []})
+sequence = Sequence(stages={ExportPytorchModel(): []})
 print("build_model() will now build the model with the monitor enabled...")
 build_model(
     sequence=sequence,
