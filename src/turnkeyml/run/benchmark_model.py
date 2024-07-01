@@ -9,7 +9,7 @@ from turnkeyml.run.devices import (
     apply_default_runtime,
 )
 import turnkeyml.cli.parser_helpers as parser_helpers
-from turnkeyml.common.performance import Device
+from turnkeyml.common.performance import Device, parse_device
 
 default_iterations = 100
 benchmark_default_device = "x86"
@@ -83,23 +83,9 @@ class Benchmark(stage.Stage):
         parsed_args = super().parse(state, args, known_only)
 
         # Inherit the device from the stage of a prior stage, if available
-        if parsed_args.device is None:
-            if vars(state).get("device") is None:
-                parsed_args.device = benchmark_default_device
-            else:
-                parsed_args.device = state.device
-        else:
-            if (
-                vars(state).get("device") is not None
-                and state.device != parsed_args.device
-            ):
-                raise exp.ArgError(
-                    f"A previous stage set the device to {state.device}, "
-                    f"however this stage ({self.__class__.__name__}) "
-                    f"is attempting to set device to {parsed_args.device}. "
-                    "We suggest ommitting the `--device` argument from "
-                    "this stage."
-                )
+        parse_device(
+            state, parsed_args, benchmark_default_device, self.__class__.__name__
+        )
 
         parsed_args.rt_args = parser_helpers.decode_args(parsed_args.rt_args)
 
