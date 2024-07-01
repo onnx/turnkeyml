@@ -220,6 +220,7 @@ def _rewind_stdout(lines: int = 1):
     rewind_stdout_one_line = "\033[1A"
     rewind_multiple_lines = rewind_stdout_one_line * lines
     print(rewind_multiple_lines, end="")
+    sys.stdout.flush()
 
 
 class Sequence:
@@ -354,26 +355,27 @@ class Sequence:
                 # Update Stage Status
                 state.save_stat(stage.status_key, build.FunctionStatus.SUCCESSFUL)
                 state.current_build_stage = None
-                state.build_status = build.FunctionStatus.SUCCESSFUL
-
-                if vars(state).get("models_found") and vars(state).get(
-                    "invocation_info"
-                ):
-                    if state.invocation_info.auto_selected:
-                        msg = (
-                            "(auto-selected; select manually with "
-                            f"`-i {os.path.basename(state.invocation_info.file)}"
-                            f"::{state.invocation_info.invocation_hash})"
-                        )
-                    else:
-                        msg = ""
-                    state.invocation_info.status_message = f"Successful build! {msg}"
-                    state.invocation_info.status_message_color = printing.Colors.OKGREEN
 
             finally:
                 # Store stage duration
                 execution_time = time.time() - start_time
                 state.save_stat(stage.duration_key, execution_time)
+
+        if not saved_exception:
+            state.build_status = build.FunctionStatus.SUCCESSFUL
+            state.save_stat(fs.Keys.BUILD_STATUS, build.FunctionStatus.SUCCESSFUL)
+
+            if vars(state).get("models_found") and vars(state).get("invocation_info"):
+                if state.invocation_info.auto_selected:
+                    msg = (
+                        "(auto-selected; select manually with "
+                        f"`-i {os.path.basename(state.invocation_info.file)}"
+                        f"::{state.invocation_info.invocation_hash})"
+                    )
+                else:
+                    msg = ""
+                state.invocation_info.status_message = f"Successful build! {msg}"
+                state.invocation_info.status_message_color = printing.Colors.OKGREEN
 
         if vars(state).get("models_found") and vars(state).get("invocation_info"):
 

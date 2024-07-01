@@ -46,7 +46,6 @@ class Benchmark(stage.Stage):
             help="Type of hardware device to be used for the benchmark "
             f'(defaults to "{benchmark_default_device}")',
             required=False,
-            default=benchmark_default_device,
         )
 
         parser.add_argument(
@@ -82,6 +81,25 @@ class Benchmark(stage.Stage):
 
     def parse(self, state: fs.State, args, known_only=True) -> argparse.Namespace:
         parsed_args = super().parse(state, args, known_only)
+
+        # Inherit the device from the stage of a prior stage, if available
+        if parsed_args.device is None:
+            if vars(state).get("device") is None:
+                parsed_args.device = benchmark_default_device
+            else:
+                parsed_args.device = state.device
+        else:
+            if (
+                vars(state).get("device") is not None
+                and state.device != parsed_args.device
+            ):
+                raise exp.ArgError(
+                    f"A previous stage set the device to {state.device}, "
+                    f"however this stage ({self.__class__.__name__}) "
+                    f"is attempting to set device to {parsed_args.device}. "
+                    "We suggest ommitting the `--device` argument from "
+                    "this stage."
+                )
 
         parsed_args.rt_args = parser_helpers.decode_args(parsed_args.rt_args)
 

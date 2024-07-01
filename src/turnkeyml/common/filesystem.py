@@ -432,6 +432,10 @@ class Stats:
         _save_yaml(stats_dict, self.file)
 
     def save_eval_error_log(self, logfile_path):
+        if logfile_path is None:
+            # Avoid an error in the situation where we crashed before
+            # initializing the stage (in which case it has no logfile path yet)
+            return
         if os.path.exists(logfile_path):
             with open(logfile_path, "r", encoding="utf-8") as f:
                 full_log = f.readlines()
