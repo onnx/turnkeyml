@@ -349,7 +349,12 @@ class Sequence:
                 else:
                     printing.log_error(e)
 
+                # We will raise this exception after we capture as many statistics
+                # about the build as possible
                 saved_exception = e
+
+                # Don't run any more stages
+                break
 
             else:
                 # Update Stage Status
