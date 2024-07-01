@@ -9,7 +9,7 @@ import sys
 from turnkeyml.cli.cli import main as turnkeycli
 import turnkeyml.common.filesystem as filesystem
 import turnkeyml.common.build as build
-from helpers import common
+import turnkeyml.common.test_helpers as common
 
 
 class Testing(unittest.TestCase):

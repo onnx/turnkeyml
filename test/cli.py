@@ -24,7 +24,7 @@ import turnkeyml.common.exceptions as exceptions
 import turnkeyml.build.export as export
 import turnkeyml.cli.spawn as spawn
 from turnkeyml.cli.parser_helpers import decode_args, encode_args
-from helpers import common
+import turnkeyml.common.test_helpers as common
 
 
 def bash(cmd: str) -> List[str]:
