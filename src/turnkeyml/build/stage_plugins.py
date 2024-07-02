@@ -20,6 +20,7 @@ SUPPORTED_STAGES = [
     export.OptimizeOnnxModel,
     export.OnnxLoad,
     export.ConvertOnnxToFp16,
+    export.VerifyOnnxExporter,
 ]
 
 # Add sequences from plugins to supported sequences dict

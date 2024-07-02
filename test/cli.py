@@ -1072,6 +1072,25 @@ class Testing(unittest.TestCase):
         # Make sure the benchmarks happened
         assert_success_of_builds(test_scripts, cache_dir, check_perf=True)
 
+    def test_028_cli_onnx_verify(self):
+        # Test the first model in the corpus
+        test_script = list(common.test_scripts_dot_py.keys())[0]
+
+        testargs = [
+            "turnkey",
+            "-i",
+            os.path.join(corpus_dir, test_script),
+            "--cache-dir",
+            cache_dir,
+            "verify-onnx-exporter",
+            "export-pytorch",
+            "optimize-onnx",
+        ]
+        with patch.object(sys, "argv", testargs):
+            turnkeycli()
+
+        assert_success_of_builds([test_script], cache_dir)
+
 
 if __name__ == "__main__":
     # Create a cache directory a directory with test models
