@@ -24,7 +24,7 @@ import turnkeyml.common.exceptions as exceptions
 import turnkeyml.build.export as export
 import turnkeyml.cli.spawn as spawn
 from turnkeyml.cli.parser_helpers import decode_args, encode_args
-from helpers import common
+import turnkeyml.common.test_helpers as common
 
 
 def bash(cmd: str) -> List[str]:
@@ -71,7 +71,6 @@ def assert_success_of_builds(
                 stats = fs.Stats(
                     build_state.cache_dir,
                     build_state.build_name,
-                    build_state.evaluation_id,
                 )
                 assert build_state.build_status == build.FunctionStatus.SUCCESSFUL
                 script_build_found = True
@@ -83,11 +82,11 @@ def assert_success_of_builds(
                     ), f"{build_state.info.__dict__[info_property[0]]} == {info_property[1]}"
 
                 if check_perf:
-                    assert stats.evaluation_stats["mean_latency"] > 0
-                    assert stats.evaluation_stats["throughput"] > 0
+                    assert stats.stats["mean_latency"] > 0
+                    assert stats.stats["throughput"] > 0
 
                 if check_iteration_count:
-                    iterations = stats.evaluation_stats["iterations"]
+                    iterations = stats.stats["iterations"]
                     assert iterations == check_iteration_count
 
                 if check_opset:
@@ -138,6 +137,7 @@ class Testing(unittest.TestCase):
             os.path.join(corpus_dir, test_script),
             "--cache-dir",
             cache_dir,
+            "discover",
             "export-pytorch",
             "optimize-onnx",
         ]
@@ -157,6 +157,7 @@ class Testing(unittest.TestCase):
             os.path.join(corpus_dir, test_scripts[1]),
             "--cache-dir",
             cache_dir,
+            "discover",
             "export-pytorch",
             "optimize-onnx",
         ]
@@ -178,6 +179,7 @@ class Testing(unittest.TestCase):
             bash(f"{corpus_dir}/*.py"),
             "--cache-dir",
             cache_dir,
+            "discover",
             "export-pytorch",
             "optimize-onnx",
         ]
@@ -198,6 +200,7 @@ class Testing(unittest.TestCase):
             bash(f"{corpus_dir}/*.py"),
             "--cache-dir",
             cache_dir,
+            "discover",
             "export-pytorch",
             "optimize-onnx",
         ]
@@ -234,6 +237,7 @@ class Testing(unittest.TestCase):
             bash(f"{corpus_dir}/*.py"),
             "--cache-dir",
             cache_dir,
+            "discover",
             "export-pytorch",
             "optimize-onnx",
         ]
@@ -298,6 +302,7 @@ class Testing(unittest.TestCase):
             bash(f"{corpus_dir}/*.py"),
             "--cache-dir",
             cache_dir,
+            "discover",
             "export-pytorch",
             "optimize-onnx",
         ]
@@ -394,6 +399,7 @@ class Testing(unittest.TestCase):
             "always",
             "--cache-dir",
             cache_dir,
+            "discover",
             "export-pytorch",
             "optimize-onnx",
         ]
@@ -414,6 +420,7 @@ class Testing(unittest.TestCase):
             os.path.join(corpus_dir, test_script),
             "--cache-dir",
             cache_dir,
+            "discover",
             "export-pytorch",
             "optimize-onnx",
             "benchmark",
@@ -436,6 +443,7 @@ class Testing(unittest.TestCase):
             "--build-only",
             "--cache-dir",
             cache_dir,
+            "discover",
             "export-pytorch",
             "optimize-onnx",
             "benchmark",
@@ -469,6 +477,7 @@ class Testing(unittest.TestCase):
             "test_group::a,b",
             "--cache-dir",
             cache_dir,
+            "discover",
             "export-pytorch",
             "optimize-onnx",
         ]
@@ -485,6 +494,7 @@ class Testing(unittest.TestCase):
             bash(f"{corpus_dir}/linear.py"),
             "--cache-dir",
             cache_dir,
+            "discover",
             "export-pytorch",
             "optimize-onnx",
             "benchmark",
@@ -532,6 +542,7 @@ class Testing(unittest.TestCase):
                 bash(f"{corpus_dir}/linear.py"),
                 "--cache-dir",
                 cache_dir,
+                "discover",
                 "export-pytorch",
                 "optimize-onnx",
                 "benchmark",
@@ -550,6 +561,7 @@ class Testing(unittest.TestCase):
             bash(f"{corpus_dir}/linear.py"),
             "--cache-dir",
             cache_dir,
+            "discover",
             "benchmark",
             "--device",
             "x86",
@@ -566,6 +578,7 @@ class Testing(unittest.TestCase):
             bash(f"{corpus_dir}/linear.py"),
             "--cache-dir",
             cache_dir,
+            "discover",
             "export-pytorch",
             "optimize-onnx",
             "benchmark",
@@ -592,6 +605,7 @@ class Testing(unittest.TestCase):
             os.path.join(corpus_dir, test_script),
             "--cache-dir",
             cache_dir,
+            "discover",
             "export-pytorch",
             "--opset",
             str(user_opset),
@@ -616,6 +630,7 @@ class Testing(unittest.TestCase):
             os.path.join(corpus_dir, test_script),
             "--cache-dir",
             cache_dir,
+            "discover",
             "export-pytorch",
             "optimize-onnx",
             "benchmark",
@@ -645,6 +660,7 @@ class Testing(unittest.TestCase):
                 "--cache-dir",
                 cache_dir,
                 "--process-isolation",
+                "discover",
                 "export-pytorch",
                 "optimize-onnx",
                 "benchmark",
@@ -653,19 +669,6 @@ class Testing(unittest.TestCase):
                 turnkeycli()
 
             assert_success_of_builds([test_script], cache_dir, None, check_perf=True)
-
-            # We use certain key phrases in stdout to perform cleanup in the event
-            # that a turnkey subprocess does not complete.
-            # These checks make sure that those key phrases are not removed
-            output = f.getvalue().split("\n")
-            evaluation_id = None
-            build_name = None
-            for line in output:
-                evaluation_id = spawn.parse_evaluation_id(line, evaluation_id)
-                build_name = spawn.parse_build_name(line, build_name)
-
-            assert evaluation_id is not None
-            assert build_name is not None
 
     @unittest.skipIf(
         platform.system() == "Windows",
@@ -680,6 +683,7 @@ class Testing(unittest.TestCase):
             os.path.join(extras_dir, test_script),
             "--cache-dir",
             cache_dir,
+            "discover",
             "export-pytorch",
             "optimize-onnx",
             "benchmark",
@@ -700,6 +704,7 @@ class Testing(unittest.TestCase):
                 "turnkey",
                 "-i",
                 "gobbledegook",
+                "discover",
                 "export-pytorch",
                 "optimize-onnx",
                 "benchmark",
@@ -717,6 +722,7 @@ class Testing(unittest.TestCase):
             os.path.join(corpus_dir, test_script),
             "--cache-dir",
             cache_dir,
+            "discover",
             "export-pytorch",
             "benchmark",
         ]
@@ -812,6 +818,7 @@ class Testing(unittest.TestCase):
                     "turnkey",
                     "-i",
                     filename,
+                    "discover",
                     "export-pytorch",
                     "optimize-onnx",
                     "benchmark",
@@ -828,6 +835,7 @@ class Testing(unittest.TestCase):
                     "turnkey",
                     "-i",
                     file_prefix,
+                    "discover",
                     "export-pytorch",
                     "optimize-onnx",
                     "benchmark",
@@ -846,6 +854,7 @@ class Testing(unittest.TestCase):
             os.path.join(extras_dir, "selected_models.txt"),
             "--cache-dir",
             cache_dir,
+            "discover",
             "export-pytorch",
             "optimize-onnx",
         ]
@@ -857,7 +866,6 @@ class Testing(unittest.TestCase):
             builds_found == 3
         ), f"Expected 3 builds (1 for linear.py, 2 for linear2.py), but got {builds_found}."
 
-    @unittest.skip("Flaky test https://github.com/onnx/turnkeyml/issues/58")
     def test_025_cli_timeout(self):
         """
         Make sure that the --timeout option and its associated reporting features work.
@@ -879,7 +887,7 @@ class Testing(unittest.TestCase):
             "--process-isolation",
             "--timeout",
             "10",
-            "--build-only",
+            "discover",
             "export-pytorch",
             "optimize-onnx",
             "benchmark",
@@ -928,6 +936,7 @@ class Testing(unittest.TestCase):
             bash(f"{corpus_dir}/*.py"),
             "--cache-dir",
             cache_dir,
+            "discover",
             "export-pytorch",
             "optimize-onnx",
             "benchmark",
@@ -1001,8 +1010,10 @@ class Testing(unittest.TestCase):
             summary_csv_path,
             [
                 "selected_sequence_of_stages",
+                "stage_duration:discover",
                 "stage_duration:export-pytorch",
                 "stage_duration:optimize-onnx",
+                "stage_status:discover",
                 "stage_status:export-pytorch",
                 "stage_status:optimize-onnx",
             ],
@@ -1035,6 +1046,7 @@ class Testing(unittest.TestCase):
             bash(f"{corpus_dir}/*.py"),
             "--cache-dir",
             cache_dir,
+            "discover",
             "export-pytorch",
             "optimize-onnx",
         ]
@@ -1055,7 +1067,7 @@ class Testing(unittest.TestCase):
             turnkeycli()
 
         # Make sure the benchmark happened
-        test_script = "_".join(selected_build.split("_")[:-1]) + ".py"
+        test_script = selected_build + ".py"
         assert_success_of_builds([test_script], cache_dir, check_perf=True)
 
         # Benchmark the cache directory

@@ -58,7 +58,7 @@ def to_numpy(tensor):
 
 
 # Build the model
-sequence = Sequence(stages={OnnxLoad(): []})
+sequence = Sequence(stages={OnnxLoad(): ["--input", onnx_model]})
 state = build_model(
     sequence=sequence,
     model=onnx_model,

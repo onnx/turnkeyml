@@ -112,30 +112,24 @@ class Report(ManagementTool):
                         # load the yaml into a dict
                         model_stats = yaml.load(stream, Loader=yaml.FullLoader)
 
-                        # create a separate dict for each evaluation
-                        for evaluation in model_stats[fs.Keys.EVALUATIONS].values():
-                            evaluation_stats = {}
+                        # Copy the stats to a new dictionary, making any necessary modifications
+                        # along the way
+                        evaluation_stats = {}
 
-                            # Copy all of the stats for the model that are common across evaluation
-                            for key, value in model_stats.items():
-                                if key != fs.Keys.EVALUATIONS:
-                                    evaluation_stats[key] = value
+                        for key, value in model_stats.items():
+                            # If a build or benchmark is still marked as "incomplete" at
+                            # reporting time, it must have been killed by a time out,
+                            # out-of-memory (OOM), or some other uncaught exception
+                            if (
+                                key == fs.Keys.BUILD_STATUS
+                                or fs.Keys.STAGE_STATUS in key
+                            ) and value == build.FunctionStatus.INCOMPLETE:
+                                value = build.FunctionStatus.KILLED
 
-                            # Copy the evaluation-specific stats
-                            for key, value in evaluation.items():
-                                # If a build or benchmark is still marked as "incomplete" at
-                                # reporting time, it must have been killed by a time out,
-                                # out-of-memory (OOM), or some other uncaught exception
-                                if (
-                                    key == fs.Keys.BUILD_STATUS
-                                    or fs.Keys.STAGE_STATUS in key
-                                ) and value == build.FunctionStatus.INCOMPLETE:
-                                    value = build.FunctionStatus.KILLED
+                            # Add stats ensuring that those are all in lower case
+                            evaluation_stats[key.lower()] = value
 
-                                # Add stats ensuring that those are all in lower case
-                                evaluation_stats[key.lower()] = value
-
-                            all_evaluation_stats.append(evaluation_stats)
+                        all_evaluation_stats.append(evaluation_stats)
                     except yaml.scanner.ScannerError:
                         continue
 

@@ -179,6 +179,15 @@ class BaseRT(ABC):
         # Transfer input artifacts
         state = fs.load_state(self.cache_dir, self.build_name)
 
+        # Make sure state.results is an ONNX file
+        if not (isinstance(state.results, str) and state.results.endswith(".onnx")):
+            raise exp.StageError(
+                "This benchmarking runtime requires the preceeding "
+                "stages to produce an ONNX file, however they did not. "
+                "Please either select different stages, or select a different "
+                "benchmarking runtime that does not require an ONNX result."
+            )
+
         # Just in case the model file was generated on a different machine:
         # strip the state's cache dir, then prepend the current cache dir
         model_file = fs.rebase_cache_dir(

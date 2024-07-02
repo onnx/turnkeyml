@@ -71,7 +71,7 @@ for device in SUPPORTED_DEVICES:
 
 def apply_default_runtime(device: str, runtime: Optional[str] = None):
     if runtime is None:
-        return DEVICE_RUNTIME_MAP[device][DEFAULT_RUNTIME]
+        return DEVICE_RUNTIME_MAP[str(device)][DEFAULT_RUNTIME]
     else:
         return runtime
 
@@ -84,19 +84,22 @@ def _check_suggestion(value: str):
 
 
 def select_runtime(device: str, runtime: Optional[str]) -> Tuple[str, str, Sequence]:
-    selected_runtime = apply_default_runtime(device, runtime)
+    # Convert to str in case its an instance of Device
+    device_str = str(device)
+
+    selected_runtime = apply_default_runtime(device_str, runtime)
 
     # Validate device and runtime selections
-    if device not in SUPPORTED_DEVICES:
+    if device_str not in SUPPORTED_DEVICES:
         raise exp.ArgError(
-            f"Device argument '{device}' is not one of the available "
+            f"Device argument '{device_str}' is not one of the available "
             f"supported devices {SUPPORTED_DEVICES}\n"
-            f"{_check_suggestion(device)}"
+            f"{_check_suggestion(device_str)}"
         )
-    if selected_runtime not in DEVICE_RUNTIME_MAP[device]:
+    if selected_runtime not in DEVICE_RUNTIME_MAP[device_str]:
         raise exp.ArgError(
             f"Runtime argument '{selected_runtime}' is not one of the available "
-            f"runtimes supported for device '{device}': {DEVICE_RUNTIME_MAP[device]}\n"
+            f"runtimes supported for device '{device_str}': {DEVICE_RUNTIME_MAP[device_str]}\n"
             f"{_check_suggestion(selected_runtime)}"
         )
 

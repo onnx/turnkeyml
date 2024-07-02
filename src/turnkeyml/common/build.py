@@ -32,13 +32,6 @@ DEFAULT_REBUILD_POLICY = "if_needed"
 REBUILD_OPTIONS = ["if_needed", "always", "never"]
 
 
-class ModelType:
-    PYTORCH = "pytorch"
-    PYTORCH_COMPILED = "pytorch_compiled"
-    ONNX_FILE = "onnx_file"
-    UNKNOWN = "unknown"
-
-
 def load_yaml(file_path) -> Dict:
     with open(file_path, "r", encoding="utf8") as stream:
         try:
@@ -61,24 +54,29 @@ def state_file(cache_dir, build_name):
     return path
 
 
-def hash_model(model, model_type: ModelType, hash_params: bool = True):
+def hash_model(model, hash_params: bool = True):
     # If the model is a path to a file, hash the file
-    if model_type == ModelType.ONNX_FILE:
-        # TODO: Implement a way of hashing the models but not the parameters
-        # of ONNX inputs.
-        if not hash_params:
-            msg = "hash_params must be True for model_type ONNX_FILE"
-            raise ValueError(msg)
-        if os.path.isfile(model):
+    if isinstance(model, str):
+        if model.endswith(".onnx"):
+            # TODO: Implement a way of hashing the models but not the parameters
+            # of ONNX inputs.
+            if not hash_params:
+                msg = "hash_params must be True for ONNX files"
+                raise ValueError(msg)
+            if os.path.isfile(model):
+                with open(model, "rb") as f:
+                    file_content = f.read()
+                return hashlib.sha256(file_content).hexdigest()
+            else:
+                raise ValueError(
+                    "hash_model received str model that doesn't correspond to a file"
+                )
+        else:
             with open(model, "rb") as f:
                 file_content = f.read()
             return hashlib.sha256(file_content).hexdigest()
-        else:
-            raise ValueError(
-                "hash_model received str model that doesn't correspond to a file"
-            )
 
-    elif model_type in [ModelType.PYTORCH, ModelType.PYTORCH_COMPILED]:
+    if isinstance(model, (torch.nn.Module, torch.jit.ScriptModule)):
         # Convert model parameters and topology to string
         hashable_params = {}
         for name, param in model.named_parameters():
@@ -93,7 +91,7 @@ def hash_model(model, model_type: ModelType, hash_params: bool = True):
 
     else:
         msg = f"""
-        model_type "{model_type}" unsupported by this hash_model function
+        model type "{type(model)}" unsupported by this hash_model function
         """
         raise ValueError(msg)
 

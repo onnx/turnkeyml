@@ -50,8 +50,8 @@ def basic_pytorch_sequence():
     return stage.Sequence(stages={export.ExportPytorchModel(): []})
 
 
-def basic_onnx_sequence():
-    return stage.Sequence(stages={export.OnnxLoad(): []})
+def basic_onnx_sequence(input: str):
+    return stage.Sequence(stages={export.OnnxLoad(): ["--input", input]})
 
 
 # Run build_model() and get results
@@ -71,18 +71,17 @@ def full_compilation_pytorch_model():
 
 def full_compilation_onnx_model():
     build_name = "full_compilation_onnx_model"
+    onnx_file = "small_onnx_model.onnx"
     torch.onnx.export(
         pytorch_model,
         input_tensor,
-        "small_onnx_model.onnx",
+        onnx_file,
         opset_version=build.DEFAULT_ONNX_OPSET,
         input_names=["input"],
         output_names=["output"],
     )
     state = build_model(
-        sequence=basic_onnx_sequence(),
-        model="small_onnx_model.onnx",
-        inputs=inputs,
+        sequence=basic_onnx_sequence(input=onnx_file),
         build_name=build_name,
         rebuild="always",
         monitor=False,
@@ -363,18 +362,17 @@ def rebuild_if_needed():
 
 def illegal_onnx_opset():
     build_name = "illegal_onnx_opset"
+    onnx_file = "illegal_onnx_opset.onnx"
     torch.onnx.export(
         pytorch_model,
         input_tensor,
-        "illegal_onnx_opset.onnx",
+        onnx_file,
         opset_version=(build.MINIMUM_ONNX_OPSET - 1),
         input_names=["input"],
         output_names=["output"],
     )
     build_model(
-        sequence=basic_onnx_sequence(),
-        model="illegal_onnx_opset.onnx",
-        inputs=inputs,
+        sequence=basic_onnx_sequence(input=onnx_file),
         build_name=build_name,
         rebuild="always",
         monitor=False,
@@ -481,9 +479,7 @@ class Testing(unittest.TestCase):
 
         # Build the ONNX file
         state = build_model(
-            sequence=basic_onnx_sequence(),
-            model=onnx_file,
-            inputs=inputs,
+            sequence=basic_onnx_sequence(input=onnx_file),
             build_name=build_name,
             rebuild="always",
             monitor=False,

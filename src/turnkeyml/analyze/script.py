@@ -2,33 +2,19 @@ import sys
 import os
 import inspect
 import importlib.util
-import copy
 import time
 import shlex
 import functools
 import dataclasses
 import traceback
 import hashlib
-from datetime import datetime
 from typing import Union, List, Dict, Tuple, Optional
 from types import FrameType, TracebackType
-from enum import Enum
 import torch
-import git
-from turnkeyml.common import printing
 import turnkeyml.common.build as build
-import turnkeyml.common.exceptions as exp
-from turnkeyml.build.stage import Sequence
 import turnkeyml.analyze.status as status
 import turnkeyml.analyze.model as analyze_model
-import turnkeyml.common.labels as labels
-from turnkeyml.build_api import build_model
 import turnkeyml.common.filesystem as fs
-
-
-class Action(Enum):
-    ANALYZE = "analyze"
-    BUILD = "build"
 
 
 def _get_classes(module) -> List[str]:
@@ -54,86 +40,16 @@ def _get_transformers_activations() -> List:
 class TracerArgs:
     input: str
     script_args: str
-    actions: List[Action]
-    lean_cache: bool
     targets: List[str]
     max_depth: int
-    cache_dir: str
-    rebuild: str
     models_found: Dict[str, status.ModelInfo] = dataclasses.field(default_factory=dict)
     script_name: Optional[str] = None
-    sequence: Optional[Sequence] = None
-    verbosity: status.Verbosity = status.Verbosity.DYNAMIC
-
-    @functools.cached_property
-    def labels(self) -> Dict[str, str]:
-        # Load labels data from python scripts
-        # This is not compatible with ONNX files, so we return
-        # and empty dictionary in that case
-        if self.input.endswith(".py"):
-            return labels.load_from_file(self.input)
-        else:
-            return {}
 
     @functools.cached_property
     def torch_activations(self) -> List[str]:
         act = _get_classes(torch.nn.modules.activation)
         act += _get_transformers_activations()
         return act
-
-    @property
-    def saveable_dict(self) -> Dict:
-        """
-        Convert TracerArgs data into a dictionary that is safe to save to YAML format.
-        All members must be str, List[str], or Dict[str]
-        """
-
-        result = {}
-
-        # Get each field from this dataclass, which corresponds
-        # all of the turnkey API/CLI args we want to save
-        for field in dataclasses.fields(self):
-            # Get the value corresponding to each field
-            arg_value = getattr(self, field.name)
-
-            # Some of the args have types that are compatible with the YAML
-            # format, so we will need to ignore them or process them before saving
-            saved_value = None
-
-            if field.name == "models_found":
-                # Do not include "models_found" because
-                # 1. It spans multiple invocations
-                # 2. Includes all the weights of all the models
-                continue
-            elif isinstance(arg_value, Sequence):
-                # `sequence` can be a str or Sequence
-                # If we receive an instance of Sequence, we need to convert it
-                # to a string to save it to YAML
-                saved_value = arg_value.stage_names
-            elif isinstance(arg_value, status.Verbosity):
-                saved_value = arg_value.value
-            elif isinstance(arg_value, list) and any(
-                isinstance(arg_sub_value, Action) for arg_sub_value in arg_value
-            ):
-                # The --build-only and --analyze-only args are gone by this point in
-                # the code and are replaced by a list of Actions. We need to convert each Action
-                # enum into a str to save it to YAML
-                saved_value = [arg_sub_value.value for arg_sub_value in arg_value]
-            else:
-                # All other field types can be saved directly
-                saved_value = arg_value
-
-            if saved_value:
-                result[field.name] = saved_value
-
-        return result
-
-    def __str__(self) -> str:
-        result = ""
-        for key, value in self.saveable_dict.items():
-            result = result + f"{key} {value} "
-
-        return result
 
     @property
     def hash(self) -> str:
@@ -145,274 +61,12 @@ class TracerArgs:
         return hashlib.sha256(str(self).encode()).hexdigest()[:8]
 
 
-def _store_traceback(invocation_info: status.UniqueInvocationInfo):
-    """
-    Store the traceback from an exception into invocation_info so that
-    we can print it during the status update.
-    """
-
-    exc_type, exc_value, exc_traceback = sys.exc_info()
-    invocation_info.traceback = traceback.format_exception(
-        exc_type, exc_value, exc_traceback
-    )
-
-    # Remove line breaks and sequences of spaces from status message
-    invocation_info.status_message = " ".join(invocation_info.status_message.split())
-
-
-def explore_invocation(
-    model_inputs: dict,
-    model_info: status.ModelInfo,
-    invocation_info: status.UniqueInvocationInfo,
-    tracer_args: TracerArgs,
-) -> None:
-    """
-    Calls the turnkey function from within the model forward function
-    """
-
-    # Update status to "computing"
-    invocation_info.status_message = "Computing..."
-    invocation_info.status_message_color = printing.Colors.OKBLUE
-
-    build_name = fs.get_build_name(
-        tracer_args.script_name, tracer_args.labels, invocation_info.invocation_hash
-    )
-    status.update(
-        tracer_args.models_found,
-        build_name,
-        tracer_args.cache_dir,
-        invocation_info,
-        tracer_args.verbosity,
-    )
-
-    # Organize the inputs to python model instances
-    # Not necessary for ONNX models
-    if model_info.model_type == build.ModelType.ONNX_FILE:
-        inputs = model_inputs
+def get_model_hash(model: Union[torch.nn.Module, str]):
+    if isinstance(model, str) and model.endswith(".onnx"):
+        hash_params = True
     else:
-        # Get a copy of the keyword arguments
-        args, kwargs = model_inputs
-        inputs = {}
-        for k in kwargs.keys():
-            if torch.is_tensor(kwargs[k]):
-                inputs[k] = torch.tensor(kwargs[k].detach().numpy())
-            else:
-                inputs[k] = copy.deepcopy(kwargs[k])
-
-        # Convert all positional arguments into keyword arguments
-        if args != ():
-
-            forward_function = model_info.model.forward
-            all_args = list(inspect.signature(forward_function).parameters.keys())
-            for i in range(len(args)):
-                if torch.is_tensor(args[i]):
-                    inputs[all_args[i]] = torch.tensor(args[i].detach().numpy())
-                else:
-                    inputs[all_args[i]] = args[i]
-        invocation_info.inputs = inputs
-
-    # Create a build directory in the cache
-    fs.make_build_dir(tracer_args.cache_dir, build_name)
-
-    # Create an ID for the build stats by hashing all arguments to the tool
-    evaluation_id = tracer_args.hash
-
-    stats = fs.Stats(
-        tracer_args.cache_dir,
-        build_name,
-        evaluation_id,
-    )
-    invocation_info.stats = stats
-
-    # Print the evaluation ID so that we can access it in case this process is killed
-    print(
-        f"Capturing statistics in turnkey_stats.yaml under evaluation ID: {evaluation_id}"
-    )
-
-    # Stats that apply to the model, regardless of build
-    stats.save_model_stat(
-        fs.Keys.HASH,
-        model_info.hash,
-    )
-    stats.save_model_stat(
-        fs.Keys.MODEL_NAME,
-        tracer_args.script_name,
-    )
-    stats.save_model_stat(
-        fs.Keys.PARAMETERS,
-        model_info.params,
-    )
-    if model_info.model_type != build.ModelType.ONNX_FILE:
-        stats.save_model_stat(fs.Keys.CLASS, type(model_info.model).__name__)
-    if fs.Keys.AUTHOR in tracer_args.labels:
-        stats.save_model_stat(fs.Keys.AUTHOR, tracer_args.labels[fs.Keys.AUTHOR][0])
-    if fs.Keys.TASK in tracer_args.labels:
-        stats.save_model_stat(fs.Keys.TASK, tracer_args.labels[fs.Keys.TASK][0])
-
-    # Save the system information used for this evaluation
-    system_info = build.get_system_info()
-    stats.save_model_stat(
-        fs.Keys.SYSTEM_INFO,
-        system_info,
-    )
-
-    # Save all of the lables in one place
-    stats.save_model_stat(fs.Keys.LABELS, tracer_args.labels)
-
-    # If the input script is a built-in TurnkeyML model, make a note of
-    # which one
-    if os.path.abspath(fs.MODELS_DIR) in os.path.abspath(tracer_args.input):
-        try:
-            # If this turnkey installation is in a git repo, use the
-            # specific git hash
-            git_repo = git.Repo(search_parent_directories=True)
-            git_hash = git_repo.head.object.hexsha
-        except git.exc.InvalidGitRepositoryError:
-            # If we aren't in a git repo (e.g., PyPI package), point the user back to main
-            git_hash = "main"
-
-        relative_path = tracer_args.input.replace(
-            fs.MODELS_DIR,
-            f"https://github.com/onnx/turnkeyml/tree/{git_hash}/models",
-        ).replace("\\", "/")
-        stats.save_model_stat(fs.Keys.MODEL_SCRIPT, relative_path)
-
-    # Evaluation-specific stats
-
-    # Save all of the turnkey arguments into a single key to help
-    # with reproducibility
-    stats.save_model_eval_stat(
-        fs.Keys.EVALUATION_ARGS,
-        tracer_args.saveable_dict,
-    )
-
-    # Save a timestamp so that we know the order of evaluations within a cache
-    stats.save_model_eval_stat(
-        fs.Keys.TIMESTAMP,
-        datetime.now(),
-    )
-
-    if model_info.model_type == build.ModelType.PYTORCH_COMPILED:
-        invocation_info.status_message = (
-            "Skipping model compiled using torch.compile(). "
-            "turnkey requires models to be in eager mode "
-            "(regardless of what runtime you have selected)."
-        )
-        invocation_info.status_message_color = printing.Colors.WARNING
-
-        return
-
-    stats.save_model_eval_stat(fs.Keys.BUILD_STATUS, build.FunctionStatus.NOT_STARTED)
-
-    try:
-        # Run the build tool
-
-        # Indicate that the build is running. If the build fails for any reason,
-        # we will try to catch the exception and note it in the stats.
-        # If a concluded build still has a status of "running", this means
-        # there was an uncaught exception.
-        stats.save_model_eval_stat(
-            fs.Keys.BUILD_STATUS, build.FunctionStatus.INCOMPLETE
-        )
-
-        build_model(
-            model=model_info.model,
-            inputs=inputs,
-            evaluation_id=evaluation_id,
-            build_name=build_name,
-            cache_dir=tracer_args.cache_dir,
-            rebuild=tracer_args.rebuild,
-            sequence=tracer_args.sequence,
-        )
-
-        stats.save_model_eval_stat(
-            fs.Keys.BUILD_STATUS, build.FunctionStatus.SUCCESSFUL
-        )
-
-        # Analyze the onnx file (if any) and save statistics
-        analyze_model.analyze_onnx(
-            build_name=build_name,
-            cache_dir=tracer_args.cache_dir,
-            stats=stats,
-        )
-
-        invocation_info.status_message = "Model successfully built!"
-        invocation_info.status_message_color = printing.Colors.OKGREEN
-
-        # Present status statistics from the Stages
-        for stage in tracer_args.sequence.stages:
-            invocation_info.stats_keys += stage.status_stats
-
-    except exp.StageError as e:
-        invocation_info.status_message = f"Build Error: {e}"
-        invocation_info.status_message_color = printing.Colors.WARNING
-
-        stats.save_model_eval_stat(fs.Keys.BUILD_STATUS, build.FunctionStatus.ERROR)
-
-        _store_traceback(invocation_info)
-
-    except exp.SkipBuild:
-        # SkipBuild is an exception that the build_model() API will raise
-        # when it is skipping a previously-failed build when rebuild=never is set
-
-        # NOTE: skipping a build should never update build or benchmark status
-
-        invocation_info.status_message = (
-            "Build intentionally skipped because rebuild=never"
-        )
-        invocation_info.status_message_color = printing.Colors.WARNING
-
-    except exp.ArgError as e:
-        # ArgError indicates that some argument to build_model() or BaseRT was
-        # illegal. In that case we want to halt execution so that users can
-        # fix their arguments.
-
-        stats.save_model_eval_stat(fs.Keys.BUILD_STATUS, build.FunctionStatus.ERROR)
-
-        raise e
-
-    except exp.Error as e:
-        invocation_info.status_message = f"Error: {e}."
-        invocation_info.status_message_color = printing.Colors.WARNING
-
-        stats.save_model_eval_stat(fs.Keys.BUILD_STATUS, build.FunctionStatus.ERROR)
-
-        _store_traceback(invocation_info)
-
-    # This broad exception is ok since enumerating all exceptions is
-    # not possible, as the tested software continuously evolves.
-    except Exception as e:  # pylint: disable=broad-except
-        invocation_info.status_message = f"Unknown turnkey error: {e}"
-        invocation_info.status_message_color = printing.Colors.WARNING
-
-        stats.save_model_eval_stat(fs.Keys.BUILD_STATUS, build.FunctionStatus.ERROR)
-
-        _store_traceback(invocation_info)
-
-        if os.environ.get("TURNKEY_DEBUG"):
-            raise e
-
-    finally:
-        # Ensure that stdout/stderr is not being forwarded before updating status
-        status.stop_logger_forward()
-
-        status.update(
-            tracer_args.models_found,
-            build_name,
-            tracer_args.cache_dir,
-            invocation_info,
-            tracer_args.verbosity,
-        )
-
-        if tracer_args.lean_cache:
-            printing.log_info("Removing build artifacts...")
-            fs.clean_output_dir(tracer_args.cache_dir, build_name)
-
-
-def get_model_hash(model: Union[torch.nn.Module, str], model_type: build.ModelType):
-    return build.hash_model(
-        model, model_type, hash_params=model_type == build.ModelType.ONNX_FILE
-    )[:8]
+        hash_params = False
+    return build.hash_model(model, hash_params=hash_params)[:8]
 
 
 def get_invocation_hash(
@@ -439,14 +93,13 @@ def get_invocation_hash(
 def store_model_info(
     model: torch.nn.Module,
     model_name: str,
-    model_type: build.ModelType,
     frame: FrameType,
     event: str,
     tracer_args: TracerArgs,
     depth: int,
     parent_hash: str,
 ):
-    model_hash = get_model_hash(model, model_type)
+    model_hash = get_model_hash(model)
 
     # File where the model was found
     file = str(frame)[str(frame).find("file ") + 6 : str(frame).find("',")]
@@ -466,7 +119,6 @@ def store_model_info(
             model_already_found = True
 
     if not model_already_found:
-        build_model = Action.BUILD in tracer_args.actions
         tracer_args.models_found[model_hash] = status.ModelInfo(
             model=model,
             name=model_name,
@@ -475,8 +127,6 @@ def store_model_info(
             depth=depth,
             hash=model_hash,
             parent_hash=parent_hash,
-            build_model=build_model,
-            model_type=model_type,
             script_name=tracer_args.script_name,
         )
 
@@ -506,10 +156,6 @@ def explore_frame(
         if issubclass(type(local_var), torch.nn.Module):
             if type(local_var) in tracer_args.torch_activations:
                 return
-            if "dynamo_ctx" in local_var.__dict__:
-                model_type = build.ModelType.PYTORCH_COMPILED
-            else:
-                model_type = build.ModelType.PYTORCH
         else:
             return
     except AttributeError:
@@ -535,12 +181,6 @@ def explore_frame(
 
     if not inside_nn_subclass:
         if hasattr(local_var, "forward_instrumented"):
-            # A previously-found model might have been compiled
-            # Update that information if needed
-            if model_type == build.ModelType.PYTORCH_COMPILED:
-                tracer_args.models_found[local_var.turnkey_hash].model_type = (
-                    build.ModelType.PYTORCH_COMPILED
-                )
 
             # Starting in version 2.2.0, torch dynamo added wrappers to callbacks
             # while tracing frames, which conflicts with TurnkeML's analysis. Here,
@@ -556,7 +196,7 @@ def explore_frame(
             return
 
         # Avoid instrumenting models before they have been fully loaded
-        if analyze_model.count_parameters(local_var, model_type) == 0:
+        if analyze_model.count_parameters(local_var) == 0:
             return
 
         # Mark this model as instrumented
@@ -568,7 +208,7 @@ def explore_frame(
         # Recursively look for sub-models within the found model
         # This is only possible on Pytorch, since each layer of a torch.nn.module
         # is also a torch.nn.module.
-        model_hash = get_model_hash(local_var, model_type)
+        model_hash = get_model_hash(local_var)
         local_var.turnkey_hash = model_hash
         if depth < tracer_args.max_depth:
             recursive_search(frame, event, local_var, depth, model_hash, tracer_args)
@@ -577,7 +217,6 @@ def explore_frame(
         store_model_info(
             local_var,
             local_var_name,
-            model_type,
             frame,
             event,
             tracer_args,
@@ -606,7 +245,7 @@ def explore_frame(
                     parent_hash
                 ].last_unique_invocation_executed
 
-            model_hash = get_model_hash(local_var, model_type)
+            model_hash = get_model_hash(local_var)
             invocation_hash, input_shapes = get_invocation_hash(
                 model_hash, parent_invocation_hash, args, kwargs
             )
@@ -621,8 +260,6 @@ def explore_frame(
                         line=model_info.line,
                         params=model_info.params,
                         depth=model_info.depth,
-                        build_model=model_info.build_model,
-                        model_type=model_info.model_type,
                         model_class=type(model_info.model),
                         invocation_hash=invocation_hash,
                         hash=model_info.hash,
@@ -630,6 +267,10 @@ def explore_frame(
                         or len(tracer_args.targets) == 0,
                         input_shapes=input_shapes,
                         parent_hash=parent_invocation_hash,
+                        inputs=[args, kwargs],
+                        extension=f".{tracer_args.input.split('.')[-1]}",
+                        forward_function_pointer=local_var.forward,
+                        original_forward_function=old_forward,
                     )
                 )
             model_info.last_unique_invocation_executed = invocation_hash
@@ -644,42 +285,6 @@ def explore_frame(
                 invocation_info.exec_time + end_time - start_time
             )
             invocation_info.executed = invocation_info.executed + 1
-
-            # Call explore_invocation() if this is the first time the model is being executed
-            # and this model has been selected by the user
-            if (
-                invocation_info.executed == 1
-                and invocation_info.is_target
-                and (model_info.build_model)
-            ):
-                # Disable all modifications while we evaluate the model
-                # This is needed in case a tool called during evaluation wants to
-                # trace the model. There are some scenarios (e.g., ipex.quantization.prepare),
-                # that raise an exception when they encounter forward_spy()
-                local_var.forward = old_forward
-
-                explore_invocation(
-                    model_inputs=[args, kwargs],
-                    model_info=model_info,
-                    invocation_info=invocation_info,
-                    tracer_args=tracer_args,
-                )
-
-                # Re-enable modifications
-                local_var.forward = forward_spy
-
-            build_name = fs.get_build_name(
-                tracer_args.script_name,
-                tracer_args.labels,
-                invocation_info.invocation_hash,
-            )
-            status.update(
-                tracer_args.models_found,
-                build_name,
-                tracer_args.cache_dir,
-                invocation_info,
-                tracer_args.verbosity,
-            )
 
             # Turn tracing on again after computing the outputs
             sys.setprofile(tracer)
@@ -849,5 +454,12 @@ def evaluate_script(tracer_args: TracerArgs) -> Dict[str, status.ModelInfo]:
 
     # Stop profiling when we're done executing the module
     sys.setprofile(None)
+
+    # Restore the original forward function for all models
+    for model_info in tracer_args.models_found.values():
+        for invocation_info in model_info.unique_invocations.values():
+            invocation_info.forward_function_pointer = (
+                invocation_info.original_forward_function
+            )
 
     return tracer_args.models_found

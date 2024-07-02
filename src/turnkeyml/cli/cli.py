@@ -120,34 +120,11 @@ Management tool choices:
     )
 
     parser.add_argument(
-        "-a",
-        "--analyze-only",
-        dest="analyze_only",
-        help="Stop this command after the analyze phase",
-        action="store_true",
-    )
-
-    parser.add_argument(
         "--labels",
         dest="labels",
         help="Only benchmark the scripts that have the provided labels",
         nargs="*",
         default=[],
-    )
-
-    parser.add_argument(
-        "--script-args",
-        dest="script_args",
-        type=str,
-        help="Arguments to pass into the target script(s)",
-    )
-
-    parser.add_argument(
-        "--max-depth",
-        dest="max_depth",
-        type=int,
-        default=0,
-        help="Maximum depth to analyze within the model structure of the target script(s)",
     )
 
     parser.add_argument(

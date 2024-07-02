@@ -3,6 +3,7 @@ import turnkeyml.common.plugins as plugins
 import turnkeyml.common.management_tools as mgmt
 from turnkeyml.run.benchmark_build import BenchmarkBuild
 from turnkeyml.run.benchmark_model import Benchmark
+from turnkeyml.analyze.discover import Discover
 import turnkeyml.cli.report as report
 
 # Plugin interface for sequences
@@ -16,6 +17,7 @@ SUPPORTED_STAGES = [
     report.Report,
     BenchmarkBuild,
     Benchmark,
+    Discover,
     export.ExportPytorchModel,
     export.OptimizeOnnxModel,
     export.OnnxLoad,
