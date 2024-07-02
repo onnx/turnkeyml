@@ -3,17 +3,25 @@ import sys
 import os
 import textwrap as _textwrap
 import re
+from difflib import get_close_matches
 from typing import List
 import turnkeyml.common.filesystem as fs
 from turnkeyml.build.stage import Stage, Sequence
 from turnkeyml.build.stage_plugins import SUPPORTED_STAGES
-
 from turnkeyml.cli.spawn import DEFAULT_TIMEOUT_SECONDS
 from turnkeyml.files_api import benchmark_files
 from turnkeyml.analyze.status import Verbosity
 import turnkeyml.common.build as build
-import turnkeyml.common.exceptions as exp
+import turnkeyml.common.printing as printing
 from turnkeyml.common.management_tools import ManagementTool
+
+
+class CustomArgumentParser(argparse.ArgumentParser):
+
+    def error(self, message):
+        self.print_usage()
+        printing.log_error(message)
+        self.exit(2)
 
 
 class PreserveWhiteSpaceWrapRawTextHelpFormatter(argparse.RawDescriptionHelpFormatter):
@@ -51,8 +59,26 @@ def _stage_list_help(stages: List[Stage], subclass) -> str:
     return help
 
 
-def _check_extension(choices, file_name, error_func):
+def _check_extension(
+    choices: List[str], file_name: str, error_func: callable, stage_names: List[str]
+):
     _, extension = os.path.splitext(file_name.split("::")[0])
+    if not extension:
+        close_matches = get_close_matches(file_name, stage_names)
+        if close_matches:
+            # Mispelled stage names can be picked up as input files, so we check
+            # for this case here and try to provide a better suggestion
+            error_func(
+                f"unrecognized argument {file_name}, did you mean {close_matches[0]}?"
+            )
+        else:
+            error_func(
+                f"{file_name} was recognized as an argument to `--input-files`, "
+                "however it is not a file name (no file extension). If it was "
+                "meant to be a stage name, please check whether that stage is "
+                "available and correctly spelled in the list of available stages "
+                "when calling `turnkey -h`."
+            )
     if extension[1:].lower() not in choices:
         error_func(
             f"input_files must end with .py, .onnx, or .txt (got '{file_name}')\n"
@@ -66,7 +92,7 @@ def main():
     stage_classes = {stage.unique_name: stage for stage in SUPPORTED_STAGES}
 
     # Define the argument parser
-    parser = argparse.ArgumentParser(
+    parser = CustomArgumentParser(
         description="Turnkey build of AI models. "
         "This utility runs stages in a sequence. "
         "To use it, provide a list of stages and "
@@ -100,7 +126,9 @@ Management tool choices:
         "--input-files",
         nargs="+",
         help="One or more script (.py), ONNX (.onnx), or input list (.txt) files to be benchmarked",
-        type=lambda file: _check_extension(("py", "onnx", "txt"), file, parser.error),
+        type=lambda file: _check_extension(
+            ("py", "onnx", "txt"), file, parser.error, stage_classes
+        ),
     )
 
     parser.add_argument(
@@ -197,6 +225,10 @@ Management tool choices:
         "never clear the terminal.",
     )
 
+    # run as if "-h" was passed if no parameters are passed
+    if len(sys.argv) == 1:
+        sys.argv.append("-h")
+
     # Break sys.argv into categories based on which stages were invoked
     # Arguments that are passed prior to invoking a stage are categorized as
     # global arguments that should be used to initialize the state.
@@ -205,6 +237,12 @@ Management tool choices:
     cmd = sys.argv[1:]
     while len(cmd):
         if cmd[0] in stage_parsers.keys():
+            # Make sure each stage was only called once
+            if cmd[0] in stages_invoked.keys():
+                parser.error(
+                    "A single call to turnkey can only invoke each stage once, "
+                    f"however this call invokes stage {cmd[0]} twice."
+                )
             current_stage = cmd.pop(0)
             stages_invoked[current_stage] = []
         else:
@@ -232,7 +270,7 @@ Management tool choices:
             evaluation_stages.append(cmd)
 
     if len(management_stages) > 0 and len(evaluation_stages) > 0:
-        raise exp.ArgError(
+        parser.error(
             "This call to turnkey invoked both management and "
             "evaluation stages, however each call to turnkey "
             "is only allowed to invoke one or the other. "
@@ -241,7 +279,7 @@ Management tool choices:
         )
 
     if len(management_stages) == 0 and len(evaluation_stages) == 0:
-        raise exp.ArgError(
+        parser.error(
             "Calls to tunrkey are required to call at least "
             "one stage or management tool."
         )

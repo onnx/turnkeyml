@@ -100,7 +100,7 @@ class OnnxLoad(stage.Stage):
 
     @staticmethod
     def parser(add_help: bool = True) -> argparse.ArgumentParser:
-        parser = argparse.ArgumentParser(
+        parser = __class__.helpful_parser(
             description="Load an ONNX model",
             add_help=add_help,
         )
@@ -215,7 +215,7 @@ class ExportPytorchModel(stage.Stage):
 
     @staticmethod
     def parser(add_help: bool = True) -> argparse.ArgumentParser:
-        parser = argparse.ArgumentParser(
+        parser = __class__.helpful_parser(
             description="Export a PyTorch model to ONNX",
             add_help=add_help,
         )
@@ -401,7 +401,7 @@ class OptimizeOnnxModel(stage.Stage):
 
     @staticmethod
     def parser(add_help: bool = True) -> argparse.ArgumentParser:
-        parser = argparse.ArgumentParser(
+        parser = __class__.helpful_parser(
             description="Use OnnxRuntime to optimize an ONNX model",
             add_help=add_help,
         )
@@ -474,7 +474,7 @@ class ConvertOnnxToFp16(stage.Stage):
 
     @staticmethod
     def parser(add_help: bool = True) -> argparse.ArgumentParser:
-        parser = argparse.ArgumentParser(
+        parser = __class__.helpful_parser(
             description="Use OnnxMLTools to convert an ONNX model to fp16",
             add_help=add_help,
         )
