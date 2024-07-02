@@ -69,7 +69,7 @@ def _check_extension(
             # Mispelled stage names can be picked up as input files, so we check
             # for this case here and try to provide a better suggestion
             error_func(
-                f"unrecognized argument {file_name}, did you mean {close_matches[0]}?"
+                f"unrecognized argument '{file_name}', did you mean '{close_matches[0]}'?"
             )
         else:
             error_func(
