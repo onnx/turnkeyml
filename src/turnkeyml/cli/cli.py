@@ -241,7 +241,7 @@ Management tool choices:
             if cmd[0] in stages_invoked.keys():
                 parser.error(
                     "A single call to turnkey can only invoke each stage once, "
-                    f"however this call invokes stage {cmd[0]} twice."
+                    f"however this call invokes stage {cmd[0]} multiple times."
                 )
             current_stage = cmd.pop(0)
             stages_invoked[current_stage] = []
