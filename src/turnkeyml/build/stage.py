@@ -63,8 +63,8 @@ class StageParser(argparse.ArgumentParser):
                 # This was probably a misspelled stage name
                 message = message + (
                     f". If `{unrecognized}` was intended to invoke "
-                    "a stage, please run `turnkey -h` and check the spelling and availability of that "
-                    "stage."
+                    "a stage, please run `turnkey -h` and check the spelling and "
+                    "availability of that stage."
                 )
         self.print_usage()
         printing.log_error(message)
