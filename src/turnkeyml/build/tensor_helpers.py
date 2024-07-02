@@ -8,7 +8,7 @@ import torch
 import numpy as np
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.build as build
-import turnkeyml.common.tf_helpers as tf_helpers
+
 
 # Checks whether a given input has the expected shape
 def check_shapes_and_dtypes(
@@ -57,8 +57,6 @@ def save_inputs(inputs, inputs_file, input_dtypes=None, downcast=True):
                 continue
             if torch.is_tensor(inputs_converted[i][k]):
                 inputs_converted[i][k] = inputs_converted[i][k].cpu().detach().numpy()
-            if tf_helpers.is_keras_tensor(inputs_converted[i][k]):
-                inputs_converted[i][k] = inputs_converted[i][k].numpy()
             if downcast:
                 if input_dtypes is not None and input_dtypes[k] is not None:
                     inputs_converted[i][k] = inputs_converted[i][k].astype(

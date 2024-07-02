@@ -2,8 +2,8 @@ import abc
 import sys
 import time
 import os
-import copy
-from typing import List, Tuple
+import argparse
+from typing import List, Tuple, Dict
 from multiprocessing import Process
 import psutil
 import turnkeyml.common.printing as printing
@@ -34,7 +34,7 @@ def _name_is_file_safe(name: str):
     """
 
     allowed_in_unique_name = set(
-        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
+        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-"
     )
 
     if len(name) == 0:
@@ -56,6 +56,9 @@ def _name_is_file_safe(name: str):
 
 
 class Stage(abc.ABC):
+
+    unique_name: str
+
     def status_line(self, successful, verbosity):
         """
         Print a line of status information for this Stage into the monitor.
@@ -83,21 +86,23 @@ class Stage(abc.ABC):
 
     def __init__(
         self,
-        unique_name,
         monitor_message,
     ):
-        _name_is_file_safe(unique_name)
+        _name_is_file_safe(self.__class__.unique_name)
 
-        self.unique_name = unique_name
-        self.status_key = f"{fs.Keys.STAGE_STATUS}:{unique_name}"
-        self.duration_key = f"{fs.Keys.STAGE_DURATION}:{unique_name}"
+        self.status_key = f"{fs.Keys.STAGE_STATUS}:{self.__class__.unique_name}"
+        self.duration_key = f"{fs.Keys.STAGE_DURATION}:{self.__class__.unique_name}"
         self.monitor_message = monitor_message
         self.progress = None
         self.logfile_path = None
         self.stages = None
+        # Stages can provide a list of keys that can be found in
+        # evaluation stats. Those key:value pairs will be presented
+        # in the status at the end of the build.
+        self.status_stats = []
 
     @abc.abstractmethod
-    def fire(self, state: build.State) -> build.State:
+    def fire(self, state: fs.State) -> fs.State:
         """
         Developer-defined function to fire the stage.
         In less punny terms, this is the function that
@@ -105,7 +110,48 @@ class Stage(abc.ABC):
         transformation on the flow to producing a Model.
         """
 
-    def fire_helper(self, state: build.State) -> Tuple[build.State, int]:
+    @staticmethod
+    @abc.abstractmethod
+    def parser() -> argparse.ArgumentParser:
+        """
+        Static method that returns an ArgumentParser that defines the command
+        line interface for this Stage.
+        """
+
+    # pylint: disable=unused-argument
+    def parse(self, state: fs.State, args, known_only=True) -> argparse.Namespace:
+        """
+        Run the parser and return a Namespace of keyword arguments that the user
+        passed to the Stage via the command line.
+
+        Stages should extend this function only if they require specific parsing
+        logic, for example decoding the name of a data type into a data type class.
+
+        Args:
+            state: the same state passed into the run method of the Stage, useful if
+                the parse decoding logic needs to take the state into account.
+            args: command line arguments passed from the CLI.
+            known_only: this argument allows the CLI framework to
+                incrementally parse complex commands.
+        """
+
+        if known_only:
+            parsed_args = self.__class__.parser().parse_args(args)
+        else:
+            parsed_args, _ = self.__class__.parser().parse_known_args(args)
+
+        return parsed_args
+
+    def parse_and_fire(self, state: fs.State, args, known_only=True) -> Dict:
+        """
+        Helper function to parse CLI arguments into the args expected
+        by fire(), and then forward them into the fire() method.
+        """
+
+        parsed_args = self.parse(state, args, known_only)
+        return self.fire_helper(state, **parsed_args.__dict__)
+
+    def fire_helper(self, state: fs.State, **kwargs) -> Tuple[fs.State, int]:
         """
         Wraps the user-defined .fire method with helper functionality.
         Specifically:
@@ -121,7 +167,7 @@ class Stage(abc.ABC):
         state.build_status = build.FunctionStatus.INCOMPLETE
 
         self.logfile_path = os.path.join(
-            build.output_dir(state.cache_dir, state.config.build_name),
+            build.output_dir(state.cache_dir, state.build_name),
             f"log_{self.unique_name}.txt",
         )
 
@@ -132,7 +178,7 @@ class Stage(abc.ABC):
         try:
             # Execute the build stage
             with build.Logger(self.monitor_message, self.logfile_path):
-                state = self.fire(state)
+                state = self.fire(state, **kwargs)
 
         except exp.StageError:
             self.status_line(
@@ -162,37 +208,8 @@ class Stage(abc.ABC):
 
         return state
 
-    def get_names(self) -> List[str]:
-        """
-        Sequence uses self.names() to recursively get the names of all
-        Stages in the Sequence. An individual Stage just needs to return
-        its own name.
-        """
-        if self.stages is None:
-            return [self.unique_name]
-        else:
-            result = []
-            for stage in self.stages:
-                result = result + stage.get_names()
 
-            return result
-
-    def get_depth(self) -> int:
-        """
-        Sequence needs to know the depth of each Stage within the Sequence in order
-        to properly update the terminal UI. An individual Stage just needs to return
-        the value 1.
-        """
-        if self.stages is None:
-            return 1
-        else:
-            count = 0
-            for stage in self.stages:
-                count = count + stage.get_depth()
-            return count
-
-
-def _rewind_stdout(lines: int):
+def _rewind_stdout(lines: int = 1):
     """
     Helper function for the command line monitor. Moves the cursor up a
     certain number of lines in the terminal, corresponding to the
@@ -204,48 +221,29 @@ def _rewind_stdout(lines: int):
     print(rewind_multiple_lines, end="")
 
 
-def unroll_stages(stages):
+class Sequence:
     """
-    Recursively goes through all sequences and returns list of stages
+    Helper class to launch and manage build stages.
     """
 
-    unrolled_stages = []
-    for stage in stages:
-        if isinstance(stage, Sequence):
-            unrolled_stages += unroll_stages(stage.stages)
-        else:
-            unrolled_stages += [stage]
-    return unrolled_stages
-
-
-class Sequence(Stage):
     def __init__(
         self,
-        unique_name,
-        monitor_message,
-        stages: List[Stage],
-        enable_model_validation=False,
+        stages: Dict[Stage, List[str]],
     ):
-        super().__init__(unique_name, monitor_message)
 
-        # The `stages` argument can be a nested Sequence (ie, Sequence of Sequence of Stage).
-        # Unroll the stages to make the Sequence easier to deal with
-        self.stages = unroll_stages(stages)
-
-        # Follow default model validation steps in ignition.model_intake()
-        self.enable_model_validation = enable_model_validation
+        self.stages = stages
 
         # Make sure all the stage names are unique
-        stage_names = self.get_names()
+        self.stage_names = [stage.__class__.unique_name for stage in self.stages.keys()]
 
-        if len(stage_names) != len(set(stage_names)):
+        if len(self.stage_names) != len(set(self.stage_names)):
             msg = f"""
             All Stages in a Sequence must have unique unique_names, however Sequence
-            received duplicates in the list of names: {stage_names}
+            received duplicates in the list of names: {self.stage_names}
             """
             raise ValueError(msg)
 
-    def show_monitor(self, config: build.Config, verbosity: bool):
+    def show_monitor(self, state: fs.State, verbosity: bool):
         """
         Displays the monitor on the terminal. The purpose of the monitor
         is to show the status of each stage (success, failure, not started yet,
@@ -256,16 +254,16 @@ class Sequence(Stage):
             print("\n\n")
 
             printing.logn(
-                f'Building "{config.build_name}"',
+                f'Building "{state.build_name}"',
                 c=printing.Colors.BOLD,
             )
 
             for stage in self.stages:
                 stage.status_line(successful=None, verbosity=True)
 
-            _rewind_stdout(self.get_depth())
+            _rewind_stdout(len(self.stages))
 
-    def launch(self, state: build.State) -> build.State:
+    def launch(self, state: fs.State) -> fs.State:
         """
         Executes a launch sequence.
         In less punny terms, this method is called by the top-level
@@ -284,51 +282,60 @@ class Sequence(Stage):
             raise exp.Error(msg)
 
         # Collect telemetry for the build
-        stats = fs.Stats(state.cache_dir, state.config.build_name, state.evaluation_id)
+        stats = fs.Stats(state.cache_dir, state.build_name, state.evaluation_id)
         stats.save_model_eval_stat(
             fs.Keys.SELECTED_SEQUENCE_OF_STAGES,
-            self.get_names(),
+            self.stage_names,
         )
 
         # At the beginning of a sequence no stage has started
         for stage in self.stages:
             stats.save_model_eval_stat(
-                stage.status_key, build.FunctionStatus.NOT_STARTED.value
+                stage.status_key, build.FunctionStatus.NOT_STARTED
             )
             stats.save_model_eval_stat(stage.duration_key, "-")
 
         # Run the build
-        for stage in self.stages:
+        for stage, argv in self.stages.items():
             start_time = time.time()
 
             try:
 
                 # Set status as incomplete, since stage just started
                 stats.save_model_eval_stat(
-                    stage.status_key, build.FunctionStatus.INCOMPLETE.value
+                    stage.status_key, build.FunctionStatus.INCOMPLETE
                 )
 
                 # Collect telemetry about the stage
                 state.current_build_stage = stage.unique_name
 
                 # Run the stage
-                state = stage.fire_helper(state)
+                state = stage.parse_and_fire(state, argv)
+
+                # Save the state so that it can be assessed for a cache hit
+                state.save()
 
             # Broad exception is desirable as we want to capture
             # all exceptions (including those we can't anticipate)
             except Exception as e:  # pylint: disable=broad-except
 
+                if os.environ.get("TURNKEY_DEBUG"):
+                    # It may be useful to raise the exception here, since
+                    # if any of the subsequent lines of code raise another
+                    # exception it will be very hard to root cause e.
+                    raise e
+
                 # Update Stage Status
-                stats.save_model_eval_stat(
-                    stage.status_key, build.FunctionStatus.ERROR.value
-                )
+                stats.save_model_eval_stat(stage.status_key, build.FunctionStatus.ERROR)
 
                 # Save the log file for the failed stage to stats for easy reference
                 stats.save_eval_error_log(stage.logfile_path)
 
                 # Advance the cursor below the monitor so
                 # we can print an error message
-                stage_depth_in_sequence = self.get_depth() - self.get_names().index(
+                stage_depth_in_sequence = len(
+                    self.stage_names
+                ) - self.stage_names.index(
                     stage.unique_name  # pylint: disable=undefined-loop-variable
                 )
                 stdout_lines_to_advance = stage_depth_in_sequence - 2
@@ -343,7 +350,7 @@ class Sequence(Stage):
             else:
                 # Update Stage Status
                 stats.save_model_eval_stat(
-                    stage.status_key, build.FunctionStatus.SUCCESSFUL.value
+                    stage.status_key, build.FunctionStatus.SUCCESSFUL
                 )
 
             finally:
@@ -353,39 +360,23 @@ class Sequence(Stage):
 
         state.current_build_stage = None
         state.build_status = build.FunctionStatus.SUCCESSFUL
-
-        # We use a deepcopy here because the Stage framework supports
-        # intermediate_results of any type, including model objects in memory.
-        # The deepcopy ensures that we are providing a result that users
-        # are free to take any action with.
-        state.results = copy.deepcopy(state.intermediate_results)
+        state.save()
 
         return state
 
-    def status_line(self, successful, verbosity):
+    def status_line(self, verbosity):
         """
-        This override of status_line simply propagates status_line()
-        to every Stage in the Sequence
-        FIXME: A cleaner implementation of Stage/Sequence might not need this
+        Print a status line in the monitor for every Stage in the sequence
         """
         for stage in self.stages:
             stage.status_line(successful=None, verbosity=verbosity)
 
-    def fire(self, state: build.State) -> build.State:
+    @property
+    def info(self) -> Dict[str, Dict]:
         """
-        This override of fire simply propagates fire()
-        to every Stage in the Sequence
-        FIXME: A cleaner implementation of Stage/Sequence might not need this
+        Return a dictionary of stage_name:argv for the sequence
         """
-        for stage in self.stages:
-            state = stage.fire_helper(state)
 
-        return state
-
-    def fire_helper(self, state: build.State) -> build.State:
-        """
-        Sequence doesn't need any help calling self.fire(), so it's fire_helper
-        is just to call self.fire()
-        FIXME: A cleaner implementation of Stage/Sequence might not need this
-        """
-        return self.fire(state)
+        return {
+            stage.__class__.unique_name: argv for stage, argv in self.stages.items()
+        }

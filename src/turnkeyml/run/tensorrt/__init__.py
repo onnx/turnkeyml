@@ -1,4 +1,3 @@
-import turnkeyml.build.sequences as sequences
 from .runtime import TensorRT
 
 
@@ -8,7 +7,6 @@ implements = {
             "build_required": True,
             "RuntimeClass": TensorRT,
             "supported_devices": {"nvidia"},
-            "default_sequence": sequences.optimize_fp16,
         }
     }
 }

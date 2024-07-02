@@ -5,6 +5,8 @@
 
 import torch
 from turnkeyml import build_model
+from turnkeyml.build.stage import Sequence
+from turnkeyml.build.export import ExportPytorchModel
 
 torch.manual_seed(0)
 
@@ -27,11 +29,24 @@ pytorch_model = SmallModel(input_size, output_size)
 inputs = {"x": torch.rand(input_size)}
 
 # Build pytorch_model with `monitor` explicitly set to True
-print("\build_model() will now build the model with the monitor enabled...")
-build_model(pytorch_model, inputs, monitor=True, build_name="monitor_enabled")
+sequence = Sequence(stages={ExportPytorchModel(): []})
+print("build_model() will now build the model with the monitor enabled...")
+build_model(
+    sequence=sequence,
+    model=pytorch_model,
+    inputs=inputs,
+    monitor=True,
+    build_name="monitor_enabled",
+)
 
 # Rebuild pytorch_model with the monitor disabled
-print("\build_model() will now build the model with the monitor disabled...")
-build_model(pytorch_model, inputs, monitor=False, build_name="monitor_disabled")
+print("build_model() will now build the model with the monitor disabled...")
+build_model(
+    sequence=sequence,
+    model=pytorch_model,
+    inputs=inputs,
+    monitor=False,
+    build_name="monitor_disabled",
+)
 
 print("Example no_monitor.py finished")

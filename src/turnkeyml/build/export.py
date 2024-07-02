@@ -4,6 +4,7 @@ import shutil
 import warnings
 import sys
 import copy
+import argparse
 from typing import Union
 import torch
 import torch.onnx.verification
@@ -50,55 +51,39 @@ def get_output_names(
     return [node.name for node in onnx_model.graph.output]  # pylint: disable=no-member
 
 
-def onnx_dir(state: build.State):
-    return os.path.join(
-        build.output_dir(state.cache_dir, state.config.build_name), "onnx"
-    )
+def original_inputs_file(cache_dir: str, build_name: str):
+    return os.path.join(build.output_dir(cache_dir, build_name), "inputs.npy")
 
 
-def base_onnx_file(state: build.State):
-    return os.path.join(
-        onnx_dir(state),
-        f"{state.config.build_name}-op{state.config.onnx_opset}-base.onnx",
-    )
+def onnx_dir(state: fs.State):
+    return os.path.join(build.output_dir(state.cache_dir, state.build_name), "onnx")
 
 
-def opt_onnx_file(state: build.State):
+def base_onnx_file(state: fs.State):
     return os.path.join(
         onnx_dir(state),
-        f"{state.config.build_name}-op{state.config.onnx_opset}-opt.onnx",
+        f"{state.build_name}-op{state.onnx_opset}-base.onnx",
     )
 
 
-def converted_onnx_file(state: build.State):
+def opt_onnx_file(state: fs.State):
     return os.path.join(
         onnx_dir(state),
-        f"{state.config.build_name}-op{state.config.onnx_opset}-opt-f16.onnx",
+        f"{state.build_name}-op{state.onnx_opset}-opt.onnx",
     )
 
 
-class ExportPlaceholder(stage.Stage):
+def converted_onnx_file(state: fs.State):
+    return os.path.join(
+        onnx_dir(state),
+        f"{state.build_name}-op{state.onnx_opset}-opt-f16.onnx",
+    )
+
+
+class OnnxLoad(stage.Stage):
     """
-    Placeholder Stage that should be replaced by a framework-specific export stage,
-    typically during ignition.model_intake()
-    """
-
-    def __init__(self):
-        super().__init__(
-            unique_name="export_placeholder",
-            monitor_message="Placeholder for an Export Stage",
-        )
-
-    def fire(self, _: build.State):
-        raise exp.StageError(
-            "This Sequence includes an ExportPlaceholder Stage that should have "
-            "been replaced with an export Stage."
-        )
-
-
-class ReceiveOnnxModel(stage.Stage):
-    """
-    Stage that takes an ONNX model as input.
+    Stage that takes an ONNX model as input and passes it to the following
+    stages.
 
     Expected inputs:
      - state.model is a path to the ONNX model
@@ -108,13 +93,21 @@ class ReceiveOnnxModel(stage.Stage):
      - A *-base.onnx file that implements state.model given state.inputs.
     """
 
+    unique_name = "onnx-load"
+
     def __init__(self):
-        super().__init__(
-            unique_name="receive_onnx",
-            monitor_message="Receiving ONNX Model",
+        super().__init__(monitor_message="Loading ONNX Model")
+
+    @staticmethod
+    def parser(add_help: bool = True) -> argparse.ArgumentParser:
+        parser = argparse.ArgumentParser(
+            description="Load an ONNX model",
+            add_help=add_help,
         )
 
-    def fire(self, state: build.State):
+        return parser
+
+    def fire(self, state: fs.State):
         if not isinstance(state.model, str):
             msg = f"""
             The current stage (ReceiveOnnxModel) is only compatible with
@@ -135,6 +128,7 @@ class ReceiveOnnxModel(stage.Stage):
 
         model = onnx.load(state.model)
         opset = onnx_helpers.get_opset(model)
+        state.onnx_opset = opset
         input_shapes = [
             [d.dim_value for d in _input.type.tensor_type.shape.dim]
             for _input in model.graph.input  # pylint: disable=no-member
@@ -172,7 +166,9 @@ class ReceiveOnnxModel(stage.Stage):
         shutil.copy(state.model, output_path)
 
         tensor_helpers.save_inputs(
-            [state.inputs], state.original_inputs_file, downcast=False
+            [state.inputs],
+            original_inputs_file(state.cache_dir, state.build_name),
+            downcast=False,
         )
 
         # Check the if the base mode has been exported successfully
@@ -180,11 +176,9 @@ class ReceiveOnnxModel(stage.Stage):
         fail_msg = "\tFailed receiving ONNX Model"
 
         if check_model(output_path, success_msg, fail_msg):
-            state.intermediate_results = [output_path]
+            state.results = output_path
 
-            stats = fs.Stats(
-                state.cache_dir, state.config.build_name, state.evaluation_id
-            )
+            stats = fs.Stats(state.cache_dir, state.build_name, state.evaluation_id)
             stats.save_model_eval_stat(
                 fs.Keys.ONNX_FILE,
                 output_path,
@@ -214,13 +208,28 @@ class ExportPytorchModel(stage.Stage):
      - A *-base.onnx file that implements state.model given state.inputs
     """
 
+    unique_name = "export-pytorch"
+
     def __init__(self):
-        super().__init__(
-            unique_name="export_pytorch",
-            monitor_message="Exporting PyTorch to ONNX",
+        super().__init__(monitor_message="Exporting PyTorch to ONNX")
+
+    @staticmethod
+    def parser(add_help: bool = True) -> argparse.ArgumentParser:
+        parser = argparse.ArgumentParser(
+            description="Export a PyTorch model to ONNX",
+            add_help=add_help,
         )
 
-    def fire(self, state: build.State):
+        parser.add_argument(
+            "--opset",
+            type=int,
+            default=build.DEFAULT_ONNX_OPSET,
+            help=f"ONNX opset to export into (default: {build.DEFAULT_ONNX_OPSET})",
+        )
+
+        return parser
+
+    def fire(self, state: fs.State, opset: int = build.DEFAULT_ONNX_OPSET):
         if not isinstance(state.model, (torch.nn.Module, torch.jit.ScriptModule)):
             msg = f"""
             The current stage (ExportPytorchModel) is only compatible with
@@ -228,6 +237,8 @@ class ExportPytorchModel(stage.Stage):
             the stage received a model of type {type(state.model)}.
             """
             raise exp.StageError(msg)
+
+        state.onnx_opset = opset
 
         # The `torch.onnx.export()` function accepts a tuple of positional inputs
         # followed by a dictionary with all keyword inputs.
@@ -280,7 +291,92 @@ class ExportPytorchModel(stage.Stage):
         default_warnings = warnings.showwarning
         warnings.showwarning = _warn_to_stdout
 
-        stats = fs.Stats(state.cache_dir, state.config.build_name, state.evaluation_id)
+        stats = fs.Stats(state.cache_dir, state.build_name, state.evaluation_id)
+
+        # Export the model to ONNX
+        output_path = base_onnx_file(state)
+        os.makedirs(onnx_dir(state), exist_ok=True)
+
+        torch.onnx.export(
+            state.model,
+            dummy_inputs,
+            output_path,
+            input_names=dummy_input_names,
+            do_constant_folding=True,
+            opset_version=opset,
+            verbose=False,
+        )
+
+        # Save output names to ensure we are preserving the order of the outputs
+        state.expected_output_names = get_output_names(output_path)
+
+        # Restore default warnings behavior
+        warnings.showwarning = default_warnings
+
+        tensor_helpers.save_inputs(
+            [state.inputs],
+            original_inputs_file(state.cache_dir, state.build_name),
+            downcast=False,
+        )
+
+        # Check the if the base mode has been exported successfully
+        success_msg = "\tSuccess exporting model to ONNX"
+        fail_msg = "\tFailed exporting model to ONNX"
+
+        if check_model(output_path, success_msg, fail_msg):
+            state.results = output_path
+
+            stats.save_model_eval_stat(
+                fs.Keys.ONNX_FILE,
+                output_path,
+            )
+        else:
+            msg = f"""
+            Unable to export model to ONNX using Torch's ONNX exporter.
+            We recommend that you modify your model until it is
+            compatible with this third party software, then re-run.
+            More information may be available in the log file at **{self.logfile_path}**
+            """
+            raise exp.StageError(msg)
+
+        return state
+
+
+class VerifyOnnxExporter(stage.Stage):
+    """
+    Stage that runs a parity test on an input PyTorch model and an ONNX
+    file derived from that model.
+
+    Note that the derived ONNX file is discarded by the verification API,
+    so we can't use it in downstream Stages. To use this stage inline with
+    other build stages, we recommend:
+        discover -> verify-onnx-exporter -> export-pytorch -> other stages
+
+    Expected inputs:
+     - state.model is a torch.nn.Module or torch.jit.ScriptModule
+     - state.inputs is a dict that represents valid kwargs to the forward
+        function of state.model
+
+    Outputs: No change to state
+    """
+
+    unique_name = "verify-onnx-exporter"
+
+    def __init__(self):
+        super().__init__(monitor_message="Verifying ONNX exporter")
+
+    @staticmethod
+    def parser(add_help: bool = True) -> argparse.ArgumentParser:
+        parser = argparse.ArgumentParser(
+            description="Use OnnxRuntime to optimize an ONNX model",
+            add_help=add_help,
+        )
+
+        return parser
+
+    def fire(self, state: fs.State):
+
+        stats = fs.Stats(state.cache_dir, state.build_name, state.evaluation_id)
 
         # Verify if the exported model matches the input torch model
         try:
@@ -295,7 +391,7 @@ class ExportPytorchModel(stage.Stage):
             export_verification = torch.onnx.verification.find_mismatch(
                 state.model,
                 tuple(state.inputs.values()),
-                opset_version=state.config.onnx_opset,
+                opset_version=state.onnx_opset,
                 options=fp32_tolerance,
             )
 
@@ -321,173 +417,6 @@ class ExportPytorchModel(stage.Stage):
             is_export_valid,
         )
 
-        # Export the model to ONNX
-        output_path = base_onnx_file(state)
-        os.makedirs(onnx_dir(state), exist_ok=True)
-
-        torch.onnx.export(
-            state.model,
-            dummy_inputs,
-            output_path,
-            input_names=dummy_input_names,
-            do_constant_folding=True,
-            opset_version=state.config.onnx_opset,
-            verbose=False,
-        )
-
-        # Save output names to ensure we are preserving the order of the outputs
-        state.expected_output_names = get_output_names(output_path)
-
-        # Restore default warnings behavior
-        warnings.showwarning = default_warnings
-
-        tensor_helpers.save_inputs(
-            [state.inputs], state.original_inputs_file, downcast=False
-        )
-
-        # Check the if the base mode has been exported successfully
-        success_msg = "\tSuccess exporting model to ONNX"
-        fail_msg = "\tFailed exporting model to ONNX"
-
-        if check_model(output_path, success_msg, fail_msg):
-            state.intermediate_results = [output_path]
-
-            stats.save_model_eval_stat(
-                fs.Keys.ONNX_FILE,
-                output_path,
-            )
-        else:
-            msg = f"""
-            Unable to export model to ONNX using Torch's ONNX exporter.
-            We recommend that you modify your model until it is
-            compatible with this third party software, then re-run.
-            More information may be available in the log file at **{self.logfile_path}**
-            """
-            raise exp.StageError(msg)
-
-        return state
-
-
-class ExportKerasModel(stage.Stage):
-    """
-    Stage that takes a Keras model instance, in state.model, and
-    exports it to an ONNX file.
-
-    Expected inputs:
-     - state.model is a tf.keras.Model
-     - state.inputs is a dict that represents valid kwargs to the forward
-        function of state.model
-
-    Outputs:
-     - A *-base.onnx file that implements state.model given state.inputs
-    """
-
-    def __init__(self):
-        super().__init__(
-            unique_name="export_keras",
-            monitor_message="Exporting Keras to ONNX",
-        )
-
-    def fire(self, state: build.State):
-        # pylint: disable=import-error
-        import tensorflow as tf
-        import tf2onnx
-
-        if not isinstance(state.model, (tf.keras.Model)):
-            msg = f"""
-            The current stage (ExportKerasModel) is only compatible with
-            models of type tf.keras.Model, however
-            the stage received a model of type {type(state.model)}.
-            """
-            raise exp.StageError(msg)
-
-        user_provided_args = state.inputs.keys()
-
-        all_args = []
-
-        # Check the model inputs member
-        if state.model.inputs:
-            all_args = [x.name for x in state.model.inputs]
-
-        # If the input name(s) cannot be extracted from the inputs variable
-        # than try to find them in the call() method
-        if len(all_args) == 0:
-            all_args = list(inspect.signature(state.model.call).parameters.keys())
-
-        inputs = []
-        input_names = []
-
-        for inp in user_provided_args:
-            if inp not in all_args:
-                msg = f"""
-                Input name {inp} not found in the model's forward method. Available
-                input names are: {all_args}"
-                """
-                raise ValueError(msg)
-
-        for _, arg in enumerate(all_args):
-            if arg in user_provided_args:
-                inputs.append(state.inputs[arg])
-                input_names.append(arg)
-
-        input_specs = []
-        for inp, name in zip(inputs, input_names):
-            dtype = inp.dtype
-            shape = inp.shape
-            if inp.dtype == tf.float64:
-                print(f"Converting input {name} from float64 to float32")
-                dtype = tf.float32
-            if inp.dtype == tf.int64:
-                print(f"Converting input {name} from int64 to int32")
-                dtype = tf.int32
-            if inp.shape[0] is None:
-                print("Found batch size None and setting it to 1")
-                shape = (1, shape[1:])
-
-            input_specs.append(tf.TensorSpec(shape, dtype, name))
-
-        # Export the model to ONNX
-        output_path = base_onnx_file(state)
-        os.makedirs(onnx_dir(state), exist_ok=True)
-        tf2onnx.convert.from_keras(
-            state.model,
-            input_signature=input_specs,
-            opset=state.config.onnx_opset,
-            output_path=output_path,
-        )
-
-        # Save output names to ensure we are preserving the order of the outputs
-        state.expected_output_names = get_output_names(output_path)
-
-        state.inputs = dict(zip(tuple(input_names), tuple(inputs)))
-
-        tensor_helpers.save_inputs(
-            [state.inputs], state.original_inputs_file, downcast=False
-        )
-
-        # Check the if the base mode has been exported successfully
-        success_msg = "\tSuccess exporting model to ONNX"
-        fail_msg = "\tFailed exporting model to ONNX"
-
-        if check_model(output_path, success_msg, fail_msg):
-            state.intermediate_results = [output_path]
-
-            stats = fs.Stats(
-                state.cache_dir, state.config.build_name, state.evaluation_id
-            )
-            stats.save_model_eval_stat(
-                fs.Keys.ONNX_FILE,
-                output_path,
-            )
-        else:
-            msg = f"""
-            Unable to export model to ONNX using tf2onnx exporter.
-            We recommend that you modify your model until it is
-            compatible with this third party software, then re-run.
-            More information may be available in the log file at **{self.logfile_path}**
-            """
-            raise exp.StageError(msg)
-
         return state
 
 
@@ -498,20 +427,28 @@ class OptimizeOnnxModel(stage.Stage):
     node eliminations, Semantics-preserving node fusions
 
     Expected inputs:
-     - state.intermediate_results contains a single .onnx file
+     - state.results contains a single .onnx file
 
     Outputs:
      - A *-opt.onnx file
     """
 
+    unique_name = "optimize-onnx"
+
     def __init__(self):
-        super().__init__(
-            unique_name="optimize_onnx",
-            monitor_message="Optimizing ONNX file",
+        super().__init__(monitor_message="Optimizing ONNX file")
+
+    @staticmethod
+    def parser(add_help: bool = True) -> argparse.ArgumentParser:
+        parser = argparse.ArgumentParser(
+            description="Use OnnxRuntime to optimize an ONNX model",
+            add_help=add_help,
         )
 
-    def fire(self, state: build.State):
-        input_onnx = state.intermediate_results[0]
+        return parser
+
+    def fire(self, state: fs.State):
+        input_onnx = state.results
         output_path = opt_onnx_file(state)
 
         # Perform some basic optimizations on the model to remove shape related
@@ -536,11 +473,9 @@ class OptimizeOnnxModel(stage.Stage):
         fail_msg = "\tFailed optimizing ONNX model"
 
         if check_model(output_path, success_msg, fail_msg):
-            state.intermediate_results = [output_path]
+            state.results = output_path
 
-            stats = fs.Stats(
-                state.cache_dir, state.config.build_name, state.evaluation_id
-            )
+            stats = fs.Stats(state.cache_dir, state.build_name, state.evaluation_id)
             stats.save_model_eval_stat(
                 fs.Keys.ONNX_FILE,
                 output_path,
@@ -563,20 +498,30 @@ class ConvertOnnxToFp16(stage.Stage):
     to fp16.
 
     Expected inputs:
-     - state.intermediate_results contains a single .onnx file
+     - state.results contains a single .onnx file
 
     Outputs:
      - A *-f16.onnx file with FP16 trained parameters
     """
 
+    unique_name = "fp16-conversion"
+
     def __init__(self):
         super().__init__(
-            unique_name="fp16_conversion",
             monitor_message="Converting to FP16",
         )
 
-    def fire(self, state: build.State):
-        input_onnx = state.intermediate_results[0]
+    @staticmethod
+    def parser(add_help: bool = True) -> argparse.ArgumentParser:
+        parser = argparse.ArgumentParser(
+            description="Use OnnxMLTools to convert an ONNX model to fp16",
+            add_help=add_help,
+        )
+
+        return parser
+
+    def fire(self, state: fs.State):
+        input_onnx = state.results
 
         # Convert the model to FP16
         # Some ops will not be converted to fp16 because they are in a block list
@@ -608,7 +553,7 @@ class ConvertOnnxToFp16(stage.Stage):
         )
 
         # Load inputs and convert to fp16
-        inputs_file = state.original_inputs_file
+        inputs_file = original_inputs_file(state.cache_dir, state.build_name)
         if os.path.isfile(inputs_file):
             inputs = np.load(inputs_file, allow_pickle=True)
             inputs_converted = tensor_helpers.save_inputs(
@@ -642,11 +587,9 @@ class ConvertOnnxToFp16(stage.Stage):
         fail_msg = "\tFailed converting ONNX model to fp16"
 
         if check_model(output_path, success_msg, fail_msg):
-            state.intermediate_results = [output_path]
+            state.results = output_path
 
-            stats = fs.Stats(
-                state.cache_dir, state.config.build_name, state.evaluation_id
-            )
+            stats = fs.Stats(state.cache_dir, state.build_name, state.evaluation_id)
             stats.save_model_eval_stat(
                 fs.Keys.ONNX_FILE,
                 output_path,

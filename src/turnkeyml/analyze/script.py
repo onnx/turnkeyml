@@ -21,37 +21,48 @@ import turnkeyml.common.exceptions as exp
 from turnkeyml.build.stage import Sequence
 import turnkeyml.analyze.status as status
 import turnkeyml.analyze.model as analyze_model
-import turnkeyml.common.tf_helpers as tf_helpers
 import turnkeyml.common.labels as labels
 from turnkeyml.build_api import build_model
 import turnkeyml.common.filesystem as fs
-import turnkeyml.run.devices as plugins
 
 
 class Action(Enum):
     ANALYZE = "analyze"
     BUILD = "build"
-    BENCHMARK = "benchmark"
+
+
+def _get_classes(module) -> List[str]:
+    """
+    Returns all classes within a module.
+    """
+    return [y for x, y in inspect.getmembers(module, inspect.isclass)]
+
+
+def _get_transformers_activations() -> List:
+    """
+    We need this helper because transformers is not a required depenence for
+    this project, however if we are analyzing a transformers model then we need
+    to inspect its activations.
+    """
+    if "transformers" in sys.modules:
+        return _get_classes(sys.modules["transformers"].activations)
+    else:
+        return []
 
 
 @dataclasses.dataclass
 class TracerArgs:
     input: str
     script_args: str
-    device: str
-    runtime: str
-    iterations: int
     actions: List[Action]
     lean_cache: bool
     targets: List[str]
     max_depth: int
-    onnx_opset: int
     cache_dir: str
     rebuild: str
     models_found: Dict[str, status.ModelInfo] = dataclasses.field(default_factory=dict)
     script_name: Optional[str] = None
     sequence: Optional[Sequence] = None
-    rt_args: Optional[Dict] = None
     verbosity: status.Verbosity = status.Verbosity.DYNAMIC
 
     @functools.cached_property
@@ -66,8 +77,8 @@ class TracerArgs:
 
     @functools.cached_property
     def torch_activations(self) -> List[str]:
-        act = tf_helpers.get_classes(torch.nn.modules.activation)
-        act += tf_helpers.get_transformers_activations()
+        act = _get_classes(torch.nn.modules.activation)
+        act += _get_transformers_activations()
         return act
 
     @property
@@ -98,7 +109,7 @@ class TracerArgs:
                 # `sequence` can be a str or Sequence
                 # If we receive an instance of Sequence, we need to convert it
                 # to a string to save it to YAML
-                saved_value = arg_value.sequence.__class__.__name__
+                saved_value = arg_value.stage_names
             elif isinstance(arg_value, status.Verbosity):
                 saved_value = arg_value.value
             elif isinstance(arg_value, list) and any(
@@ -149,35 +160,6 @@ def _store_traceback(invocation_info: status.UniqueInvocationInfo):
     invocation_info.status_message = " ".join(invocation_info.status_message.split())
 
 
-def set_status_on_exception(
-    build_required: bool,
-    build_state: build.State,
-    stats: fs.Stats,
-    benchmark_logfile_path: str,
-):
-    """
-    Determine whether an exception was caused by build or benchmark,
-    and then record statistics to help with debugging.
-    """
-    # We get `state` when the build tool succeeds, so we can use that to identify
-    # whether the exception was thrown during build or benchmark
-    # We also take into account whether a build was requested
-    if build_required and not build_state:
-        stats.save_model_eval_stat(
-            fs.Keys.BUILD_STATUS, build.FunctionStatus.ERROR.value
-        )
-
-        # NOTE: The log file for the failed build stage should have
-        # already been saved to stats
-    else:
-        stats.save_model_eval_stat(
-            fs.Keys.BENCHMARK_STATUS, build.FunctionStatus.ERROR.value
-        )
-
-        # Also save the benchmark log file to the stats
-        stats.save_eval_error_log(benchmark_logfile_path)
-
-
 def explore_invocation(
     model_inputs: dict,
     model_info: status.ModelInfo,
@@ -219,13 +201,8 @@ def explore_invocation(
 
         # Convert all positional arguments into keyword arguments
         if args != ():
-            if model_info.model_type in [
-                build.ModelType.PYTORCH,
-                build.ModelType.PYTORCH_COMPILED,
-            ]:
-                forward_function = model_info.model.forward
-            elif model_info.model_type == build.ModelType.KERAS:
-                forward_function = model_info.model.call
+
+            forward_function = model_info.model.forward
             all_args = list(inspect.signature(forward_function).parameters.keys())
             for i in range(len(args)):
                 if torch.is_tensor(args[i]):
@@ -237,27 +214,7 @@ def explore_invocation(
     # Create a build directory in the cache
     fs.make_build_dir(tracer_args.cache_dir, build_name)
 
-    # If the user has not provided a specific runtime, select the runtime
-    # based on the device provided.
-    (
-        selected_runtime,
-        runtime_info,
-        sequence_selected,
-    ) = plugins.select_runtime_and_sequence(
-        tracer_args.device,
-        tracer_args.runtime,
-        tracer_args.sequence,
-    )
-
-    if "status_stats" in runtime_info.keys():
-        invocation_info.stats_keys = runtime_info["status_stats"]
-    else:
-        invocation_info.stats_keys = []
-
-    # Create an ID for the build stats by combining the device and runtime.
-    # We don't need more info in the evaluation_id because changes to build_model()
-    # arguments (e.g., sequence) will trigger a rebuild, which is intended to replace the
-    # build stats so long as the device and runtime have not changed.
+    # Create an ID for the build stats by hashing all arguments to the tool
     evaluation_id = tracer_args.hash
 
     stats = fs.Stats(
@@ -335,20 +292,6 @@ def explore_invocation(
         datetime.now(),
     )
 
-    # Save specific information into its own key for easier access
-    stats.save_model_eval_stat(
-        fs.Keys.DEVICE_TYPE,
-        tracer_args.device,
-    )
-    stats.save_model_eval_stat(
-        fs.Keys.RUNTIME,
-        selected_runtime,
-    )
-    stats.save_model_eval_stat(
-        fs.Keys.ITERATIONS,
-        tracer_args.iterations,
-    )
-
     if model_info.model_type == build.ModelType.PYTORCH_COMPILED:
         invocation_info.status_message = (
             "Skipping model compiled using torch.compile(). "
@@ -359,113 +302,52 @@ def explore_invocation(
 
         return
 
-    # Initialize build and benchmark status to "not started" if
-    # that action is part of the evaluation
-    if runtime_info["build_required"]:
-        stats.save_model_eval_stat(
-            fs.Keys.BUILD_STATUS, build.FunctionStatus.NOT_STARTED.value
-        )
+    stats.save_model_eval_stat(fs.Keys.BUILD_STATUS, build.FunctionStatus.NOT_STARTED)
 
-    if Action.BENCHMARK in tracer_args.actions:
-        stats.save_model_eval_stat(
-            fs.Keys.BENCHMARK_STATUS, build.FunctionStatus.NOT_STARTED.value
-        )
-
-        # Save the device name that will be used for the benchmark
-        stats.save_model_eval_stat(
-            fs.Keys.DEVICE, runtime_info["RuntimeClass"].device_name()
-        )
-
-    build_state = None
-    perf = None
-    benchmark_logfile_path = ""
     try:
-        # Run the build tool (if needed by the runtime)
-        if runtime_info["build_required"]:
-            # Indicate that the build is running. If the build fails for any reason,
-            # we will try to catch the exception and note it in the stats.
-            # If a concluded build still has a status of "running", this means
-            # there was an uncaught exception.
-            stats.save_model_eval_stat(
-                fs.Keys.BUILD_STATUS, build.FunctionStatus.INCOMPLETE.value
-            )
+        # Run the build tool
 
-            build_state = build_model(
-                model=model_info.model,
-                inputs=inputs,
-                evaluation_id=evaluation_id,
-                build_name=build_name,
-                cache_dir=tracer_args.cache_dir,
-                rebuild=tracer_args.rebuild,
-                sequence=sequence_selected,
-                onnx_opset=tracer_args.onnx_opset,
-                device=tracer_args.device,
-            )
+        # Indicate that the build is running. If the build fails for any reason,
+        # we will try to catch the exception and note it in the stats.
+        # If a concluded build still has a status of "running", this means
+        # there was an uncaught exception.
+        stats.save_model_eval_stat(
+            fs.Keys.BUILD_STATUS, build.FunctionStatus.INCOMPLETE
+        )
 
-            stats.save_model_eval_stat(
-                fs.Keys.BUILD_STATUS, build.FunctionStatus.SUCCESSFUL.value
-            )
+        build_model(
+            model=model_info.model,
+            inputs=inputs,
+            evaluation_id=evaluation_id,
+            build_name=build_name,
+            cache_dir=tracer_args.cache_dir,
+            rebuild=tracer_args.rebuild,
+            sequence=tracer_args.sequence,
+        )
 
-            model_to_benchmark = build_state.results[0]
+        stats.save_model_eval_stat(
+            fs.Keys.BUILD_STATUS, build.FunctionStatus.SUCCESSFUL
+        )
 
-            # Analyze the onnx file (if any) and save statistics
-            analyze_model.analyze_onnx(
-                build_name=build_name,
-                cache_dir=tracer_args.cache_dir,
-                stats=stats,
-            )
-        else:
-            model_to_benchmark = model_info.model
+        # Analyze the onnx file (if any) and save statistics
+        analyze_model.analyze_onnx(
+            build_name=build_name,
+            cache_dir=tracer_args.cache_dir,
+            stats=stats,
+        )
 
-        # Run the benchmark tool (if requested by the user)
-        if Action.BENCHMARK in tracer_args.actions:
-            if tracer_args.rt_args is None:
-                rt_args_to_use = {}
-            else:
-                rt_args_to_use = tracer_args.rt_args
+        invocation_info.status_message = "Model successfully built!"
+        invocation_info.status_message_color = printing.Colors.OKGREEN
 
-            stats.save_model_eval_stat(
-                fs.Keys.BENCHMARK_STATUS, build.FunctionStatus.INCOMPLETE.value
-            )
-
-            runtime_handle = runtime_info["RuntimeClass"](
-                cache_dir=tracer_args.cache_dir,
-                build_name=build_name,
-                stats=stats,
-                iterations=tracer_args.iterations,
-                model=model_to_benchmark,
-                inputs=inputs,
-                device_type=tracer_args.device,
-                runtime=selected_runtime,
-                **rt_args_to_use,
-            )
-            benchmark_logfile_path = runtime_handle.logfile_path
-            perf = runtime_handle.benchmark()
-
-            for key, value in vars(perf).items():
-                stats.save_model_eval_stat(
-                    key=key,
-                    value=value,
-                )
-
-            stats.save_model_eval_stat(
-                fs.Keys.BENCHMARK_STATUS, build.FunctionStatus.SUCCESSFUL.value
-            )
-
-            invocation_info.status_message = "Model successfully benchmarked!"
-            invocation_info.performance = perf
-            invocation_info.status_message_color = printing.Colors.OKGREEN
-        else:
-            invocation_info.status_message = "Model successfully built!"
-            invocation_info.status_message_color = printing.Colors.OKGREEN
+        # Present status statistics from the Stages
+        for stage in tracer_args.sequence.stages:
+            invocation_info.stats_keys += stage.status_stats
 
     except exp.StageError as e:
         invocation_info.status_message = f"Build Error: {e}"
         invocation_info.status_message_color = printing.Colors.WARNING
 
-        set_status_on_exception(
-            runtime_info["build_required"], build_state, stats, benchmark_logfile_path
-        )
+        stats.save_model_eval_stat(fs.Keys.BUILD_STATUS, build.FunctionStatus.ERROR)
 
         _store_traceback(invocation_info)
 
@@ -485,9 +367,7 @@ def explore_invocation(
         # illegal. In that case we want to halt execution so that users can
         # fix their arguments.
 
-        set_status_on_exception(
-            runtime_info["build_required"], build_state, stats, benchmark_logfile_path
-        )
+        stats.save_model_eval_stat(fs.Keys.BUILD_STATUS, build.FunctionStatus.ERROR)
 
         raise e
 
@@ -495,9 +375,7 @@ def explore_invocation(
         invocation_info.status_message = f"Error: {e}."
         invocation_info.status_message_color = printing.Colors.WARNING
 
-        set_status_on_exception(
-            runtime_info["build_required"], build_state, stats, benchmark_logfile_path
-        )
+        stats.save_model_eval_stat(fs.Keys.BUILD_STATUS, build.FunctionStatus.ERROR)
 
         _store_traceback(invocation_info)
 
@@ -507,11 +385,12 @@ def explore_invocation(
         invocation_info.status_message = f"Unknown turnkey error: {e}"
         invocation_info.status_message_color = printing.Colors.WARNING
 
-        set_status_on_exception(
-            runtime_info["build_required"], build_state, stats, benchmark_logfile_path
-        )
+        stats.save_model_eval_stat(fs.Keys.BUILD_STATUS, build.FunctionStatus.ERROR)
 
         _store_traceback(invocation_info)
+
+        if os.environ.get("TURNKEY_DEBUG"):
+            raise e
 
     finally:
         # Ensure that stdout/stderr is not being forwarded before updating status
@@ -530,9 +409,7 @@ def explore_invocation(
             fs.clean_output_dir(tracer_args.cache_dir, build_name)
 
 
-def get_model_hash(
-    model: Union[torch.nn.Module, "tf.keras.Model", str], model_type: build.ModelType
-):
+def get_model_hash(model: Union[torch.nn.Module, str], model_type: build.ModelType):
     return build.hash_model(
         model, model_type, hash_params=model_type == build.ModelType.ONNX_FILE
     )[:8]
@@ -560,7 +437,7 @@ def get_invocation_hash(
 
 
 def store_model_info(
-    model: Union[torch.nn.Module, "tf.keras.Model"],
+    model: torch.nn.Module,
     model_name: str,
     model_type: build.ModelType,
     frame: FrameType,
@@ -569,7 +446,6 @@ def store_model_info(
     depth: int,
     parent_hash: str,
 ):
-    # Getting the model hash is only possible after the first inference of Keras models
     model_hash = get_model_hash(model, model_type)
 
     # File where the model was found
@@ -615,7 +491,7 @@ def explore_frame(
     parent_hash: Union[str, None] = None,
 ):
     """
-    This function checks whether local_var is a torch or keras model.
+    This function checks whether local_var is a torch model.
     If it is, we will modify its forward function to know when it
     is called.
     """
@@ -624,7 +500,7 @@ def explore_frame(
     if not bool(sys.modules):
         return
 
-    # Skip all variables that are not a subclass of torch.nn.Module/tf.keras.Model
+    # Skip all variables that are not a subclass of torch.nn.Module
     # Note: try block used since dead weakreferences fail when checking subclass
     try:
         if issubclass(type(local_var), torch.nn.Module):
@@ -634,8 +510,6 @@ def explore_frame(
                 model_type = build.ModelType.PYTORCH_COMPILED
             else:
                 model_type = build.ModelType.PYTORCH
-        elif tf_helpers.is_keras_subclass(type(local_var)):
-            model_type = build.ModelType.KERAS
         else:
             return
     except AttributeError:
@@ -651,15 +525,13 @@ def explore_frame(
     ):
         return
 
-    # Check if we are inside of a subclass of torch.nn.Module or tf.keras.model
+    # Check if we are inside of a subclass of torch.nn.Module
     inside_class = False
     inside_nn_subclass = False
     if "self" in frame.f_locals:
         self_var = frame.f_locals["self"]
         inside_class = type(self_var)
-        inside_nn_subclass = issubclass(
-            inside_class, torch.nn.Module
-        ) or tf_helpers.is_keras_subclass(inside_class)
+        inside_nn_subclass = issubclass(inside_class, torch.nn.Module)
 
     if not inside_nn_subclass:
         if hasattr(local_var, "forward_instrumented"):
@@ -683,48 +555,36 @@ def explore_frame(
 
             return
 
-        if model_type == build.ModelType.PYTORCH:
-            # Avoid instrumenting models before they have been fully loaded
-            if analyze_model.count_parameters(local_var, model_type) == 0:
-                return
+        # Avoid instrumenting models before they have been fully loaded
+        if analyze_model.count_parameters(local_var, model_type) == 0:
+            return
 
-            # Mark this model as instrumented
-            local_var.forward_instrumented = True
+        # Mark this model as instrumented
+        local_var.forward_instrumented = True
 
-            # Create a copy of the old forward function
-            old_forward = local_var.forward
+        # Create a copy of the old forward function
+        old_forward = local_var.forward
 
-            # Recursively look for sub-models within the found model
-            # This is only possible on Pytorch, since each layer of a torch.nn.module
-            # is also a torch.nn.module.
-            model_hash = get_model_hash(local_var, model_type)
-            local_var.turnkey_hash = model_hash
-            if depth < tracer_args.max_depth:
-                recursive_search(
-                    frame, event, local_var, depth, model_hash, tracer_args
-                )
+        # Recursively look for sub-models within the found model
+        # This is only possible on Pytorch, since each layer of a torch.nn.module
+        # is also a torch.nn.module.
+        model_hash = get_model_hash(local_var, model_type)
+        local_var.turnkey_hash = model_hash
+        if depth < tracer_args.max_depth:
+            recursive_search(frame, event, local_var, depth, model_hash, tracer_args)
 
-            # We can keep track of Pytorch models even before they are executed
-            store_model_info(
-                local_var,
-                local_var_name,
-                model_type,
-                frame,
-                event,
-                tracer_args,
-                depth,
-                parent_hash,
-            )
-        elif model_type == build.ModelType.KERAS:
-            # Mark this model as instrumented
-            local_var.forward_instrumented = True
+        # We can keep track of Pytorch models even before they are executed
+        store_model_info(
+            local_var,
+            local_var_name,
+            model_type,
+            frame,
+            event,
+            tracer_args,
+            depth,
+            parent_hash,
+        )
 
-            # Create a copy of the old forward function
-            old_forward = local_var.call
-
-            # Raise exception if user tries to use max_depth!=0 for a keras model
-            if tracer_args.max_depth != 0:
-                raise exp.Error("max_depth is not supported for Keras models")
         local_var.old_forward = old_forward
 
         def forward_spy(*args, **kwargs):
@@ -738,19 +598,6 @@ def explore_frame(
                 # on child models if the user has explicitly asked us to
                 # do so by setting the max_depth flag.
                 return old_forward(*args, **kwargs)
-
-            # We can only keep track of keras models once they have been executed
-            if model_type == build.ModelType.KERAS:
-                store_model_info(
-                    local_var,
-                    local_var_name,
-                    model_type,
-                    frame,
-                    event,
-                    tracer_args,
-                    depth,
-                    parent_hash,
-                )
 
             # Get parent invocation hash
             parent_invocation_hash = None
@@ -841,15 +688,11 @@ def explore_frame(
 
         # The inspect module offers the ability to actually copy the signature of the wrapped
         # function. This allows other functions to see the correct parameters instead of the
-        # enigmatic *args, **kwargs. This is especially important for Keras, since it heavily
-        # relies on inspections to the call function.
+        # enigmatic *args, **kwargs.
         forward_spy.__signature__ = inspect.signature(old_forward)
 
         # Use modified forward/call function
-        if model_type == build.ModelType.PYTORCH:
-            local_var.forward = forward_spy
-        elif model_type == build.ModelType.KERAS:
-            local_var.call = forward_spy
+        local_var.forward = forward_spy
 
 
 def tracefunc(
@@ -886,7 +729,7 @@ def tracefunc(
 def recursive_search(
     frame: FrameType,
     event: str,
-    model: Union[torch.nn.Module, "tf.keras.Model"],
+    model: torch.nn.Module,
     depth: int,
     parent_hash: Union[str, None],
     tracer_args: TracerArgs,

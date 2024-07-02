@@ -5,10 +5,9 @@ import onnxruntime as ort
 import numpy as np
 from turnkeyml.run.basert import BaseRT
 import turnkeyml.common.exceptions as exp
-import turnkeyml.common.build as build
+import turnkeyml.common.filesystem as fs
 from turnkeyml.run.onnxrt.within_conda import dummy_inputs
 from turnkeyml.common.performance import MeasuredPerformance
-from turnkeyml.common.filesystem import Stats
 
 
 combined_rt_name = "example-combined-rt"
@@ -19,7 +18,7 @@ class CombinedExampleRT(BaseRT):
         self,
         cache_dir: str,
         build_name: str,
-        stats: Stats,
+        stats: fs.Stats,
         iterations: int,
         device_type: str,
         runtime: str = combined_rt_name,
@@ -57,13 +56,13 @@ class CombinedExampleRT(BaseRT):
         pass
 
     def benchmark(self):
-        state = build.load_state(self.cache_dir, self.build_name)
+        state = fs.load_state(self.cache_dir, self.build_name)
         per_iteration_latency = []
         sess_options = ort.SessionOptions()
         sess_options.graph_optimization_level = (
             ort.GraphOptimizationLevel.ORT_ENABLE_ALL
         )
-        onnx_session = ort.InferenceSession(state.results[0], sess_options)
+        onnx_session = ort.InferenceSession(state.results, sess_options)
         sess_input = onnx_session.get_inputs()
         input_feed = dummy_inputs(sess_input)
         output_name = onnx_session.get_outputs()[0].name

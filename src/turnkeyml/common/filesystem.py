@@ -1,14 +1,16 @@
 import os
+import sys
 import shutil
 import glob
 import pathlib
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 import importlib.util
 import yaml
 import turnkeyml.common.printing as printing
 import turnkeyml.common.build as build
 import turnkeyml.common.exceptions as exp
 from turnkeyml.common import labels
+from turnkeyml.version import __version__ as turnkey_version
 
 # Allow an environment variable to override the default
 # location for the build cache
@@ -225,52 +227,6 @@ def get_available_builds(cache_dir):
     return builds
 
 
-def print_available_builds(args):
-    printing.log_info(f"Builds available in cache {args.cache_dir}:")
-    builds = get_available_builds(args.cache_dir)
-    printing.list_table(builds, num_cols=1)
-    print()
-
-
-def delete_builds(args):
-    check_cache_dir(args.cache_dir)
-
-    if args.delete_all:
-        builds = get_available_builds(args.cache_dir)
-    else:
-        builds = [args.build_name]
-
-    for build in builds:
-        build_path = os.path.join(args.cache_dir, build)
-        if is_build_dir(args.cache_dir, build):
-            rmdir(build_path)
-            printing.log_info(f"Deleted build: {build}")
-        else:
-            raise CacheError(
-                f"No build found with name: {build}. "
-                "Try running `turnkey cache list` to see the builds in your build cache."
-            )
-
-
-def clean_builds(args):
-    check_cache_dir(args.cache_dir)
-
-    if args.clean_all:
-        builds = get_available_builds(args.cache_dir)
-    else:
-        builds = [args.build_name]
-
-    for build in builds:
-        if is_build_dir(args.cache_dir, build):
-            clean_output_dir(args.cache_dir, build)
-            printing.log_info(f"Removed the build artifacts from: {build}")
-        else:
-            raise CacheError(
-                f"No build found with name: {build}. "
-                "Try running `turnkey cache list` to see the builds in your build cache."
-            )
-
-
 def clean_build_name(build_name: str) -> str:
     """
     Remove hash from build name
@@ -356,8 +312,6 @@ class Keys:
     MODEL_SCRIPT = "builtin_model_script"
     # Indicates status of the most recent build tool run: FunctionStatus
     BUILD_STATUS = "build_status"
-    # Indicates status of the most recent benchmark tool run: FunctionStatus
-    BENCHMARK_STATUS = "benchmark_status"
     # Indicates the match between the TorchScript IR graph and
     # the exported onnx model (verified with torch.onnx.verification)
     TORCH_ONNX_EXPORT_VALIDITY = "torch_export_validity"
@@ -375,6 +329,30 @@ class Keys:
     TIMESTAMP = "timestamp"
     # Records the logfile of any failed stage/benchmark
     ERROR_LOG = "error_log"
+    # Name of the build in the cache
+    BUILD_NAME = "build_name"
+    # Sequence of stages used for this build, along with their args
+    SEQUENCE_INFO = "sequence_info"
+    # Unique ID for an evaluation (build of a model against a specfic device/runtime/sequence)
+    EVALUATION_ID = "evaluation_id"
+    # Version of TurnkeyML used for the build
+    TURNKEY_VERSION = "turnkey_version"
+    # Indicates what framework (e.g., PyTorch, ONNX) the model was source from
+    MODEL_TYPE = "model_type"
+    # Unique ID for this build
+    UID = "uid"
+    # Unique hash for this model
+    MODEL_HASH = "model_hash"
+    # Input shapes expected by the model
+    EXPECTED_INPUT_SHAPES = "expected_input_shapes"
+    # Input data types expected by the model
+    EXPECTED_INPUT_DTYPES = "expected_input_dtypes"
+    # Whether or not inputs must be downcasted during inference
+    DOWNCAST_APPLIED = "downcast_applied"
+    # Directory where the turnkey build cache is stored
+    CACHE_DIR = "cache_dir"
+    # Example inputs to the model
+    INPUTS = "inputs"
 
 
 def _clean_logfile(logfile_lines: List[str]) -> List[str]:
@@ -483,17 +461,6 @@ class Stats:
                 self.save_model_eval_stat(Keys.ERROR_LOG, stats_log)
 
 
-def print_cache_dir(_=None):
-    printing.log_info(f"The default cache directory is: {DEFAULT_CACHE_DIR}")
-
-
-def print_models_dir(args=None):
-    if args.verbose:
-        printing.log_info(f"The models directory is: {MODELS_DIR}")
-    else:
-        print(MODELS_DIR)
-
-
 def expand_inputs(input_paths: List[str]) -> List[str]:
     """
     Convert regular expressions in input paths
@@ -528,3 +495,161 @@ def rebase_cache_dir(input_path: str, build_name: str, new_cache_dir: str):
 
     relative_input_path = input_path.split(build_name, 1)[1][1:]
     return os.path.join(new_cache_dir, build_name, relative_input_path)
+
+
+def is_nice_to_write(value):
+    """
+    Checks whether a value is nice to write to YAML.
+    Returns True if the value is a string, int, float, bool, list, dict, or tuple.
+    Returns False otherwise.
+    """
+    if isinstance(value, (str, int, float, bool)):
+        return True
+    elif isinstance(value, list) or isinstance(value, tuple):
+        # Check if all elements in the list are nice to write
+        return all(is_nice_to_write(item) for item in value)
+    elif isinstance(value, dict):
+        # Check if all values in the dictionary are nice to write
+        return all(is_nice_to_write(item) for item in value.values())
+    return False
+
+
+def sanitize_for_yaml(input_dict: Dict) -> Dict:
+    """
+    Creates a new dictionary containing only nice-to-write values
+    from the original dictionary.
+    """
+    result = {}
+    for key, value in input_dict.items():
+        if is_nice_to_write(value):
+            result[key] = value
+    return result
+
+
+class State:
+    """
+    The State class is meant to carry build state, starting with the user's
+    initial arguments, through each build Stage in the Sequence, and finally
+    to the disk, where it is used to assess cache hits.
+
+    State is initialized with the key members that are shared by every build,
+    and reasonable default values are assigned as appropriate.
+
+    Stage developers can also add any members they wish. To get or set an
+    attribute, reference it as an attribute:
+        1. get: `my_variable = state.attribute_name`
+        2. set: `state.attribute_name = my_variable`
+
+    Build State can be saved and loaded from disk in the form of a state.yaml file
+    via State.save() and load_state(), respectively. Note that while State can
+    contain members of any type, only YAML-safe members (str, int, bool, float,
+    list, dict, tuple) will be saved and loaded.
+    """
+
+    def __init__(
+        self,
+        evaluation_id: str,
+        cache_dir: str,
+        model: Optional[build.UnionValidModelInstanceTypes] = None,
+        inputs: Optional[Dict[str, Any]] = None,
+        model_type: Optional[build.ModelType] = None,
+        monitor: Optional[bool] = None,
+        build_name: Optional[str] = None,
+        sequence_info: Dict[str, Dict] = None,
+        **kwargs,
+    ):
+
+        # Allow monitor to be globally disabled by an environment variable
+        if monitor is None:
+            if os.environ.get("TURNKEY_BUILD_MONITOR") == "False":
+                monitor_setting = False
+            else:
+                monitor_setting = True
+        else:
+            monitor_setting = monitor
+
+        # The default model name is the name of the python file that calls build_model()
+        if build_name is None:
+            build_name = os.path.basename(sys.argv[0])
+
+        # Support "~" in the cache_dir argument
+        parsed_cache_dir = os.path.expanduser(cache_dir)
+
+        # Save settings as State members
+        self.model = model
+        self.inputs = inputs
+        self.model_type = model_type
+        self.monitor = monitor_setting
+        self.evaluation_id = evaluation_id
+        self.cache_dir = parsed_cache_dir
+        self.build_name = build_name
+        self.sequence_info = sequence_info
+        self.turnkey_version = turnkey_version
+        self.build_status = build.FunctionStatus.NOT_STARTED
+        self.downcast_applied = False
+        self.uid = build.unique_id()
+        self.results = None
+
+        if inputs is not None:
+            self.expected_input_shapes, self.expected_input_dtypes = (
+                build.get_shapes_and_dtypes(inputs)
+            )
+        else:
+            self.expected_input_shapes, self.expected_input_dtypes = None, None
+
+        if self.model is not None and self.model_type != build.ModelType.UNKNOWN:
+            self.model_hash = build.hash_model(self.model, self.model_type)
+
+        # Store any additional kwargs as members
+        for key, value in kwargs.items():
+            self.__dict__[key] = value
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        """
+        Stage developers can add a new member to State by simply
+        assigning it as an attribute, ie `state.new_member = value`.
+        """
+        return super().__setattr__(name, value)
+
+    def save(self):
+        """
+        Save all YAML-friendly members to disk as a state.yaml file.
+
+        Note that `model` and `inputs` will typically not be saved since
+        they are typically in non-YAML-friendly types such as `torch.nn.Module`
+        and `torch.tensor`.
+        """
+
+        state_to_save = sanitize_for_yaml(vars(self))
+
+        with open(
+            build.state_file(self.cache_dir, self.build_name),
+            "w",
+            encoding="utf8",
+        ) as outfile:
+            yaml.dump(state_to_save, outfile)
+
+
+def load_state(
+    cache_dir=None,
+    build_name=None,
+    state_path=None,
+) -> State:
+    """
+    Read a state.yaml file corresponding to a specific build in a specific
+    cache, and use its contents to initialize a State instance.
+    """
+
+    if state_path is not None:
+        file_path = state_path
+    elif build_name is not None and cache_dir is not None:
+        file_path = build.state_file(cache_dir, build_name)
+    else:
+        raise ValueError(
+            "This function requires either build_name and cache_dir to be set, "
+            "or state_path to be set, not both or neither"
+        )
+
+    state_dict = build.load_yaml(file_path)
+
+    return State(**state_dict)

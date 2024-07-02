@@ -16,6 +16,8 @@
 
 import torch
 from turnkeyml import build_model
+from turnkeyml.build.stage import Sequence
+from turnkeyml.build.export import ExportPytorchModel
 
 torch.manual_seed(0)
 
@@ -40,8 +42,13 @@ inputs = {"x": torch.rand(input_size)}
 # Build pytorch_model and set the cache_dir
 # We also set the build_name to make the build easy to identify
 my_local_cache = "local_cache"
+sequence = Sequence(stages={ExportPytorchModel(): []})
 build_model(
-    pytorch_model, inputs, cache_dir=my_local_cache, build_name="my_cache_dir_build"
+    sequence=sequence,
+    model=pytorch_model,
+    inputs=inputs,
+    cache_dir=my_local_cache,
+    build_name="my_cache_dir_build",
 )
 
 print(

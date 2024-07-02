@@ -5,7 +5,9 @@ import turnkeyml.common.exceptions as exp
 
 
 class Device:
-    def __init__(self, selected_device: str, rt_supported_devices: Optional[Dict] = None):
+    def __init__(
+        self, selected_device: str, rt_supported_devices: Optional[Dict] = None
+    ):
         self.family: str
         self.part: Optional[str] = None
         self.config: Optional[str] = None
@@ -21,11 +23,11 @@ class Device:
 
         # Set family, part, and config straight away if rt_supported_devices is not provided
         if rt_supported_devices is None:
-            if len(values)>0:
+            if len(values) > 0:
                 self.family = values[0]
-            if len(values)>1:
+            if len(values) > 1:
                 self.part = values[1]
-            if len(values)>2:
+            if len(values) > 2:
                 self.config = values[2]
             return
 
@@ -50,13 +52,13 @@ class Device:
             if values[1] in rt_supported_devices[self.family]:
                 self.part = values[1]
             elif len(rt_supported_devices[self.family]) == 0:
-                raise exp.ArgError(
-                    f"Device family {self.family} supports no parts."
-                )
+                raise exp.ArgError(f"Device family {self.family} supports no parts.")
             else:
                 error_msg = f"Part {values[1]} is not supported by this device family."
                 if len(rt_supported_devices[self.family]) > 0:
-                    error_msg += f" Supported parts are: {rt_supported_devices[self.family]}"
+                    error_msg += (
+                        f" Supported parts are: {rt_supported_devices[self.family]}"
+                    )
                 raise exp.ArgError(error_msg)
         elif rt_supported_devices[self.family]:
             self.part = next(iter(rt_supported_devices[self.family]))
@@ -97,14 +99,14 @@ class MeasuredPerformance:
     device_type: Union[str, Device]
     build_name: str
     throughput_units: str = "inferences per second (IPS)"
-    latency_units: str = "milliseconds (ms)"
+    mean_latency_units: str = "milliseconds (ms)"
 
     def print(self):
         printing.log_info(
             f"\nPerformance of build {self.build_name} on {self.device} "
             f"({self.runtime} v{self.runtime_version}) is:"
         )
-        print(f"\tMean Latency: {self.mean_latency:.3f} {self.latency_units}")
+        print(f"\tMean Latency: {self.mean_latency:.3f} {self.mean_latency_units}")
         print(f"\tThroughput: {self.throughput:.1f} {self.throughput_units}")
         print()
 
