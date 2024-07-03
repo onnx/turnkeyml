@@ -1,7 +1,33 @@
 from dataclasses import dataclass
-from typing import Optional, Union, Dict
+from typing import Optional, Union, Dict, List
+import argparse
+import turnkeyml.common.filesystem as fs
 import turnkeyml.common.printing as printing
 import turnkeyml.common.exceptions as exp
+
+
+def enumerate_supported_devices(rt_supported_devices: set) -> List[str]:
+
+    result = []
+    if isinstance(rt_supported_devices, dict):
+        for family, parts in rt_supported_devices.items():
+            result.append(family)
+
+            if isinstance(parts, dict):
+                for part, configs in parts.items():
+                    result.append(f"{family}::{part}")
+
+                    for config in configs:
+                        result.append(f"{family}::{part}::{config}")
+            elif isinstance(parts, list):
+                for part in parts:
+                    result.append(f"{family}::{part}")
+
+    else:
+        for family in rt_supported_devices:
+            result.append(family)
+
+    return result
 
 
 class Device:
@@ -13,7 +39,7 @@ class Device:
         self.config: Optional[str] = None
 
         # Unpack selected_device
-        values = selected_device.split("::")
+        values = str(selected_device).split("::")
         if len(values) > 3:
             raise exp.ArgError(
                 f"Recieved a device argument that has more than 3 members: {selected_device}. "
@@ -113,3 +139,33 @@ class MeasuredPerformance:
     def __post_init__(self):
         if isinstance(self.device_type, Device):
             self.device_type = str(self.device_type)
+
+
+def parse_device(
+    state: fs.State,
+    parsed_args: argparse.Namespace,
+    default_device: str,
+    stage_name: str,
+    supported_devices=None,
+):
+    # Inherit the device from the stage of a prior stage, if available
+    if parsed_args.device is None:
+        if vars(state).get("device") is None:
+            device_to_use = default_device
+        else:
+            device_to_use = state.device
+    else:
+        if vars(state).get("device") is not None and str(state.device) != str(
+            parsed_args.device
+        ):
+            raise exp.ArgError(
+                f"A previous stage set the device to {state.device}, "
+                f"however this stage ({stage_name}) "
+                f"is attempting to set device to {parsed_args.device}. "
+                "We suggest ommitting the `--device` argument from "
+                "this stage."
+            )
+
+        device_to_use = parsed_args.device
+
+    parsed_args.device = Device(device_to_use, supported_devices)

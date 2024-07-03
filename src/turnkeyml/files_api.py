@@ -2,24 +2,18 @@ import time
 import os
 import copy
 import glob
-import pathlib
+from datetime import datetime
 from typing import Tuple, List, Dict, Optional, Union
+import git
 import turnkeyml.common.printing as printing
 import turnkeyml.common.exceptions as exceptions
 import turnkeyml.build.stage as stage
 import turnkeyml.cli.spawn as spawn
-import turnkeyml.common.filesystem as filesystem
+import turnkeyml.common.filesystem as fs
 import turnkeyml.common.labels as labels_library
-from turnkeyml.analyze.script import (
-    evaluate_script,
-    TracerArgs,
-    Action,
-    explore_invocation,
-    get_model_hash,
-)
-from turnkeyml.analyze.status import ModelInfo, UniqueInvocationInfo, Verbosity
+from turnkeyml.analyze.status import Verbosity
 import turnkeyml.common.build as build
-import turnkeyml.build.onnx_helpers as onnx_helpers
+from turnkeyml.build_api import build_model
 
 # The licensing for tqdm is confusing. Pending a legal scan,
 # the following code provides tqdm to users who have installed
@@ -77,28 +71,6 @@ def _select_verbosity(
     return verbosity_selected, use_progress_bar
 
 
-def decode_input_arg(input: str) -> Tuple[str, List[str], str]:
-    # Parse the targets out of the file name
-    # Targets use the format:
-    #   file_path.ext::target0,target1,...,targetN
-    decoded_input = input.split("::")
-    file_path = os.path.abspath(decoded_input[0])
-
-    if len(decoded_input) == 2:
-        targets = decoded_input[1].split(",")
-        encoded_input = file_path + "::" + decoded_input[1]
-    elif len(decoded_input) == 1:
-        targets = []
-        encoded_input = file_path
-    else:
-        raise ValueError(
-            "Each file input to turnkey should have either 0 or 1 '::' in it."
-            f"However, {file_path} was received."
-        )
-
-    return file_path, targets, encoded_input
-
-
 def unpack_txt_inputs(input_files: List[str]) -> List[str]:
     """
     Replace txt inputs with models listed inside those files
@@ -127,12 +99,9 @@ def benchmark_files(
     use_slurm: bool = False,
     process_isolation: bool = False,
     lean_cache: bool = False,
-    cache_dir: str = filesystem.DEFAULT_CACHE_DIR,
+    cache_dir: str = fs.DEFAULT_CACHE_DIR,
     labels: List[str] = None,
     rebuild: Optional[str] = None,
-    analyze_only: bool = False,
-    script_args: Optional[str] = None,
-    max_depth: int = 0,
     timeout: Optional[int] = None,
     verbosity: str = Verbosity.STATIC.value,
     sequence: Union[Dict, stage.Sequence] = None,
@@ -178,7 +147,7 @@ def benchmark_files(
 
     # Convert regular expressions in input files argument
     # into full file paths (e.g., [*.py] -> [a.py, b.py] )
-    input_files_expanded = filesystem.expand_inputs(input_files)
+    input_files_expanded = fs.expand_inputs(input_files)
 
     # Do not forward arguments to downstream APIs
     # that will be decoded in this function body
@@ -188,10 +157,10 @@ def benchmark_files(
     benchmarking_args.pop("process_isolation")
 
     # Make sure the cache directory exists
-    filesystem.make_cache_dir(cache_dir)
+    fs.make_cache_dir(cache_dir)
 
     # Force the user to specify a legal cache dir in NFS if they are using slurm
-    if cache_dir == filesystem.DEFAULT_CACHE_DIR and use_slurm:
+    if cache_dir == fs.DEFAULT_CACHE_DIR and use_slurm:
         printing.log_warning(
             "Using the default cache directory when using Slurm will cause your cached "
             "files to only be available at the Slurm node. If this is not the behavior "
@@ -201,7 +170,7 @@ def benchmark_files(
 
     # Get list containing only file names
     clean_file_names = [
-        decode_input_arg(file_name)[0] for file_name in input_files_expanded
+        fs.decode_input_arg(file_name)[0] for file_name in input_files_expanded
     ]
 
     # Validate that the files have supported file extensions
@@ -212,24 +181,6 @@ def benchmark_files(
                 f"File extension must be .py, .onnx, or .txt (got {file_name})"
             )
 
-    # Decode turnkey args into TracerArgs flags
-    if analyze_only:
-        actions = [
-            Action.ANALYZE,
-        ]
-    else:
-        actions = [
-            Action.ANALYZE,
-            Action.BUILD,
-        ]
-
-    if Action.BENCHMARK in actions:
-        printing.log_warning(
-            "The benchmarking functionality of ONNX TurnkeyML has been "
-            "deprecated. See https://github.com/onnx/turnkeyml/milestone/3 "
-            "for details."
-        )
-
     if use_slurm:
         jobs = spawn.slurm_jobs_in_queue()
         if len(jobs) > 0:
@@ -238,26 +189,26 @@ def benchmark_files(
                 "Suggest quitting turnkey, running 'scancel -u $USER' and trying again."
             )
 
-    # Use this data structure to keep a running index of all models
-    models_found: Dict[str, ModelInfo] = {}
-
     verbosity_policy, use_progress_bar = _select_verbosity(
         verbosity, input_files_expanded, process_isolation
     )
     benchmarking_args["verbosity"] = verbosity_policy
 
-    # Fork the args for analysis since they have differences from the spawn args:
-    # build_only and analyze_only are encoded into actions
-    analysis_args = copy.deepcopy(benchmarking_args)
-    analysis_args.pop("analyze_only")
-    analysis_args["actions"] = actions
-    analysis_args.pop("timeout")
-
     for file_path_encoded in tqdm(input_files_expanded, disable=not use_progress_bar):
 
         printing.log_info(f"Running turnkey on {file_path_encoded}")
 
-        file_path_absolute, targets, encoded_input = decode_input_arg(file_path_encoded)
+        file_path_absolute, targets, encoded_input = fs.decode_input_arg(
+            file_path_encoded
+        )
+
+        file_labels = fs.read_labels(file_path_absolute)
+
+        build_name = fs.get_build_name(
+            fs.clean_file_name(file_path_absolute),
+            file_labels,
+            targets[0] if len(targets) > 0 else None,
+        )
 
         # Skip a file if the required_labels are not a subset of the script_labels.
         if labels:
@@ -268,8 +219,7 @@ def benchmark_files(
                     file_path_absolute,
                 )
             required_labels = labels_library.to_dict(labels)
-            script_labels = labels_library.load_from_file(encoded_input)
-            if not labels_library.is_subset(required_labels, script_labels):
+            if not labels_library.is_subset(required_labels, file_labels):
                 continue
 
         if use_slurm or process_isolation:
@@ -292,6 +242,7 @@ def benchmark_files(
             benchmarking_args.pop("sequence")
 
             spawn.run_turnkey(
+                build_name=build_name,
                 sequence=sequence,
                 target=process_type,
                 file_name=encoded_input,
@@ -299,72 +250,69 @@ def benchmark_files(
             )
 
         else:
-            # Instantiate an object that holds all of the arguments
-            # for analysis, build, and benchmarking
-            tracer_args = TracerArgs(
-                models_found=models_found,
-                targets=targets,
-                input=file_path_absolute,
-                **analysis_args,
+            # Forward the selected input to the first stage in the sequence
+            first_stage_args = next(iter(sequence.stages.values()))
+            first_stage_args.append("--input")
+            first_stage_args.append(file_path_encoded)
+
+            # Create a build directory and stats file in the cache
+            fs.make_build_dir(cache_dir, build_name)
+            stats = fs.Stats(cache_dir, build_name)
+
+            # Save the system information used for this build
+            system_info = build.get_system_info()
+            stats.save_stat(
+                fs.Keys.SYSTEM_INFO,
+                system_info,
             )
 
-            if file_path_absolute.endswith(".py"):
-                # Run analysis, build, and benchmarking on every model
-                # in the python script
-                models_found = evaluate_script(tracer_args)
-            elif file_path_absolute.endswith(".onnx"):
-                # Skip analysis and go straight to dealing with the model
-                # We need to manufacture ModelInfo and UniqueInvocatioInfo instances to do this,
-                # since we didn't get them from analysis.
+            # Save lables info
+            if fs.Keys.AUTHOR in file_labels:
+                stats.save_stat(fs.Keys.AUTHOR, file_labels[fs.Keys.AUTHOR][0])
+            if fs.Keys.TASK in file_labels:
+                stats.save_stat(fs.Keys.TASK, file_labels[fs.Keys.TASK][0])
 
-                # Gather information about the ONNX model
-                onnx_name = pathlib.Path(file_path_absolute).stem
-                onnx_hash = get_model_hash(
-                    file_path_absolute, build.ModelType.ONNX_FILE
-                )
-                onnx_inputs = onnx_helpers.dummy_inputs(file_path_absolute)
-                input_shapes = {key: value.shape for key, value in onnx_inputs.items()}
+            # Save all of the lables in one place
+            stats.save_stat(fs.Keys.LABELS, file_labels)
 
-                # Create the UniqueInvocationInfo
-                #  - execute=1 is required or else the ONNX model will be
-                #       skipped in later stages of evaluation
-                #  - is_target=True is required or else traceback wont be printed for
-                #       in the event of any errors
-                #  - Most other values can be left as default
-                invocation_info = UniqueInvocationInfo(
-                    name=onnx_name,
-                    script_name=onnx_name,
-                    file=file_path_absolute,
-                    build_model=True,
-                    model_type=build.ModelType.ONNX_FILE,
-                    executed=1,
-                    input_shapes=input_shapes,
-                    hash=onnx_hash,
-                    is_target=True,
-                )
+            # Save a timestamp so that we know the order of builds within a cache
+            stats.save_stat(
+                fs.Keys.TIMESTAMP,
+                datetime.now(),
+            )
 
-                # Create the ModelInfo
-                model_info = ModelInfo(
-                    model=file_path_absolute,
-                    name=onnx_name,
-                    script_name=onnx_name,
-                    file=file_path_absolute,
-                    build_model=True,
-                    model_type=build.ModelType.ONNX_FILE,
-                    unique_invocations={onnx_hash: invocation_info},
-                    hash=onnx_hash,
-                )
+            # If the input script is a built-in TurnkeyML model, make a note of
+            # which one
+            if os.path.abspath(fs.MODELS_DIR) in os.path.abspath(file_path_absolute):
+                try:
+                    # If this turnkey installation is in a git repo, use the
+                    # specific git hash
+                    git_repo = git.Repo(search_parent_directories=True)
+                    git_hash = git_repo.head.object.hexsha
+                except git.exc.InvalidGitRepositoryError:
+                    # If we aren't in a git repo (e.g., PyPI package), point the user back to main
+                    git_hash = "main"
 
-                # Begin evaluating the ONNX model
-                tracer_args.script_name = onnx_name
-                tracer_args.models_found[tracer_args.script_name] = model_info
-                explore_invocation(
-                    model_inputs=onnx_inputs,
-                    model_info=model_info,
-                    invocation_info=invocation_info,
-                    tracer_args=tracer_args,
-                )
-                models_found = tracer_args.models_found
+                relative_path = file_path_absolute.replace(
+                    fs.MODELS_DIR,
+                    f"https://github.com/onnx/turnkeyml/tree/{git_hash}/models",
+                ).replace("\\", "/")
+                stats.save_stat(fs.Keys.MODEL_SCRIPT, relative_path)
+
+            # Indicate that the build is running. If the build fails for any reason,
+            # we will try to catch the exception and note it in the stats.
+            # If a concluded build still has a status of "running", this means
+            # there was an uncaught exception.
+            stats.save_stat(fs.Keys.BUILD_STATUS, build.FunctionStatus.INCOMPLETE)
+
+            build_model(
+                build_name=build_name,
+                model=file_path_absolute,
+                sequence=sequence,
+                cache_dir=cache_dir,
+                rebuild=rebuild,
+                lean_cache=lean_cache,
+            )
 
     # Wait until all the Slurm jobs are done
     if use_slurm:
@@ -374,5 +322,3 @@ def benchmark_files(
                 f"jobs left in queue: {spawn.slurm_jobs_in_queue()}"
             )
             time.sleep(5)
-
-    printing.log_success("The 'benchmark' command is complete.")

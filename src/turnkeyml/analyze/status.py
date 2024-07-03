@@ -45,8 +45,6 @@ class BasicInfo:
     params: int = 0
     depth: int = 0
     parent_hash: Union[str, None] = None
-    build_model: bool = False
-    model_type: build.ModelType = build.ModelType.PYTORCH
     model_class: type = None
     # This is the "model hash", not to be confused with the
     # "invocation hash"
@@ -64,7 +62,6 @@ class SkipFields:
 
     file_name: bool = False
     model_name: bool = False
-    model_type: bool = False
     parameters: bool = False
     location: bool = False
     input_shape: bool = False
@@ -87,12 +84,14 @@ class UniqueInvocationInfo(BasicInfo):
     executed: int = 0
     exec_time: float = 0.0
     status_message: str = ""
+    extra_status: Optional[str] = None
     is_target: bool = False
+    auto_selected: bool = False
     status_message_color: printing.Colors = printing.Colors.ENDC
     traceback_message_color: printing.Colors = printing.Colors.FAIL
     stats_keys: List[str] = dataclasses.field(default_factory=list)
-    stats: fs.Stats = None
-
+    forward_function_pointer: callable = None
+    original_forward_function: callable = None
     # Fields specific to printing status
     skip: SkipFields = None
     extension: str = None
@@ -115,7 +114,7 @@ class UniqueInvocationInfo(BasicInfo):
             print(f"{self.script_name}{self.extension}:")
 
         # Print invocation about the model (only applies to scripts, not ONNX files)
-        if self.model_type != build.ModelType.ONNX_FILE:
+        if not self.extension == ".onnx":
             if self.depth == 0 and multiple_unique_invocations:
                 if not model_visited:
                     printing.logn(f"{self.indent}{self.name}")
@@ -129,24 +128,16 @@ class UniqueInvocationInfo(BasicInfo):
         self.skip.file_name = True
         self.skip.model_name = True
 
-    def _print_model_type(self):
-        if self.skip.model_type:
-            return
-
-        if self.depth == 0:
-            if self.model_type == build.ModelType.PYTORCH:
-                print(f"{self.indent}\tModel Type:\tPytorch (torch.nn.Module)")
-            elif self.model_type == build.ModelType.ONNX_FILE:
-                print(f"{self.indent}\tModel Type:\tONNX File (.onnx)")
-
-        self.skip.model_type = True
-
     def _print_location(self):
         if self.skip.location:
             return
 
         if self.depth == 0:
-            print(f"{self.indent}\tLocation:\t{self.file}, line {self.line}")
+            print(f"{self.indent}\tLocation:\t{self.file}", end="")
+            if self.extension == ".onnx":
+                print()
+            else:
+                print(f", line {self.line}")
             self.skip.location = True
 
     def _print_parameters(self):
@@ -193,14 +184,15 @@ class UniqueInvocationInfo(BasicInfo):
         self.skip.input_shape = True
 
     def _print_build_dir(self, cache_dir: str, build_name: str):
-        if self.skip.build_dir:
+        if self.skip.build_dir or not self.is_target:
             return
 
-        print(f"{self.indent}\tBuild dir:\t {build.output_dir(cache_dir, build_name)}")
+        print(f"{self.indent}\tBuild dir:\t{build.output_dir(cache_dir, build_name)}")
 
         self.skip.build_dir = True
 
-    def _print_status(self):
+    def _print_status(self, cache_dir: str, build_name: str):
+        stats = fs.Stats(cache_dir, build_name)
         if self.skip.previous_status_message:
             if self.skip.previous_status_message == self.status_message:
                 # This is a special case for skipping: we only want to skip
@@ -211,23 +203,24 @@ class UniqueInvocationInfo(BasicInfo):
                 # Print some whitespace to help the status stand out
                 print()
 
-        if self.is_target and self.build_model:
-            printing.log(f"{self.indent}\tStatus:\t\t")
-            printing.logn(
-                f"{self.status_message}",
-                c=self.status_message_color,
-            )
+        printing.log(f"{self.indent}\tStatus:\t\t")
+        printing.logn(
+            f"{self.status_message}",
+            c=self.status_message_color,
+        )
+        if self.is_target:
+
             for key in self.stats_keys:
                 nice_key = _pretty_print_key(key)
                 try:
-                    value = self.stats.evaluation_stats[key]
+                    value = stats.stats[key]
                     if isinstance(value, float):
                         value = "{0:.3f}".format(value)
                     # Stages may provide a unit of measurement for their status
                     # stats, whose key name should follow the format
                     # "STATUS_STATS_KEY_units"
                     units_key = key + "_units"
-                    units = self.stats.evaluation_stats.get(units_key)
+                    units = stats.stats.get(units_key)
                     printing.logn(f"{self.indent}\t\t\t{nice_key}:\t{value} {units}")
                 except KeyError:
                     # Ignore any keys that are missing because that means the
@@ -264,14 +257,12 @@ class UniqueInvocationInfo(BasicInfo):
         Print information about a given model or submodel.
         """
 
-        if self.model_type == build.ModelType.ONNX_FILE:
-            self.extension = ".onnx"
+        if self.extension == ".onnx":
             self.indent = "\t" * (2 * self.depth)
         else:
-            self.extension = ".py"
             self.indent = "\t" * (2 * self.depth + 1)
 
-        if self.exec_time == 0 or self.build_model:
+        if self.exec_time == 0:
             exec_time_formatted = ""
         else:
             exec_time_formatted = f" - {self.exec_time:.2f}s"
@@ -284,7 +275,6 @@ class UniqueInvocationInfo(BasicInfo):
         )
         if (self.depth == 0 and not model_visited) or (self.depth != 0):
             # Print this information only once per model
-            self._print_model_type()
             self._print_location()
             self._print_parameters()
         self._print_unique_input_shape(
@@ -292,7 +282,7 @@ class UniqueInvocationInfo(BasicInfo):
         )
         self._print_input_shape()
         self._print_build_dir(cache_dir=cache_dir, build_name=build_name)
-        self._print_status()
+        self._print_status(cache_dir=cache_dir, build_name=build_name)
 
         print()
 
@@ -307,15 +297,15 @@ class ModelInfo(BasicInfo):
     last_unique_invocation_executed: Union[str, None] = None
 
     def __post_init__(self):
-        self.params = analyze_model.count_parameters(self.model, self.model_type)
+        self.params = analyze_model.count_parameters(self.model)
 
 
 def update(
     models_found: Dict[str, ModelInfo],
     build_name: str,
-    cache_dir: str,
     invocation_info: UniqueInvocationInfo,
-    verbosity: Verbosity,
+    verbosity: Verbosity = Verbosity.STATIC,  # FIXME: this shouldn't be here
+    cache_dir: str = "REMOVE ME",
 ) -> None:
     """
     Prints all models and submodels found
@@ -340,7 +330,7 @@ def update(
             script_names_visited=[],
         )
     else:  # Verbosity.STATIC
-        if invocation_info.model_type == build.ModelType.ONNX_FILE:
+        if invocation_info.extension == ".onnx":
             # We don't invoke the ONNX files, so they can't have multiple invocations
             multiple_unique_invocations = False
         else:

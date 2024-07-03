@@ -9,7 +9,7 @@ from turnkeyml.run.devices import (
     apply_default_runtime,
 )
 import turnkeyml.cli.parser_helpers as parser_helpers
-from turnkeyml.common.performance import Device
+from turnkeyml.common.performance import Device, parse_device
 
 default_iterations = 100
 benchmark_default_device = "x86"
@@ -34,7 +34,7 @@ class Benchmark(stage.Stage):
 
     @staticmethod
     def parser(add_help: bool = True) -> argparse.ArgumentParser:
-        parser = argparse.ArgumentParser(
+        parser = __class__.helpful_parser(
             description="Benchmark a model",
             add_help=add_help,
         )
@@ -46,7 +46,6 @@ class Benchmark(stage.Stage):
             help="Type of hardware device to be used for the benchmark "
             f'(defaults to "{benchmark_default_device}")',
             required=False,
-            default=benchmark_default_device,
         )
 
         parser.add_argument(
@@ -83,6 +82,11 @@ class Benchmark(stage.Stage):
     def parse(self, state: fs.State, args, known_only=True) -> argparse.Namespace:
         parsed_args = super().parse(state, args, known_only)
 
+        # Inherit the device from the stage of a prior stage, if available
+        parse_device(
+            state, parsed_args, benchmark_default_device, self.__class__.__name__
+        )
+
         parsed_args.rt_args = parser_helpers.decode_args(parsed_args.rt_args)
 
         return parsed_args
@@ -95,8 +99,6 @@ class Benchmark(stage.Stage):
         iterations: int = default_iterations,
         rt_args: Optional[str] = None,
     ):
-
-        stats = fs.Stats(state.cache_dir, state.build_name, state.evaluation_id)
 
         selected_runtime = apply_default_runtime(device, runtime)
 
@@ -122,21 +124,19 @@ class Benchmark(stage.Stage):
             ) from e
 
         # Save the device name that will be used for the benchmark
-        stats.save_model_eval_stat(
-            fs.Keys.DEVICE, runtime_info["RuntimeClass"].device_name()
-        )
+        state.save_stat(fs.Keys.DEVICE, runtime_info["RuntimeClass"].device_name())
 
         # Save specific information into its own key for easier access
-        stats.save_model_eval_stat(
+        state.save_stat(
             fs.Keys.DEVICE_TYPE,
             specific_device,
         )
-        stats.save_model_eval_stat(
+        state.save_stat(
             fs.Keys.RUNTIME,
             runtime,
         )
 
-        stats.save_model_eval_stat(
+        state.save_stat(
             fs.Keys.ITERATIONS,
             iterations,
         )
@@ -161,7 +161,7 @@ class Benchmark(stage.Stage):
         runtime_handle = runtime_info["RuntimeClass"](
             cache_dir=state.cache_dir,
             build_name=state.build_name,
-            stats=stats,
+            stats=fs.Stats(state.cache_dir, state.build_name),
             iterations=iterations,
             model=model_to_use,
             inputs=vars(state).get(fs.Keys.INPUTS),
@@ -172,7 +172,7 @@ class Benchmark(stage.Stage):
         perf = runtime_handle.benchmark()
 
         for key, value in vars(perf).items():
-            stats.save_model_eval_stat(
+            state.save_stat(
                 key=key,
                 value=value,
             )

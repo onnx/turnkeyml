@@ -231,13 +231,12 @@ class BenchmarkBuild(ManagementTool):
                     "Try running `turnkey cache list` to see the builds in your build cache."
                 )
 
-            state = fs.load_state(cache_dir, build_name)
-            stats = fs.Stats(cache_dir, build_name, state.evaluation_id)
+            stats = fs.Stats(cache_dir, build_name)
 
             # Apply the skip policy by skipping over this iteration of the
             # loop if the evaluation's pre-existing benchmark status doesn't
             # meet certain criteria
-            eval_stats = stats.evaluation_stats
+            eval_stats = stats.stats
             benchmark_status_key = "stage_status:benchmark"
             if (
                 benchmark_status_key in eval_stats
@@ -286,9 +285,7 @@ class BenchmarkBuild(ManagementTool):
                 for child in parent.children(recursive=True):
                     child.kill()
                 parent.kill()
-                stats.save_model_eval_stat(
-                    benchmark_status_key, build.FunctionStatus.TIMEOUT
-                )
+                stats.save_stat(benchmark_status_key, build.FunctionStatus.TIMEOUT)
 
                 printing.log_warning(
                     f"Benchmarking {build_name} canceled because it exceeded the {timeout} "
@@ -303,16 +300,14 @@ class BenchmarkBuild(ManagementTool):
                 # message (e.g., restart their computer).
 
                 if isinstance(p.exception[0], SkippedBenchmark):
-                    stats.save_model_eval_stat(
+                    stats.save_stat(
                         benchmark_status_key, build.FunctionStatus.NOT_STARTED
                     )
                 else:
-                    stats.save_model_eval_stat(
-                        benchmark_status_key, build.FunctionStatus.ERROR
-                    )
+                    stats.save_stat(benchmark_status_key, build.FunctionStatus.ERROR)
 
                 if isinstance(p.exception[0], exp.HardwareError):
-                    stats.save_model_eval_stat(fs.Keys.ERROR_LOG, p.exception[1])
+                    stats.save_stat(fs.Keys.ERROR_LOG, p.exception[1])
                     raise p.exception[0]
                 else:
                     printing.log_warning("Benchmarking failed with exception:")

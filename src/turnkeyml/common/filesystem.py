@@ -3,7 +3,7 @@ import sys
 import shutil
 import glob
 import pathlib
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 import importlib.util
 import yaml
 import turnkeyml.common.printing as printing
@@ -208,6 +208,28 @@ def get_available_scripts(search_dir: str):
     return scripts
 
 
+def decode_input_arg(input: str) -> Tuple[str, List[str], str]:
+    # Parse the targets out of the file name
+    # Targets use the format:
+    #   file_path.ext::target0,target1,...,targetN
+    decoded_input = input.split("::")
+    file_path = os.path.abspath(decoded_input[0])
+
+    if len(decoded_input) == 2:
+        targets = decoded_input[1].split(",")
+        encoded_input = file_path + "::" + decoded_input[1]
+    elif len(decoded_input) == 1:
+        targets = []
+        encoded_input = file_path
+    else:
+        raise ValueError(
+            "Each file input to turnkey should have either 0 or 1 '::' in it."
+            f"However, {file_path} was received."
+        )
+
+    return file_path, targets, encoded_input
+
+
 def get_available_builds(cache_dir):
     """
     Get all of the build directories within the build cache
@@ -294,8 +316,6 @@ class Keys:
     DEVICE = "device"
     # Name of the model
     MODEL_NAME = "model_name"
-    # References the per-evaluation stats section
-    EVALUATIONS = "evaluations"
     # Catch-all for storing a file's labels
     LABELS = "labels"
     # Author of the model
@@ -321,9 +341,6 @@ class Keys:
     # Prefix for reporting the execution status of a stage
     # In the report this will look like stage_status:STAGE_NAME
     STAGE_STATUS = "stage_status"
-    # Parent key that holds all of the arguments to turnkey's
-    # evaluate_file() API
-    EVALUATION_ARGS = "turnkey_args"
     # Records the date and time of the evaluation after analysis but before
     # build and benchmark
     TIMESTAMP = "timestamp"
@@ -333,12 +350,8 @@ class Keys:
     BUILD_NAME = "build_name"
     # Sequence of stages used for this build, along with their args
     SEQUENCE_INFO = "sequence_info"
-    # Unique ID for an evaluation (build of a model against a specfic device/runtime/sequence)
-    EVALUATION_ID = "evaluation_id"
     # Version of TurnkeyML used for the build
     TURNKEY_VERSION = "turnkey_version"
-    # Indicates what framework (e.g., PyTorch, ONNX) the model was source from
-    MODEL_TYPE = "model_type"
     # Unique ID for this build
     UID = "uid"
     # Unique hash for this model
@@ -371,14 +384,13 @@ def stats_file(cache_dir: str, build_name: str):
 
 
 class Stats:
-    def __init__(self, cache_dir: str, build_name: str, evaluation_id: str = None):
+    def __init__(self, cache_dir: str, build_name: str):
         self.file = stats_file(cache_dir, build_name)
-        self.evaluation_id = evaluation_id
 
         os.makedirs(os.path.dirname(self.file), exist_ok=True)
         if not os.path.exists(self.file):
-            initial = {Keys.EVALUATIONS: {}}
-            _save_yaml(initial, self.file)
+            # Start an empty stats file
+            _save_yaml({}, self.file)
 
     @property
     def stats(self):
@@ -401,7 +413,7 @@ class Stats:
 
             self._set_key(dict[keys[0]], keys[1:], value)
 
-    def save_model_stat(self, key: str, value):
+    def save_stat(self, key: str, value):
         """
         Save statistics to an yaml file in the build directory
         """
@@ -412,27 +424,18 @@ class Stats:
 
         _save_yaml(stats_dict, self.file)
 
-    def save_model_eval_stat(self, key: str, value):
+    def save_sub_stat(self, parent_key: str, key: str, value):
         stats_dict = self.stats
 
-        self._set_key(stats_dict, [Keys.EVALUATIONS, self.evaluation_id, key], value)
+        self._set_key(stats_dict, [parent_key, key], value)
 
         _save_yaml(stats_dict, self.file)
-
-    def save_model_eval_sub_stat(self, parent_key: str, key: str, value):
-        stats_dict = self.stats
-
-        self._set_key(
-            stats_dict, [Keys.EVALUATIONS, self.evaluation_id, parent_key, key], value
-        )
-
-        _save_yaml(stats_dict, self.file)
-
-    @property
-    def evaluation_stats(self):
-        return self.stats[Keys.EVALUATIONS][self.evaluation_id]
 
     def save_eval_error_log(self, logfile_path):
+        if logfile_path is None:
+            # Avoid an error in the situation where we crashed before
+            # initializing the stage (in which case it has no logfile path yet)
+            return
         if os.path.exists(logfile_path):
             with open(logfile_path, "r", encoding="utf-8") as f:
                 full_log = f.readlines()
@@ -458,7 +461,7 @@ class Stats:
                 else:
                     stats_log = _clean_logfile(full_log)
 
-                self.save_model_eval_stat(Keys.ERROR_LOG, stats_log)
+                self.save_stat(Keys.ERROR_LOG, stats_log)
 
 
 def expand_inputs(input_paths: List[str]) -> List[str]:
@@ -478,6 +481,16 @@ def expand_inputs(input_paths: List[str]) -> List[str]:
     return input_paths_expanded
 
 
+def read_labels(file_path: str) -> Dict[str, str]:
+    # Load labels data from python scripts
+    # This is not compatible with ONNX files, so we return
+    # and empty dictionary in that case
+    if file_path.endswith(".py"):
+        return labels.load_from_file(file_path)
+    else:
+        return {}
+
+
 def rebase_cache_dir(input_path: str, build_name: str, new_cache_dir: str):
     """
     Rebase a turnkey build path onto a new turnkey cache directory.
@@ -495,6 +508,13 @@ def rebase_cache_dir(input_path: str, build_name: str, new_cache_dir: str):
 
     relative_input_path = input_path.split(build_name, 1)[1][1:]
     return os.path.join(new_cache_dir, build_name, relative_input_path)
+
+
+def check_extension(choices, file_name, error_func):
+    _, extension = os.path.splitext(file_name.split("::")[0])
+    if extension[1:].lower() not in choices:
+        error_func(f"input_files must end with {choices} (got '{file_name}')\n")
+    return file_name
 
 
 def is_nice_to_write(value):
@@ -548,11 +568,9 @@ class State:
 
     def __init__(
         self,
-        evaluation_id: str,
         cache_dir: str,
         model: Optional[build.UnionValidModelInstanceTypes] = None,
         inputs: Optional[Dict[str, Any]] = None,
-        model_type: Optional[build.ModelType] = None,
         monitor: Optional[bool] = None,
         build_name: Optional[str] = None,
         sequence_info: Dict[str, Dict] = None,
@@ -578,9 +596,7 @@ class State:
         # Save settings as State members
         self.model = model
         self.inputs = inputs
-        self.model_type = model_type
         self.monitor = monitor_setting
-        self.evaluation_id = evaluation_id
         self.cache_dir = parsed_cache_dir
         self.build_name = build_name
         self.sequence_info = sequence_info
@@ -597,8 +613,8 @@ class State:
         else:
             self.expected_input_shapes, self.expected_input_dtypes = None, None
 
-        if self.model is not None and self.model_type != build.ModelType.UNKNOWN:
-            self.model_hash = build.hash_model(self.model, self.model_type)
+        if self.model is not None:
+            self.model_hash = build.hash_model(self.model)
 
         # Store any additional kwargs as members
         for key, value in kwargs.items():
@@ -611,6 +627,22 @@ class State:
         """
         return super().__setattr__(name, value)
 
+    def save_stat(self, key: str, value):
+        """
+        Save statistics to an yaml file in the build directory
+        """
+
+        stats = Stats(self.cache_dir, self.build_name)
+        stats.save_stat(key, value)
+
+    def save_sub_stat(self, parent_key: str, key: str, value):
+        """
+        Save statistics to an yaml file in the build directory
+        """
+
+        stats = Stats(self.cache_dir, self.build_name)
+        stats.save_sub_stat(parent_key, key, value)
+
     def save(self):
         """
         Save all YAML-friendly members to disk as a state.yaml file.
@@ -621,6 +653,9 @@ class State:
         """
 
         state_to_save = sanitize_for_yaml(vars(self))
+
+        # Create a build directory in the cache
+        make_build_dir(self.cache_dir, self.build_name)
 
         with open(
             build.state_file(self.cache_dir, self.build_name),
