@@ -84,6 +84,7 @@ class UniqueInvocationInfo(BasicInfo):
     executed: int = 0
     exec_time: float = 0.0
     status_message: str = ""
+    extra_status: Optional[str] = None
     is_target: bool = False
     auto_selected: bool = False
     status_message_color: printing.Colors = printing.Colors.ENDC

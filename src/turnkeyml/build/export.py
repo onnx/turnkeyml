@@ -201,6 +201,7 @@ class OnnxLoad(stage.Stage):
             hash=state.model_hash,
             is_target=True,
             extension=".onnx",
+            executed=1,
         )
         state.models_found = {
             "onnx_file": ModelInfo(
