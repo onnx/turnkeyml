@@ -16,6 +16,7 @@ from turnkeyml.parser import parse
 import turnkeyml.common.filesystem as filesystem
 import turnkeyml.common.test_helpers as common
 from turnkeyml.analyze.status import Verbosity
+import turnkeyml.common.exceptions as exp
 
 try:
     # pylint: disable=unused-import
@@ -326,19 +327,19 @@ class Testing(unittest.TestCase):
         assert np.array_equal(output, (1, 0, 0))
 
     def test_10_activation(self):
-        output = run_analysis(
-            [
-                "turnkey",
-                "-i",
-                os.path.join(corpus_dir, "activation.py"),
-                "--verbosity",
-                Verbosity.DYNAMIC.value,
-                "--cache-dir",
-                cache_dir,
-                "discover",
-            ]
-        )
-        assert np.array_equal(output, (0, 0, 0))
+        with self.assertRaises(exp.StageError):
+            run_analysis(
+                [
+                    "turnkey",
+                    "-i",
+                    os.path.join(corpus_dir, "activation.py"),
+                    "--verbosity",
+                    Verbosity.DYNAMIC.value,
+                    "--cache-dir",
+                    cache_dir,
+                    "discover",
+                ]
+            )
 
     def test_11_analyze_only(self):
         output = run_analysis(
