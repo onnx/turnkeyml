@@ -317,7 +317,7 @@ class Sequence:
             # all exceptions (including those we can't anticipate)
             except Exception as e:  # pylint: disable=broad-except
 
-                if os.environ.get("TURNKEY_DEBUG") == "True":
+                if os.environ.get("TURNKEY_DEBUG", "").lower() == "true":
                     # It may be useful to raise the exception here, since
                     # if any of the subsequent lines of code raise another
                     # exception it will be very hard to root cause e.
