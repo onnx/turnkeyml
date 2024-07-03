@@ -370,16 +370,10 @@ class Sequence:
             state.build_status = build.FunctionStatus.SUCCESSFUL
             state.save_stat(fs.Keys.BUILD_STATUS, build.FunctionStatus.SUCCESSFUL)
 
-            if vars(state).get("models_found") and vars(state).get("invocation_info"):
-                if state.invocation_info.auto_selected:
-                    msg = (
-                        "(auto-selected; select manually with "
-                        f"`-i {os.path.basename(state.invocation_info.file)}"
-                        f"::{state.invocation_info.invocation_hash})"
-                    )
-                else:
-                    msg = ""
-                state.invocation_info.status_message = f"Successful build! {msg}"
+            if vars(state).get("invocation_info"):
+                state.invocation_info.status_message = (
+                    f"Successful build! {state.invocation_info.extra_status}"
+                )
                 state.invocation_info.status_message_color = printing.Colors.OKGREEN
 
         if vars(state).get("models_found") and vars(state).get("invocation_info"):

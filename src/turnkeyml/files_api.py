@@ -210,12 +210,6 @@ def benchmark_files(
             targets[0] if len(targets) > 0 else None,
         )
 
-        if len(targets) > 1:
-            raise exceptions.ArgError(
-                "Only one target (number after the ::) is allowed, "
-                f"but received {encoded_input}"
-            )
-
         # Skip a file if the required_labels are not a subset of the script_labels.
         if labels:
             # Labels argument is not supported for ONNX files

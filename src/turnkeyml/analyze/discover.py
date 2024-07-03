@@ -65,10 +65,19 @@ class Discover(stage.Stage):
     def parse(self, state: fs.State, args, known_only=True) -> argparse.Namespace:
         parsed_args = super().parse(state, args, known_only)
 
-        file_path, targets, _ = fs.decode_input_arg(parsed_args.input)
+        file_path, targets, encoded_input = fs.decode_input_arg(parsed_args.input)
 
         parsed_args.input = file_path
-        parsed_args.targets = targets
+
+        if len(targets) > 1:
+            raise exp.ArgError(
+                "Only one target (number after the ::) is allowed, "
+                f"but received {encoded_input}"
+            )
+        elif len(targets) == 1:
+            parsed_args.target = targets[0]
+        else:  # len(targets)==0
+            parsed_args.target = None
 
         return parsed_args
 
@@ -76,7 +85,7 @@ class Discover(stage.Stage):
         self,
         state: fs.State,
         input: str = "",
-        targets: Optional[List[str]] = None,
+        target: Optional[List[str]] = None,
         script_args: str = "",
         max_depth: int = default_max_depth,
     ):
@@ -86,27 +95,27 @@ class Discover(stage.Stage):
                 f"(.py files), got {input}",
             )
 
-        if targets is None:
-            targets_to_use = []
+        if target is None:
+            target_to_use = []
         else:
-            targets_to_use = targets
+            target_to_use = [target]
 
         tracer_args = TracerArgs(
             input=input,
             script_args=script_args,
-            targets=targets_to_use,
+            targets=target_to_use,
             max_depth=max_depth,
         )
 
         # Discover the models in the python script by executing it with
         # a tracer enabled
-        models_found = evaluate_script(tracer_args)
+        state.models_found = evaluate_script(tracer_args)
 
         # Count the amount of build-able model invocations discovered
         # If there is only 1, pass it to the next build stage. Otherwise,
         # print all the invocations and suggest that the user select one.
         count = 0
-        for model_info in models_found.values():
+        for model_info in state.models_found.values():
             for (
                 invocation_hash,
                 invocation_info,
@@ -119,68 +128,119 @@ class Discover(stage.Stage):
 
                 invocation_info.status_message = (
                     "Discovered; select with `-i "
-                    f"{os.path.basename(model_info.file)}::{invocation_hash}"
+                    f"{os.path.basename(input)}::{invocation_hash}"
                 )
                 invocation_info.status_message_color = printing.Colors.OKCYAN
 
-        for model_info in models_found.values():
+        # The potential outcomes of target selection are:
+        #   Case 1. Input file has only one model, so we select it and don't
+        #       bother the user about target selection
+        #   Case 2. Input file has more than one model, and...
+        #           a. user didn't select a target, so we auto-select the
+        #               least-deep (last discoverd) model and let the user
+        #               know about target selection
+        #           b. user selected a target, so we run with it
+        #   Case 3. Exception: Input file contained no models
+        #   Case 4. Exception: input file has one or more model, but user
+        #               selected an invalid target
+        #
+        # The purpose of this loop is to identify which of those cases is
+        # active.
+
+        if count == 0:
+            # Case 3
+            raise exp.StageError(f"No models discovered in input file {input}")
+
+        model_selected = None
+        invocation_selected = None
+        valid_hashes = []
+        case_1 = target is None and count == 1
+        case_2a = target is None and count > 1
+        for model_info in state.models_found.values():
             for invocation_info in model_info.unique_invocations.values():
-                if invocation_info.is_target or (
-                    len(targets_to_use) == 0 and count > 1
-                ):
-                    if len(targets_to_use) == 0 and count > 1:
-                        invocation_info.auto_selected = True
+                valid_hashes.append(invocation_info.invocation_hash)
 
-                    # Save stats about the model
-                    state.save_stat(
-                        fs.Keys.HASH,
-                        model_info.hash,
-                    )
-                    state.save_stat(
-                        fs.Keys.MODEL_NAME,
-                        tracer_args.script_name,
-                    )
-                    state.save_stat(
-                        fs.Keys.PARAMETERS,
-                        model_info.params,
-                    )
+                case_2b = (
+                    target is not None and invocation_info.invocation_hash == target
+                )
 
-                    state.save_stat(
-                        fs.Keys.CLASS,
-                        type(model_info.model).__name__,
-                    )
-
-                    state.results = model_info.model
-                    # FIXME: we should be able to get rid of state.model now
-                    state.model = model_info.model
-
-                    # Organize the inputs to python model instances
-                    args, kwargs = invocation_info.inputs
-                    inputs = {}
-                    for k in kwargs.keys():
-                        if torch.is_tensor(kwargs[k]):
-                            inputs[k] = torch.tensor(kwargs[k].detach().numpy())
-                        else:
-                            inputs[k] = copy.deepcopy(kwargs[k])
-
-                    # Convert all positional arguments into keyword arguments
-                    if args != ():
-
-                        forward_function = model_info.model.forward
-                        all_args = list(
-                            inspect.signature(forward_function).parameters.keys()
-                        )
-                        for i in range(len(args)):
-                            if torch.is_tensor(args[i]):
-                                inputs[all_args[i]] = torch.tensor(
-                                    args[i].detach().numpy()
-                                )
-                            else:
-                                inputs[all_args[i]] = args[i]
-                    state.inputs = inputs
+                if any([case_1, case_2b]):
+                    model_selected = model_info
                     state.invocation_info = invocation_info
-                    state.models_found = models_found
+                    break
+                if case_2a:
+                    # Point to the most recent model and invocation identified
+                    # We do this so that we can auto-select the last model and invocation
+                    # that was discovered, which is typically the least-deep model
+                    # because discovery is recursive.
+                    model_selected = model_info
+                    invocation_selected = invocation_info
 
-                    return state
+            if vars(state).get("invocation_info") is not None:
+                # If we have already selected then there is no need to keep iterating
+                break
+
+        if model_selected is None:
+            # Case 4
+            raise exp.StageError(
+                f"Hash {target} was selected, but the only "
+                f"valid hashes are {valid_hashes}"
+            )
+
+        if case_2a:
+            state.invocation_info = invocation_selected
+            state.invocation_info.extra_status = (
+                "(auto-selected; select manually with "
+                f"`-i {os.path.basename(input)}"
+                f"::{state.invocation_info.invocation_hash})"
+            )
+
+        # Save stats about the model
+        state.save_stat(
+            fs.Keys.HASH,
+            model_selected.hash,
+        )
+        state.save_stat(
+            "selected_invocation_hash",
+            state.invocation_info.invocation_hash,
+        )
+        state.save_stat(
+            fs.Keys.MODEL_NAME,
+            tracer_args.script_name,
+        )
+        state.save_stat(
+            fs.Keys.PARAMETERS,
+            model_selected.params,
+        )
+
+        state.save_stat(
+            fs.Keys.CLASS,
+            type(model_selected.model).__name__,
+        )
+
+        state.results = model_selected.model
+        # FIXME: we should be able to get rid of state.model now
+        state.model = model_selected.model
+
+        # Organize the inputs to python model instances
+        args, kwargs = state.invocation_info.inputs
+        inputs = {}
+        for k in kwargs.keys():
+            if torch.is_tensor(kwargs[k]):
+                inputs[k] = torch.tensor(kwargs[k].detach().numpy())
+            else:
+                inputs[k] = copy.deepcopy(kwargs[k])
+
+        # Convert all positional arguments into keyword arguments
+        if args != ():
+
+            forward_function = model_info.model.forward
+            all_args = list(inspect.signature(forward_function).parameters.keys())
+            for i in range(len(args)):
+                if torch.is_tensor(args[i]):
+                    inputs[all_args[i]] = torch.tensor(args[i].detach().numpy())
+                else:
+                    inputs[all_args[i]] = args[i]
+        state.inputs = inputs
 
         return state
