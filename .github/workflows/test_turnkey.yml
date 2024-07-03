@@ -15,7 +15,6 @@ permissions:
 jobs:
   build-turnkey:
     env:
-      TURNKEY_VERBOSITY: static
       TURNKEY_TRACEBACK: True
     strategy:
       matrix:
