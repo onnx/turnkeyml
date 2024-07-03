@@ -149,7 +149,6 @@ class OnnxLoad(stage.Stage):
                     """
                     raise exp.StageError(msg)
 
-        print(opset)
         if opset < build.DEFAULT_ONNX_OPSET and opset >= build.MINIMUM_ONNX_OPSET:
             print(
                 f" \n The received model has an opset {opset}. Though this opset is supported \
