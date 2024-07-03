@@ -10,6 +10,7 @@ import turnkeyml.common.printing as printing
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.build as build
 import turnkeyml.common.filesystem as fs
+import turnkeyml.analyze.status as status
 
 
 def _spinner(message):
@@ -211,7 +212,7 @@ class Stage(abc.ABC):
             with build.Logger(self.monitor_message, self.logfile_path):
                 state = self.fire(state, **kwargs)
 
-        except exp.StageError:
+        except Exception:  # pylint: disable=broad-except
             self.status_line(
                 successful=False,
                 verbosity=state.monitor,
@@ -250,6 +251,7 @@ def _rewind_stdout(lines: int = 1):
     rewind_stdout_one_line = "\033[1A"
     rewind_multiple_lines = rewind_stdout_one_line * lines
     print(rewind_multiple_lines, end="")
+    sys.stdout.flush()
 
 
 class Sequence:
@@ -282,7 +284,7 @@ class Sequence:
         """
 
         if verbosity:
-            print("\n\n")
+            print()
 
             printing.logn(
                 f'Building "{state.build_name}"',
@@ -313,29 +315,25 @@ class Sequence:
             raise exp.Error(msg)
 
         # Collect telemetry for the build
-        stats = fs.Stats(state.cache_dir, state.build_name, state.evaluation_id)
-        stats.save_model_eval_stat(
+        state.save_stat(
             fs.Keys.SELECTED_SEQUENCE_OF_STAGES,
             self.stage_names,
         )
 
         # At the beginning of a sequence no stage has started
         for stage in self.stages:
-            stats.save_model_eval_stat(
-                stage.status_key, build.FunctionStatus.NOT_STARTED
-            )
-            stats.save_model_eval_stat(stage.duration_key, "-")
+            state.save_stat(stage.status_key, build.FunctionStatus.NOT_STARTED)
+            state.save_stat(stage.duration_key, "-")
 
         # Run the build
+        saved_exception = None
         for stage, argv in self.stages.items():
             start_time = time.time()
 
             try:
 
                 # Set status as incomplete, since stage just started
-                stats.save_model_eval_stat(
-                    stage.status_key, build.FunctionStatus.INCOMPLETE
-                )
+                state.save_stat(stage.status_key, build.FunctionStatus.INCOMPLETE)
 
                 # Collect telemetry about the stage
                 state.current_build_stage = stage.unique_name
@@ -350,16 +348,18 @@ class Sequence:
             # all exceptions (including those we can't anticipate)
             except Exception as e:  # pylint: disable=broad-except
 
-                if os.environ.get("TURNKEY_DEBUG"):
+                if os.environ.get("TURNKEY_DEBUG", "").lower() == "true":
                     # It may be useful to raise the exception here, since
                     # if any of the subsequent lines of code raise another
                     # exception it will be very hard to root cause e.
                     raise e
 
-                # Update Stage Status
-                stats.save_model_eval_stat(stage.status_key, build.FunctionStatus.ERROR)
+                # Update Stage and build status
+                state.save_stat(stage.status_key, build.FunctionStatus.ERROR)
+                state.save_stat(fs.Keys.BUILD_STATUS, build.FunctionStatus.ERROR)
 
                 # Save the log file for the failed stage to stats for easy reference
+                stats = fs.Stats(state.cache_dir, state.build_name)
                 stats.save_eval_error_log(stage.logfile_path)
 
                 # Advance the cursor below the monitor so
@@ -374,24 +374,64 @@ class Sequence:
 
                 print(cursor_down)
 
-                printing.log_error(e)
+                if vars(state).get("invocation_info"):
+                    state.invocation_info.status_message = f"Error: {e}."
+                    state.invocation_info.status_message_color = printing.Colors.WARNING
+                else:
+                    printing.log_error(e)
 
-                raise
+                # We will raise this exception after we capture as many statistics
+                # about the build as possible
+                saved_exception = e
+
+                # Don't run any more stages
+                break
 
             else:
                 # Update Stage Status
-                stats.save_model_eval_stat(
-                    stage.status_key, build.FunctionStatus.SUCCESSFUL
-                )
+                state.save_stat(stage.status_key, build.FunctionStatus.SUCCESSFUL)
+                state.current_build_stage = None
 
             finally:
                 # Store stage duration
                 execution_time = time.time() - start_time
-                stats.save_model_eval_stat(stage.duration_key, execution_time)
+                state.save_stat(stage.duration_key, execution_time)
 
-        state.current_build_stage = None
-        state.build_status = build.FunctionStatus.SUCCESSFUL
+        if not saved_exception:
+            state.build_status = build.FunctionStatus.SUCCESSFUL
+            state.save_stat(fs.Keys.BUILD_STATUS, build.FunctionStatus.SUCCESSFUL)
+
+            if vars(state).get("invocation_info"):
+                state.invocation_info.status_message = (
+                    f"Successful build! {state.invocation_info.extra_status}"
+                )
+                state.invocation_info.status_message_color = printing.Colors.OKGREEN
+
+        if vars(state).get("models_found") and vars(state).get("invocation_info"):
+
+            # Present status statistics from the Stages
+            for stage in self.stages:
+                state.invocation_info.stats_keys += stage.status_stats
+
+            print()
+
+            status.recursive_print(
+                models_found=state.models_found,
+                build_name=state.build_name,
+                cache_dir=state.cache_dir,
+                parent_model_hash=None,
+                parent_invocation_hash=None,
+                script_names_visited=[],
+            )
+
+        if state.lean_cache:
+            printing.log_info("Removing build artifacts...")
+            fs.clean_output_dir(state.cache_dir, state.build_name)
+
         state.save()
+
+        if saved_exception:
+            raise saved_exception
 
         return state
 

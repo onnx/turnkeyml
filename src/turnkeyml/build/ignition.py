@@ -1,13 +1,10 @@
-from typing import Optional, List, Tuple, Union, Dict, Any
+from typing import Optional, List, Union, Dict, Any
 import os
-import torch
 import turnkeyml.common.build as build
 import turnkeyml.common.filesystem as fs
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.printing as printing
-import turnkeyml.build.onnx_helpers as onnx_helpers
 import turnkeyml.build.tensor_helpers as tensor_helpers
-import turnkeyml.build.stage as stage
 from turnkeyml.version import __version__ as turnkey_version
 
 
@@ -19,7 +16,6 @@ def decode_version_number(version: str) -> Dict[str, int]:
 def validate_cached_model(
     new_state: fs.State,
     cached_state: fs.State,
-    model_type: build.ModelType,
     inputs: Optional[Dict[str, Any]] = None,
 ) -> List[str]:
     """
@@ -52,8 +48,6 @@ def validate_cached_model(
         fs.Keys.EXPECTED_INPUT_SHAPES,
         fs.Keys.DOWNCAST_APPLIED,
         fs.Keys.UID,
-        fs.Keys.EVALUATION_ID,
-        fs.Keys.MODEL_TYPE,
     ]
 
     # Make sure the cached state contains all information needed to assess a cache hit
@@ -93,9 +87,7 @@ def validate_cached_model(
     result = []
 
     if new_state.model is not None:
-        model_changed = cached_state.model_hash != build.hash_model(
-            new_state.model, model_type
-        )
+        model_changed = cached_state.model_hash != build.hash_model(new_state.model)
     else:
         model_changed = False
 
@@ -211,8 +203,6 @@ def _rebuild_if_needed(problem_report: str, state: fs.State):
 def load_from_cache(
     new_state: fs.State,
     rebuild: str,
-    model_type: build.ModelType,
-    inputs: Optional[Dict[str, Any]] = None,
 ) -> fs.State:
     """
     Decide whether we can load the model from the model cache
@@ -244,8 +234,7 @@ def load_from_cache(
             cache_problems = validate_cached_model(
                 new_state=new_state,
                 cached_state=cached_state,
-                model_type=model_type,
-                inputs=inputs,
+                inputs=new_state.inputs,
             )
 
             if len(cache_problems) > 0:
@@ -299,70 +288,3 @@ def validate_inputs(inputs: Dict):
         received by build_model() were of type {type(inputs)}, not dict.
         """
         raise exp.IntakeError(msg)
-
-
-def identify_model_type(model) -> build.ModelType:
-    # Validate that the model's type is supported by build_model()
-    # and assign a ModelType tag
-    if isinstance(model, (torch.nn.Module, torch.jit.ScriptModule)):
-        model_type = build.ModelType.PYTORCH
-    elif isinstance(model, str):
-        if model.endswith(".onnx"):
-            model_type = build.ModelType.ONNX_FILE
-    else:
-        raise exp.IntakeError(
-            "Argument 'model' passed to build_model() is "
-            f"of unsupported type {type(model)}"
-        )
-
-    return model_type
-
-
-def model_intake(
-    user_model,
-    user_inputs,
-) -> Tuple[Any, Any, stage.Sequence, build.ModelType, str]:
-    # Model intake structure options:
-    # user_model
-    #    |
-    #    |------- path to onnx model file
-    #    |
-    #    |------- pytorch model object
-
-    if user_model is None and user_inputs is None:
-        msg = """
-        You are running build_model() without any model, inputs, or custom Sequence. The purpose
-        of non-customized build_model() is to build a model against some inputs, so you need to
-        provide both.
-        """
-        raise exp.IntakeError(msg)
-
-    # Make sure that if the model is a file path, it is valid
-    if isinstance(user_model, str):
-        if not os.path.isfile(user_model):
-            msg = f"""
-            build_model() model argument was passed a string (path to a model file),
-            however no file was found at {user_model}.
-            """
-            raise exp.IntakeError(msg)
-
-        if not user_model.endswith(".onnx"):
-            msg = f"""
-            build_model() received a model argument that was a string. However, model string
-            arguments are required to be a path to a .onnx file, but the argument was: {user_model}
-            """
-            raise exp.IntakeError(msg)
-
-        # Create dummy inputs based on the ONNX spec, if none were provided by the user
-        if user_inputs is None:
-            inputs = onnx_helpers.dummy_inputs(user_model)
-        else:
-            inputs = user_inputs
-    else:
-        inputs = user_inputs
-
-    model_type = identify_model_type(user_model)
-
-    validate_inputs(inputs)
-
-    return (inputs, model_type)
