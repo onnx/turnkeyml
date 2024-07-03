@@ -37,7 +37,7 @@ class Discover(stage.Stage):
 
     @staticmethod
     def parser(add_help: bool = True) -> argparse.ArgumentParser:
-        parser = argparse.ArgumentParser(
+        parser = __class__.helpful_parser(
             description="Discover the PyTorch models in a python script",
             add_help=add_help,
         )
