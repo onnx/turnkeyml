@@ -56,9 +56,40 @@ def _name_is_file_safe(name: str):
             raise ValueError(msg)
 
 
+class StageParser(argparse.ArgumentParser):
+    def error(self, message):
+        if message.startswith("unrecognized arguments"):
+            unrecognized = message.split(": ")[1]
+            if not unrecognized.startswith("-"):
+                # This was probably a misspelled stage name
+                message = message + (
+                    f". If `{unrecognized}` was intended to invoke "
+                    "a stage, please run `turnkey -h` and check the spelling and "
+                    "availability of that stage."
+                )
+        self.print_usage()
+        printing.log_error(message)
+        self.exit(2)
+
+
 class Stage(abc.ABC):
 
     unique_name: str
+
+    @classmethod
+    def helpful_parser(cls, description: str, **kwargs):
+        epilog = (
+            f"`{cls.unique_name}` is a Stage. It is intended to be invoked as "
+            "part of a sequence of Stages, for example: `turnkey -i INPUTS stage-one "
+            "stage-two stage-three`"
+        )
+
+        return StageParser(
+            prog=f"turnkey {cls.unique_name}",
+            description=description,
+            epilog=epilog,
+            **kwargs,
+        )
 
     def status_line(self, successful, verbosity):
         """

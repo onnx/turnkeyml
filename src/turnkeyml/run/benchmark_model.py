@@ -34,7 +34,7 @@ class Benchmark(stage.Stage):
 
     @staticmethod
     def parser(add_help: bool = True) -> argparse.ArgumentParser:
-        parser = argparse.ArgumentParser(
+        parser = __class__.helpful_parser(
             description="Benchmark a model",
             add_help=add_help,
         )
