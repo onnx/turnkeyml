@@ -39,11 +39,7 @@ class Device:
         self.config: Optional[str] = None
 
         # Unpack selected_device
-        if isinstance(selected_device, self.__class__):
-            # Copy constructor
-            values = str(selected_device).split("::")
-        else:
-            values = selected_device.split("::")
+        values = str(selected_device).split("::")
         if len(values) > 3:
             raise exp.ArgError(
                 f"Recieved a device argument that has more than 3 members: {selected_device}. "
