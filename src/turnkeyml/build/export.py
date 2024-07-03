@@ -89,7 +89,8 @@ class OnnxLoad(stage.Stage):
     Expected inputs: None
 
     Outputs:
-     - A *-base.onnx file that implements state.model given state.inputs.
+     - state.result is an ONNX file
+     - state.inputs are valid inputs to that ONNX file
     """
 
     unique_name = "onnx-load"
