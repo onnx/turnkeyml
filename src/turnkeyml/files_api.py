@@ -3,7 +3,7 @@ import os
 import copy
 import glob
 from datetime import datetime
-from typing import Tuple, List, Dict, Optional, Union
+from typing import List, Dict, Optional, Union
 import git
 import turnkeyml.common.printing as printing
 import turnkeyml.common.exceptions as exceptions
@@ -11,7 +11,6 @@ import turnkeyml.build.stage as stage
 import turnkeyml.cli.spawn as spawn
 import turnkeyml.common.filesystem as fs
 import turnkeyml.common.labels as labels_library
-from turnkeyml.analyze.status import Verbosity
 import turnkeyml.common.build as build
 from turnkeyml.build_api import build_model
 
@@ -25,50 +24,6 @@ except ImportError:
 
     def tqdm(iterable, **kwargs):  # pylint: disable=unused-argument
         return iterable
-
-
-def _select_verbosity(
-    verbosity: str, input_files_expanded: List[str], process_isolation: bool
-) -> Tuple[Verbosity, bool]:
-    """
-    Choose verbosity based on the following policies:
-        1. The explicit verbosity argument takes priority over AUTO and the env var
-        2. The env var takes priority over AUTO
-        3. Use STATIC when there are many inputs, or in process isolation mode,
-            and use DYNAMIC otherwise
-
-    Returns the selected verbosity.
-    """
-
-    verbosity_choices = {
-        field.value: field for field in Verbosity if field != Verbosity.AUTO
-    }
-    verbosity_env_var = os.environ.get("TURNKEY_VERBOSITY")
-
-    if verbosity != Verbosity.AUTO.value:
-        # Specific verbosity argument takes priority over env var
-        verbosity_selected = verbosity_choices[verbosity]
-    elif verbosity_env_var in verbosity_choices.keys():
-        # Env var takes priority over AUTO
-        verbosity_selected = verbosity_choices[verbosity_env_var]
-    else:
-        # Verbosity.AUTO and no env var
-        if len(input_files_expanded) > 4 or process_isolation:
-            # Automatically select STATIC if:
-            # - There are many evaluations (>4), since DYNAMIC mode works
-            #       best when all results fit on one screen
-            # - Process isolation mode is active, since DYNAMIC mode is
-            #       incompatible with process isolation
-            verbosity_selected = Verbosity.STATIC
-        else:
-            verbosity_selected = Verbosity.DYNAMIC
-
-    # Use a progress bar in STATIC mode if there is more than 1 input
-    use_progress_bar = (
-        verbosity_selected == Verbosity.STATIC and len(input_files_expanded) > 1
-    )
-
-    return verbosity_selected, use_progress_bar
 
 
 def unpack_txt_inputs(input_files: List[str]) -> List[str]:
@@ -103,7 +58,6 @@ def benchmark_files(
     labels: List[str] = None,
     rebuild: Optional[str] = None,
     timeout: Optional[int] = None,
-    verbosity: str = Verbosity.STATIC.value,
     sequence: Union[Dict, stage.Sequence] = None,
 ):
 
@@ -189,10 +143,7 @@ def benchmark_files(
                 "Suggest quitting turnkey, running 'scancel -u $USER' and trying again."
             )
 
-    verbosity_policy, use_progress_bar = _select_verbosity(
-        verbosity, input_files_expanded, process_isolation
-    )
-    benchmarking_args["verbosity"] = verbosity_policy
+    use_progress_bar = len(input_files_expanded) > 1
 
     for file_path_encoded in tqdm(input_files_expanded, disable=not use_progress_bar):
 
