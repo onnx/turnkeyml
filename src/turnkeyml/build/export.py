@@ -315,45 +315,6 @@ class ExportPytorchModel(stage.Stage):
         default_warnings = warnings.showwarning
         warnings.showwarning = _warn_to_stdout
 
-        # Verify if the exported model matches the input torch model
-        try:
-            # Tolerance levels for the torch export are recommended by Pytorch here:
-            # https://pytorch.org/docs/stable/testing.html#module-torch.testing
-            fp32_tolerance = torch.onnx.verification.VerificationOptions(
-                rtol=1.3e-6, atol=1e-5
-            )
-
-            # The `torch.onnx.verification.find_mismatch()` takes input arguments to the
-            # model as `input_args (Tuple[Any, ...])`
-            export_verification = torch.onnx.verification.find_mismatch(
-                state.model,
-                tuple(state.inputs.values()),
-                opset_version=opset,
-                options=fp32_tolerance,
-            )
-
-            # `export_verification.has_mismatch()` returns True if a mismatch is found and
-            # False otherwise. If no mismatch is found,# `is_export_valid` is set to "Valid",
-            # indicating successful verification.
-            # If a mismatch is found, `is_export_valid` is set to "Invalid", indicating
-            # the verification failed.
-            if not export_verification.has_mismatch():
-                is_export_valid = "valid"
-            else:
-                is_export_valid = "invalid"
-
-        # The except block catches any type of exception that might occur during the
-        # verification process. If any exception occurs,`is_export_valid` is set to
-        # "Unverified", indicating that the verification process could not be completed,
-        # and therefore the model's export status is unverified.
-        except Exception:  # pylint: disable=broad-except
-            is_export_valid = "unverified"
-
-        state.save_stat(
-            fs.Keys.TORCH_ONNX_EXPORT_VALIDITY,
-            is_export_valid,
-        )
-
         # Export the model to ONNX
         output_path = base_onnx_file(state)
         os.makedirs(onnx_dir(state), exist_ok=True)
@@ -399,6 +360,83 @@ class ExportPytorchModel(stage.Stage):
             More information may be available in the log file at **{self.logfile_path}**
             """
             raise exp.StageError(msg)
+
+        return state
+
+
+class VerifyOnnxExporter(stage.Stage):
+    """
+    Stage that runs a parity test on an input PyTorch model and an ONNX
+    file derived from that model.
+
+    Note that the derived ONNX file is discarded by the verification API,
+    so we can't use it in downstream Stages. To use this stage inline with
+    other build stages, we recommend:
+        discover -> verify-onnx-exporter -> export-pytorch -> other stages
+
+    Expected inputs:
+     - state.model is a torch.nn.Module or torch.jit.ScriptModule
+     - state.inputs is a dict that represents valid kwargs to the forward
+        function of state.model
+
+    Outputs: No change to state
+    """
+
+    unique_name = "verify-onnx-exporter"
+
+    def __init__(self):
+        super().__init__(monitor_message="Verifying ONNX exporter")
+
+    @staticmethod
+    def parser(add_help: bool = True) -> argparse.ArgumentParser:
+        parser = argparse.ArgumentParser(
+            description="Verify if model can be exported to ONNX without major "
+            "numerical discrepancies",
+            add_help=add_help,
+        )
+
+        return parser
+
+    def fire(self, state: fs.State):
+
+        # Verify if the exported model matches the input torch model
+        try:
+            # Tolerance levels for the torch export are recommended by Pytorch here:
+            # https://pytorch.org/docs/stable/testing.html#module-torch.testing
+            fp32_tolerance = torch.onnx.verification.VerificationOptions(
+                rtol=1.3e-6, atol=1e-5
+            )
+
+            # The `torch.onnx.verification.find_mismatch()` takes input arguments to the
+            # model as `input_args (Tuple[Any, ...])`
+            export_verification = torch.onnx.verification.find_mismatch(
+                state.model,
+                tuple(state.inputs.values()),
+                opset_version=state.onnx_opset,
+                options=fp32_tolerance,
+            )
+
+            # `export_verification.has_mismatch()` returns True if a mismatch is found and
+            # False otherwise. If no mismatch is found,# `is_export_valid` is set to "Valid",
+            # indicating successful verification.
+            # If a mismatch is found, `is_export_valid` is set to "Invalid", indicating
+            # the verification failed.
+            if not export_verification.has_mismatch():
+                is_export_valid = "valid"
+            else:
+                is_export_valid = "invalid"
+
+        # The except block catches any type of exception that might occur during the
+        # verification process. If any exception occurs,`is_export_valid` is set to
+        # "Unverified", indicating that the verification process could not be completed,
+        # and therefore the model's export status is unverified.
+        except Exception:  # pylint: disable=broad-except
+            is_export_valid = "unverified"
+
+        state.save_stat(
+            fs.Keys.TORCH_ONNX_EXPORT_VALIDITY,
+            is_export_valid,
+        )
 
         return state
 
