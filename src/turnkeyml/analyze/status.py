@@ -1,9 +1,7 @@
 import os
 import sys
 import math
-from enum import Enum
 import dataclasses
-import platform
 from typing import Callable, List, Union, Dict, Optional
 import torch
 from turnkeyml.common import printing
@@ -28,12 +26,6 @@ def parameters_to_size(parameters: int, byte_per_parameter: int = 4) -> str:
     p = math.pow(1024, i)
     s = round(size_bytes / p, 2)
     return "%s %s" % (s, size_name[i])
-
-
-class Verbosity(Enum):
-    AUTO = "auto"
-    DYNAMIC = "dynamic"
-    STATIC = "static"
 
 
 @dataclasses.dataclass
@@ -298,54 +290,6 @@ class ModelInfo(BasicInfo):
 
     def __post_init__(self):
         self.params = analyze_model.count_parameters(self.model)
-
-
-def update(
-    models_found: Dict[str, ModelInfo],
-    build_name: str,
-    invocation_info: UniqueInvocationInfo,
-    verbosity: Verbosity = Verbosity.STATIC,  # FIXME: this shouldn't be here
-    cache_dir: str = "REMOVE ME",
-) -> None:
-    """
-    Prints all models and submodels found
-    """
-
-    if verbosity == Verbosity.DYNAMIC:
-        if platform.system() != "Windows":
-            os.system("clear")
-        else:
-            os.system("cls")
-
-        printing.logn(
-            "\nModels discovered during profiling:\n",
-            c=printing.Colors.BOLD,
-        )
-        recursive_print(
-            models_found=models_found,
-            build_name=build_name,
-            cache_dir=cache_dir,
-            parent_model_hash=None,
-            parent_invocation_hash=None,
-            script_names_visited=[],
-        )
-    else:  # Verbosity.STATIC
-        if invocation_info.extension == ".onnx":
-            # We don't invoke the ONNX files, so they can't have multiple invocations
-            multiple_unique_invocations = False
-        else:
-            multiple_unique_invocations = (
-                len(models_found[invocation_info.hash].unique_invocations) > 1
-            )
-
-        invocation_info.print(
-            build_name=build_name,
-            cache_dir=cache_dir,
-            print_file_name=True,
-            invocation_idx=0,
-            model_visited=False,
-            multiple_unique_invocations=multiple_unique_invocations,
-        )
 
 
 def recursive_print(

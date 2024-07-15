@@ -18,7 +18,6 @@ import turnkeyml.common.filesystem as filesystem
 import turnkeyml.common.printing as printing
 import turnkeyml.common.build as build
 from turnkeyml.cli.parser_helpers import encode_args
-from turnkeyml.analyze.status import Verbosity
 from turnkeyml.build.stage import Sequence
 
 
@@ -172,10 +171,6 @@ def value_arg(key: str, value: Union[str, int]):
         return ""
 
 
-def verbosity_arg(key: str, value: Verbosity):
-    return f'{key}="{value.value}"'
-
-
 def bool_arg(key: str, value: bool):
     if value:
         return f"{key}"
@@ -224,7 +219,6 @@ def run_turnkey(
         bool: bool_arg,
         list: list_arg,
         dict: dict_arg,
-        Verbosity: verbosity_arg,
     }
 
     invocation_args = f"-i {file_name}"
