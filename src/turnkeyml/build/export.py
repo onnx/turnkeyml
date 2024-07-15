@@ -390,7 +390,7 @@ class VerifyOnnxExporter(stage.Stage):
     @staticmethod
     def parser(add_help: bool = True) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser(
-            description="Use OnnxRuntime to optimize an ONNX model",
+            description="Verify if model can be exported to ONNX without major numerical discrepancies",
             add_help=add_help,
         )
 
