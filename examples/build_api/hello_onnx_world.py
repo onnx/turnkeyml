@@ -14,7 +14,7 @@ import os
 import torch
 from turnkeyml import build_model
 from turnkeyml.build.stage import Sequence
-from turnkeyml.build.export import OnnxLoad
+from turnkeyml.build.export import LoadOnnx
 
 torch.manual_seed(0)
 
@@ -58,7 +58,7 @@ def to_numpy(tensor):
 
 
 # Build the model
-sequence = Sequence(stages={OnnxLoad(): ["--input", onnx_model]})
+sequence = Sequence(stages={LoadOnnx(): ["--input", onnx_model]})
 state = build_model(
     sequence=sequence,
     model=onnx_model,

@@ -31,7 +31,7 @@ class Testing(unittest.TestCase):
             cache_dir,
             "discover",
             "export-pytorch",
-            "optimize-onnx",
+            "optimize-ort",
             "benchmark",
             "--device",
             "example_family",

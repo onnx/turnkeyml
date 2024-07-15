@@ -62,7 +62,7 @@ jobs:
           rm -rf ~/.cache/turnkey
           turnkey -i examples/cli/scripts/two_models.py discover export-pytorch benchmark
           rm -rf ~/.cache/turnkey
-          turnkey -i examples/cli/onnx/hello_world.onnx onnx-load benchmark
+          turnkey -i examples/cli/onnx/hello_world.onnx load-onnx benchmark
 
           # E2E tests
           cd test/

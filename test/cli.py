@@ -139,7 +139,7 @@ class Testing(unittest.TestCase):
             cache_dir,
             "discover",
             "export-pytorch",
-            "optimize-onnx",
+            "optimize-ort",
         ]
         with patch.object(sys, "argv", testargs):
             turnkeycli()
@@ -159,7 +159,7 @@ class Testing(unittest.TestCase):
             cache_dir,
             "discover",
             "export-pytorch",
-            "optimize-onnx",
+            "optimize-ort",
         ]
         with patch.object(sys, "argv", testargs):
             turnkeycli()
@@ -181,7 +181,7 @@ class Testing(unittest.TestCase):
             cache_dir,
             "discover",
             "export-pytorch",
-            "optimize-onnx",
+            "optimize-ort",
         ]
         with patch.object(sys, "argv", flatten(testargs)):
             turnkeycli()
@@ -202,7 +202,7 @@ class Testing(unittest.TestCase):
             cache_dir,
             "discover",
             "export-pytorch",
-            "optimize-onnx",
+            "optimize-ort",
         ]
         with patch.object(sys, "argv", flatten(testargs)):
             turnkeycli()
@@ -239,7 +239,7 @@ class Testing(unittest.TestCase):
             cache_dir,
             "discover",
             "export-pytorch",
-            "optimize-onnx",
+            "optimize-ort",
         ]
         with patch.object(sys, "argv", flatten(testargs)):
             turnkeycli()
@@ -304,7 +304,7 @@ class Testing(unittest.TestCase):
             cache_dir,
             "discover",
             "export-pytorch",
-            "optimize-onnx",
+            "optimize-ort",
         ]
         with patch.object(sys, "argv", flatten(testargs)):
             turnkeycli()
@@ -401,7 +401,7 @@ class Testing(unittest.TestCase):
             cache_dir,
             "discover",
             "export-pytorch",
-            "optimize-onnx",
+            "optimize-ort",
         ]
         with patch.object(sys, "argv", testargs):
             turnkeycli()
@@ -422,7 +422,7 @@ class Testing(unittest.TestCase):
             cache_dir,
             "discover",
             "export-pytorch",
-            "optimize-onnx",
+            "optimize-ort",
             "benchmark",
         ]
         with patch.object(sys, "argv", testargs):
@@ -445,7 +445,7 @@ class Testing(unittest.TestCase):
             cache_dir,
             "discover",
             "export-pytorch",
-            "optimize-onnx",
+            "optimize-ort",
             "benchmark",
         ]
         with patch.object(sys, "argv", flatten(testargs)):
@@ -479,7 +479,7 @@ class Testing(unittest.TestCase):
             cache_dir,
             "discover",
             "export-pytorch",
-            "optimize-onnx",
+            "optimize-ort",
         ]
         with patch.object(sys, "argv", flatten(testargs)):
             turnkeycli()
@@ -496,7 +496,7 @@ class Testing(unittest.TestCase):
             cache_dir,
             "discover",
             "export-pytorch",
-            "optimize-onnx",
+            "optimize-ort",
             "benchmark",
             "--device",
             "reimplement_me",
@@ -544,7 +544,7 @@ class Testing(unittest.TestCase):
                 cache_dir,
                 "discover",
                 "export-pytorch",
-                "optimize-onnx",
+                "optimize-ort",
                 "benchmark",
                 "--device",
                 "x86",
@@ -580,7 +580,7 @@ class Testing(unittest.TestCase):
             cache_dir,
             "discover",
             "export-pytorch",
-            "optimize-onnx",
+            "optimize-ort",
             "benchmark",
             "--device",
             "x86",
@@ -609,7 +609,7 @@ class Testing(unittest.TestCase):
             "export-pytorch",
             "--opset",
             str(user_opset),
-            "optimize-onnx",
+            "optimize-ort",
             "benchmark",
         ]
         with patch.object(sys, "argv", testargs):
@@ -632,7 +632,7 @@ class Testing(unittest.TestCase):
             cache_dir,
             "discover",
             "export-pytorch",
-            "optimize-onnx",
+            "optimize-ort",
             "benchmark",
             "--iterations",
             str(test_iterations),
@@ -662,7 +662,7 @@ class Testing(unittest.TestCase):
                 "--process-isolation",
                 "discover",
                 "export-pytorch",
-                "optimize-onnx",
+                "optimize-ort",
                 "benchmark",
             ]
             with patch.object(sys, "argv", testargs):
@@ -685,7 +685,7 @@ class Testing(unittest.TestCase):
             cache_dir,
             "discover",
             "export-pytorch",
-            "optimize-onnx",
+            "optimize-ort",
             "benchmark",
         ]
         with patch.object(sys, "argv", testargs):
@@ -706,7 +706,7 @@ class Testing(unittest.TestCase):
                 "gobbledegook",
                 "discover",
                 "export-pytorch",
-                "optimize-onnx",
+                "optimize-ort",
                 "benchmark",
             ]
             with patch.object(sys, "argv", flatten(testargs)):
@@ -754,7 +754,7 @@ class Testing(unittest.TestCase):
             onnx_file,
             "--cache-dir",
             cache_dir,
-            "onnx-load",
+            "load-onnx",
             "benchmark",
         ]
         with patch.object(sys, "argv", testargs):
@@ -789,7 +789,7 @@ class Testing(unittest.TestCase):
             onnx_file,
             "--cache-dir",
             cache_dir,
-            "onnx-load",
+            "load-onnx",
             "benchmark",
         ]
         with patch.object(sys, "argv", testargs):
@@ -820,7 +820,7 @@ class Testing(unittest.TestCase):
                     filename,
                     "discover",
                     "export-pytorch",
-                    "optimize-onnx",
+                    "optimize-ort",
                     "benchmark",
                 ]
                 with patch.object(sys, "argv", testargs):
@@ -837,7 +837,7 @@ class Testing(unittest.TestCase):
                     file_prefix,
                     "discover",
                     "export-pytorch",
-                    "optimize-onnx",
+                    "optimize-ort",
                     "benchmark",
                 ]
                 with patch.object(sys, "argv", testargs):
@@ -856,7 +856,7 @@ class Testing(unittest.TestCase):
             cache_dir,
             "discover",
             "export-pytorch",
-            "optimize-onnx",
+            "optimize-ort",
         ]
         with patch.object(sys, "argv", testargs):
             turnkeycli()
@@ -889,7 +889,7 @@ class Testing(unittest.TestCase):
             "10",
             "discover",
             "export-pytorch",
-            "optimize-onnx",
+            "optimize-ort",
             "benchmark",
         ]
         with patch.object(sys, "argv", flatten(testargs)):
@@ -938,7 +938,7 @@ class Testing(unittest.TestCase):
             cache_dir,
             "discover",
             "export-pytorch",
-            "optimize-onnx",
+            "optimize-ort",
             "benchmark",
         ]
         with patch.object(sys, "argv", flatten(testargs)):
@@ -1012,15 +1012,15 @@ class Testing(unittest.TestCase):
                 "selected_sequence_of_stages",
                 "stage_duration:discover",
                 "stage_duration:export-pytorch",
-                "stage_duration:optimize-onnx",
+                "stage_duration:optimize-ort",
                 "stage_status:discover",
                 "stage_status:export-pytorch",
-                "stage_status:optimize-onnx",
+                "stage_status:optimize-ort",
             ],
         )
         for result in result_dict.values():
             # All of the models should have exported to ONNX and optimized the ONNX model
-            for stage in ["export-pytorch", "optimize-onnx"]:
+            for stage in ["export-pytorch", "optimize-ort"]:
                 assert stage in result["selected_sequence_of_stages"]
                 duration = result[f"stage_duration:{stage}"]
                 status = result[f"stage_status:{stage}"]
@@ -1048,7 +1048,7 @@ class Testing(unittest.TestCase):
             cache_dir,
             "discover",
             "export-pytorch",
-            "optimize-onnx",
+            "optimize-ort",
         ]
         with patch.object(sys, "argv", flatten(testargs)):
             turnkeycli()
@@ -1095,9 +1095,29 @@ class Testing(unittest.TestCase):
             "--cache-dir",
             cache_dir,
             "discover",
-            "verify-onnx-exporter",
+            "verify-exporter",
             "export-pytorch",
-            "optimize-onnx",
+            "optimize-ort",
+        ]
+        with patch.object(sys, "argv", testargs):
+            turnkeycli()
+
+        assert_success_of_builds([test_script], cache_dir)
+
+    def test_029_cli_fp16_convert(self):
+        # Test the first model in the corpus
+        test_script = list(common.test_scripts_dot_py.keys())[0]
+
+        testargs = [
+            "turnkey",
+            "-i",
+            os.path.join(corpus_dir, test_script),
+            "--cache-dir",
+            cache_dir,
+            "discover",
+            "export-pytorch",
+            "optimize-ort",
+            "convert-fp16",
         ]
         with patch.object(sys, "argv", testargs):
             turnkeycli()
