@@ -20,7 +20,7 @@ SUPPORTED_STAGES = [
     Discover,
     export.ExportPytorchModel,
     export.OptimizeOnnxModel,
-    export.OnnxLoad,
+    export.LoadOnnx,
     export.ConvertOnnxToFp16,
     export.VerifyOnnxExporter,
 ]

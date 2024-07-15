@@ -51,7 +51,7 @@ def basic_pytorch_sequence():
 
 
 def basic_onnx_sequence(input: str):
-    return stage.Sequence(stages={export.OnnxLoad(): ["--input", input]})
+    return stage.Sequence(stages={export.LoadOnnx(): ["--input", input]})
 
 
 # Run build_model() and get results

@@ -27,6 +27,34 @@ TurnkeyML supports a variety of built-in build sequences, runtimes, and devices 
 
 A turnkey plugin is a pip-installable package that implements support for building a model using a custom sequence and/or benchmarking a model on a [device](https://github.com/onnx/turnkeyml/blob/main/docs/tools_user_guide.md#device) with a [runtime](https://github.com/onnx/turnkeyml/blob/main/docs/tools_user_guide.md#runtime). These packages must adhere to a specific interface that is documented below. 
 
+### Naming Scheme
+
+Plugins should be named in a way that makes it easy to refer to them in a sentence. 
+
+General rules:
+
+- The word "onnx" should be assumed wherever possible since this is an ONNX toolchain
+- Name the tool as a verb that references the action it is taking
+- Avoid using prepositions like "to"
+
+Examples:
+
+- Anything that loads anything starts with `load-`
+  - `load-build`
+  - `load-onnx` (formerly `onnx-load`)
+  - `load-llm-checkpoint`
+- Anything that exports to ONNX should start with `export-SOURCE` since the "onnx" part is assumed
+  - `export-pytorch` 
+- ONNX-to-ONNX transformations should have the form `ACTION[-RESULT]` where `RESULT` optionally adds necessary detail to the action
+  - `optimize-ort` (formerly `optimize-onnx`), where the action is short for "optimize-with-onnxruntime"
+  - `convert-fp16`
+  - `quantize-int8`
+- `discover`, `benchmark`: good single-word verbs
+- Compilation should use `compile-TARGET`, like `compile-ryzen-npu`
+
+This allows for sequences-as-sentences like the following (with prepositions assumed):
+- `discover` then `export-[to-]pytorch[-to-onnx]` then `optimize-[with-]ort` then `quantize-[to-]int8` then `compile-[for-]ryzen-npu`
+
 ### Plugin Directory Layout
 
 A plugin package that instantiates all of the optional files would have this directory layout:

@@ -81,7 +81,7 @@ def converted_onnx_file(state: fs.State):
     )
 
 
-class OnnxLoad(stage.Stage):
+class LoadOnnx(stage.Stage):
     """
     Stage that takes an ONNX model as input and passes it to the following
     stages.
@@ -93,7 +93,7 @@ class OnnxLoad(stage.Stage):
      - state.inputs are valid inputs to that ONNX file
     """
 
-    unique_name = "onnx-load"
+    unique_name = "load-onnx"
 
     def __init__(self):
         super().__init__(monitor_message="Loading ONNX Model")
@@ -372,7 +372,7 @@ class VerifyOnnxExporter(stage.Stage):
     Note that the derived ONNX file is discarded by the verification API,
     so we can't use it in downstream Stages. To use this stage inline with
     other build stages, we recommend:
-        discover -> verify-onnx-exporter -> export-pytorch -> other stages
+        discover -> verify-exporter -> export-pytorch -> other stages
 
     Expected inputs:
      - state.model is a torch.nn.Module or torch.jit.ScriptModule
@@ -382,7 +382,7 @@ class VerifyOnnxExporter(stage.Stage):
     Outputs: No change to state
     """
 
-    unique_name = "verify-onnx-exporter"
+    unique_name = "verify-exporter"
 
     def __init__(self):
         super().__init__(monitor_message="Verifying ONNX exporter")
@@ -454,7 +454,7 @@ class OptimizeOnnxModel(stage.Stage):
      - A *-opt.onnx file
     """
 
-    unique_name = "optimize-onnx"
+    unique_name = "optimize-ort"
 
     def __init__(self):
         super().__init__(monitor_message="Optimizing ONNX file")
@@ -524,7 +524,7 @@ class ConvertOnnxToFp16(stage.Stage):
      - A *-f16.onnx file with FP16 trained parameters
     """
 
-    unique_name = "fp16-conversion"
+    unique_name = "convert-fp16"
 
     def __init__(self):
         super().__init__(
