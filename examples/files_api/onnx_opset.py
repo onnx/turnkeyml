@@ -11,9 +11,9 @@ And then you can observe the ONNX opset in the resulting ONNX files with:
 import pathlib
 import argparse
 from turnkeyml import benchmark_files
-from turnkeyml.build.stage import Sequence
-from turnkeyml.build.export import ExportPytorchModel
-from turnkeyml.analyze.discover import Discover
+from turnkeyml.sequence import Sequence
+from turnkeyml.tools.export import ExportPytorchModel
+from turnkeyml.tools.discovery import Discover
 
 
 def main():

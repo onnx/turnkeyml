@@ -4,7 +4,7 @@ import turnkeyml.run.onnxrt as onnxrt
 import turnkeyml.run.tensorrt as tensorrt
 import turnkeyml.run.torchrt as torchrt
 import turnkeyml.common.plugins as plugins
-from turnkeyml.build.stage import Sequence
+from turnkeyml.sequence import Sequence
 import turnkeyml.common.exceptions as exp
 
 

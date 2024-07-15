@@ -3,6 +3,7 @@ from typing import Optional
 import turnkeyml.build.stage as stage
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.filesystem as fs
+from turnkeyml.sequence.state import State
 from turnkeyml.run.devices import (
     SUPPORTED_RUNTIMES,
     SUPPORTED_DEVICES,
@@ -79,7 +80,7 @@ class Benchmark(stage.Stage):
 
         return parser
 
-    def parse(self, state: fs.State, args, known_only=True) -> argparse.Namespace:
+    def parse(self, state: State, args, known_only=True) -> argparse.Namespace:
         parsed_args = super().parse(state, args, known_only)
 
         # Inherit the device from the stage of a prior stage, if available
@@ -93,7 +94,7 @@ class Benchmark(stage.Stage):
 
     def fire(
         self,
-        state: fs.State,
+        state: State,
         device: str = benchmark_default_device,
         runtime: str = None,
         iterations: int = default_iterations,
@@ -119,7 +120,7 @@ class Benchmark(stage.Stage):
         except KeyError as e:
             # User should never get this far without hitting an actionable error message,
             # but let's raise an exception just in case.
-            raise exp.StageError(
+            raise exp.ToolError(
                 f"Selected runtime is not supported: {selected_runtime}"
             ) from e
 

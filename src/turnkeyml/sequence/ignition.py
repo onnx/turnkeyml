@@ -4,8 +4,9 @@ import turnkeyml.common.build as build
 import turnkeyml.common.filesystem as fs
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.printing as printing
-import turnkeyml.build.tensor_helpers as tensor_helpers
+import turnkeyml.common.tensor_helpers as tensor_helpers
 from turnkeyml.version import __version__ as turnkey_version
+from turnkeyml.sequence.state import State
 
 
 def decode_version_number(version: str) -> Dict[str, int]:
@@ -14,8 +15,8 @@ def decode_version_number(version: str) -> Dict[str, int]:
 
 
 def validate_cached_model(
-    new_state: fs.State,
-    cached_state: fs.State,
+    new_state: State,
+    cached_state: State,
     inputs: Optional[Dict[str, Any]] = None,
 ) -> List[str]:
     """
@@ -167,8 +168,8 @@ def validate_cached_model(
 
 
 def _begin_fresh_build(
-    new_state: fs.State,
-) -> fs.State:
+    new_state: State,
+) -> State:
     # Wipe everything in this model's build directory, except for the stats file,
     # start with a fresh State.
     stats = fs.Stats(new_state.cache_dir, new_state.build_name)
@@ -187,7 +188,7 @@ def _begin_fresh_build(
     return new_state
 
 
-def _rebuild_if_needed(problem_report: str, state: fs.State):
+def _rebuild_if_needed(problem_report: str, state: State):
     msg = (
         f"build_model() discovered a cached build of {state.build_name}, but decided to "
         "rebuild for the following reasons: \n\n"
@@ -201,9 +202,9 @@ def _rebuild_if_needed(problem_report: str, state: fs.State):
 
 
 def load_from_cache(
-    new_state: fs.State,
+    new_state: State,
     rebuild: str,
-) -> fs.State:
+) -> State:
     """
     Decide whether we can load the model from the model cache
     (return a valid State instance) or whether we need to rebuild it (return

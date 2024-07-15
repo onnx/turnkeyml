@@ -17,8 +17,8 @@
 
 import torch
 from turnkeyml import build_model
-from turnkeyml.build.stage import Sequence
-from turnkeyml.build.export import ExportPytorchModel
+from turnkeyml.sequence import Sequence
+from turnkeyml.tools.export import ExportPytorchModel
 
 
 # Define model class
@@ -39,7 +39,7 @@ pytorch_model = SmallModel(input_size, output_size)
 inputs = {"x": torch.rand(input_size)}
 
 # Build or load the model with rebuild="never" applied
-sequence = Sequence(stages={ExportPytorchModel(): []})
+sequence = Sequence(tools={ExportPytorchModel(): []})
 build_model(sequence=sequence, model=pytorch_model, inputs=inputs, rebuild="never")
 
 print("Example rebuild_never.py finished")

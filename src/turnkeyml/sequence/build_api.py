@@ -1,13 +1,14 @@
 from typing import Optional, Dict, Any
-import turnkeyml.build.ignition as ignition
-import turnkeyml.build.stage as stage
+import turnkeyml.sequence.ignition as ignition
+from turnkeyml.sequence import Sequence
 import turnkeyml.common.printing as printing
 import turnkeyml.common.build as build
 import turnkeyml.common.filesystem as fs
+from turnkeyml.sequence.state import State
 
 
 def build_model(
-    sequence: stage.Sequence,
+    sequence: Sequence,
     model: build.UnionValidModelInstanceTypes = None,
     inputs: Optional[Dict[str, Any]] = None,
     build_name: Optional[str] = None,
@@ -15,7 +16,7 @@ def build_model(
     monitor: Optional[bool] = None,
     rebuild: Optional[str] = None,
     lean_cache: bool = False,
-) -> fs.State:
+) -> State:
     """Use build a model instance into an optimized ONNX file.
 
     Args:
@@ -47,7 +48,7 @@ def build_model(
 
     # Validate and apply defaults to the initial user arguments that
     # configure the build
-    state = fs.State(
+    state = State(
         model=model,
         inputs=inputs,
         monitor=monitor,

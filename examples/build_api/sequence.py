@@ -6,7 +6,8 @@
 
 import torch
 from turnkeyml import build_model
-from turnkeyml.build.export import ExportPytorchModel, OptimizeOnnxModel
+from turnkeyml.tools.export import ExportPytorchModel
+from turnkeyml.tools.onnx import OptimizeOnnxModel
 import turnkeyml.build.stage as stage
 
 

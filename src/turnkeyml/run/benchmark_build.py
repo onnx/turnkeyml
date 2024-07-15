@@ -8,7 +8,7 @@ import turnkeyml.common.exceptions as exp
 import turnkeyml.common.filesystem as fs
 import turnkeyml.common.printing as printing
 import turnkeyml.cli.parser_helpers as parser_helpers
-from turnkeyml.common.management_tools import ManagementTool
+from turnkeyml.tools.management_tools import ManagementTool
 from turnkeyml.run.benchmark_model import Benchmark
 from turnkeyml.run.devices import SUPPORTED_RUNTIMES
 

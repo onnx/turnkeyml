@@ -7,12 +7,12 @@ from typing import List, Dict, Optional, Union
 import git
 import turnkeyml.common.printing as printing
 import turnkeyml.common.exceptions as exceptions
-import turnkeyml.build.stage as stage
+from turnkeyml.sequence import Sequence
 import turnkeyml.cli.spawn as spawn
 import turnkeyml.common.filesystem as fs
 import turnkeyml.common.labels as labels_library
 import turnkeyml.common.build as build
-from turnkeyml.build_api import build_model
+from turnkeyml.sequence.build_api import build_model
 
 # The licensing for tqdm is confusing. Pending a legal scan,
 # the following code provides tqdm to users who have installed
@@ -58,7 +58,7 @@ def benchmark_files(
     labels: List[str] = None,
     rebuild: Optional[str] = None,
     timeout: Optional[int] = None,
-    sequence: Union[Dict, stage.Sequence] = None,
+    sequence: Union[Dict, Sequence] = None,
 ):
 
     # Capture the function arguments so that we can forward them
@@ -201,10 +201,10 @@ def benchmark_files(
             )
 
         else:
-            # Forward the selected input to the first stage in the sequence
-            first_stage_args = next(iter(sequence.stages.values()))
-            first_stage_args.append("--input")
-            first_stage_args.append(file_path_encoded)
+            # Forward the selected input to the first tool in the sequence
+            first_tool_args = next(iter(sequence.tools.values()))
+            first_tool_args.append("--input")
+            first_tool_args.append(file_path_encoded)
 
             # Create a build directory and stats file in the cache
             fs.make_build_dir(cache_dir, build_name)

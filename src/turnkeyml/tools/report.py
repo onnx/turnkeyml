@@ -9,7 +9,7 @@ import pandas as pd
 import turnkeyml.common.printing as printing
 import turnkeyml.common.filesystem as fs
 import turnkeyml.common.build as build
-from turnkeyml.common.management_tools import ManagementTool
+from turnkeyml.tools.management_tools import ManagementTool
 
 
 def get_report_name(prefix: str = "") -> str:

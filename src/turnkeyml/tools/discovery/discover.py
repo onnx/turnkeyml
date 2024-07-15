@@ -4,20 +4,21 @@ import os
 import inspect
 from typing import Optional, List
 import torch
-import turnkeyml.build.stage as stage
+from turnkeyml.tools import Tool
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.filesystem as fs
-from turnkeyml.analyze.script import (
+from turnkeyml.tools.discovery.script import (
     evaluate_script,
     TracerArgs,
 )
 import turnkeyml.common.printing as printing
+from turnkeyml.sequence.state import State
 
 
 default_max_depth = 0
 
 
-class Discover(stage.Stage):
+class Discover(Tool):
     """
     Discover the PyTorch models and their corresponding inputs in a python script (.py)
     and send one model/inputs pair onwards into the sequence.
@@ -57,12 +58,12 @@ class Discover(stage.Stage):
             help="Maximum depth to analyze within the model structure of the target script(s)",
         )
 
-        # Hidden argument required by TurnkeyML for any stage that starts a sequence
+        # Hidden argument required by TurnkeyML for any tool that starts a sequence
         parser.add_argument("--input", help=argparse.SUPPRESS)
 
         return parser
 
-    def parse(self, state: fs.State, args, known_only=True) -> argparse.Namespace:
+    def parse(self, state: State, args, known_only=True) -> argparse.Namespace:
         parsed_args = super().parse(state, args, known_only)
 
         file_path, targets, encoded_input = fs.decode_input_arg(parsed_args.input)
@@ -83,7 +84,7 @@ class Discover(stage.Stage):
 
     def fire(
         self,
-        state: fs.State,
+        state: State,
         input: str = "",
         target: Optional[List[str]] = None,
         script_args: str = "",
@@ -149,7 +150,7 @@ class Discover(stage.Stage):
 
         if count == 0:
             # Case 3
-            raise exp.StageError(f"No models discovered in input file {input}")
+            raise exp.ToolError(f"No models discovered in input file {input}")
 
         model_selected = None
         invocation_selected = None
@@ -182,7 +183,7 @@ class Discover(stage.Stage):
 
         if model_selected is None:
             # Case 4
-            raise exp.StageError(
+            raise exp.ToolError(
                 f"Hash {target} was selected, but the only "
                 f"valid hashes are {valid_hashes}"
             )

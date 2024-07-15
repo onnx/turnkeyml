@@ -8,11 +8,15 @@ from onnxmltools.utils.float16_converter import convert_float_to_float16
 from onnxmltools.utils import save_model
 from onnxmltools.utils import load_model
 from turnkeyml import build_model
-import turnkeyml.build.export as export
-import turnkeyml.build.stage as stage
+import turnkeyml.tools.export as export
+from turnkeyml.tools.export import ExportPytorchModel
+from turnkeyml.tools.onnx import LoadOnnx, ConvertOnnxToFp16, OptimizeOnnxModel
 import turnkeyml.common.filesystem as fs
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.build as build
+from turnkeyml.sequence import Sequence
+import turnkeyml.common.onnx_helpers as onnx_helpers
+from turnkeyml.tools import Tool
 
 
 class SmallPytorchModel(torch.nn.Module):
@@ -47,11 +51,11 @@ input_tensor = torch.rand(10)
 
 
 def basic_pytorch_sequence():
-    return stage.Sequence(stages={export.ExportPytorchModel(): []})
+    return Sequence(tools={ExportPytorchModel(): []})
 
 
 def basic_onnx_sequence(input: str):
-    return stage.Sequence(stages={export.LoadOnnx(): ["--input", input]})
+    return Sequence(tools={LoadOnnx(): ["--input", input]})
 
 
 # Run build_model() and get results
@@ -108,10 +112,10 @@ def scriptmodule_functional_check():
     return state.build_status == build.FunctionStatus.SUCCESSFUL
 
 
-def custom_stage():
-    build_name = "custom_stage"
+def custom_tool():
+    build_name = "custom_tool"
 
-    class MyCustomStage(stage.Stage):
+    class MyCustomTool(Tool):
         unique_name = "funny-fp16"
 
         def __init__(self, funny_saying):
@@ -124,7 +128,7 @@ def custom_stage():
         @staticmethod
         def parser(add_help: bool = True) -> argparse.ArgumentParser:
             parser = argparse.ArgumentParser(
-                description="Parser for a test stage",
+                description="Parser for a test tool",
                 add_help=add_help,
             )
 
@@ -132,7 +136,7 @@ def custom_stage():
 
         def fire(self, state):
             input_onnx = state.results
-            output_onnx = os.path.join(export.onnx_dir(state), "custom.onnx")
+            output_onnx = os.path.join(onnx_helpers.onnx_dir(state), "custom.onnx")
             fp32_model = load_model(input_onnx)
             fp16_model = convert_float_to_float16(fp32_model)
             save_model(fp16_model, output_onnx)
@@ -143,14 +147,14 @@ def custom_stage():
 
             return state
 
-    my_custom_stage = MyCustomStage(
+    my_custom_tool = MyCustomTool(
         funny_saying="Is a fail whale a fail at all if it makes you smile?"
     )
-    my_sequence = stage.Sequence(
-        stages={
-            export.ExportPytorchModel(): [],
-            export.OptimizeOnnxModel(): [],
-            my_custom_stage: [],
+    my_sequence = Sequence(
+        tools={
+            ExportPytorchModel(): [],
+            OptimizeOnnxModel(): [],
+            my_custom_tool: [],
         },
     )
 
@@ -167,7 +171,7 @@ def custom_stage():
     return state.build_status == build.FunctionStatus.SUCCESSFUL
 
 
-class FullyCustomStage(stage.Stage):
+class FullyCustomTool(Tool):
     unique_name = "fully-custom"
 
     def __init__(self, saying, name):
@@ -180,7 +184,7 @@ class FullyCustomStage(stage.Stage):
     @staticmethod
     def parser(add_help: bool = True) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser(
-            description="Parser for a test stage",
+            description="Parser for a test tool",
             add_help=add_help,
         )
 
@@ -194,28 +198,28 @@ class FullyCustomStage(stage.Stage):
         return state
 
 
-class FullyCustomStage1(FullyCustomStage):
+class FullyCustomTool1(FullyCustomTool):
     unique_name = "fully-custom-1"
 
 
-class FullyCustomStage2(FullyCustomStage):
+class FullyCustomTool2(FullyCustomTool):
     unique_name = "fully-custom-2"
 
 
 def custom_sequence():
     build_name = "custom_sequence"
-    stage_1_name = "fully-custom"
-    stage_2_name = "fully-custom-1"
-    stage_3_name = "fully-custom-2"
-    stage_1_msg = "Developer Velocity is"
-    stage_2_msg = "Innovating"
-    stage_3_msg = "Faster than ever"
+    tool_1_name = "fully-custom"
+    tool_2_name = "fully-custom-1"
+    tool_3_name = "fully-custom-2"
+    tool_1_msg = "Developer Velocity is"
+    tool_2_msg = "Innovating"
+    tool_3_msg = "Faster than ever"
 
-    stage_1 = FullyCustomStage(stage_1_msg, stage_1_name)
-    stage_2 = FullyCustomStage1(stage_2_msg, stage_2_name)
-    stage_3 = FullyCustomStage2(stage_3_msg, stage_3_name)
+    tool_1 = FullyCustomTool(tool_1_msg, tool_1_name)
+    tool_2 = FullyCustomTool1(tool_2_msg, tool_2_name)
+    tool_3 = FullyCustomTool2(tool_3_msg, tool_3_name)
 
-    my_sequence = stage.Sequence(stages={stage_1: [], stage_2: [], stage_3: []})
+    my_sequence = Sequence(tools={tool_1: [], tool_2: [], tool_3: []})
 
     build_model(
         sequence=my_sequence,
@@ -227,9 +231,9 @@ def custom_sequence():
         cache_dir=cache_location,
     )
 
-    log_1_path = os.path.join(cache_location, build_name, f"log_{stage_1_name}.txt")
-    log_2_path = os.path.join(cache_location, build_name, f"log_{stage_2_name}.txt")
-    log_3_path = os.path.join(cache_location, build_name, f"log_{stage_3_name}.txt")
+    log_1_path = os.path.join(cache_location, build_name, f"log_{tool_1_name}.txt")
+    log_2_path = os.path.join(cache_location, build_name, f"log_{tool_2_name}.txt")
+    log_3_path = os.path.join(cache_location, build_name, f"log_{tool_3_name}.txt")
 
     with open(log_1_path, "r", encoding="utf8") as f:
         log_1 = f.readlines()[1]
@@ -240,7 +244,7 @@ def custom_sequence():
     with open(log_3_path, "r", encoding="utf8") as f:
         log_3 = f.readlines()[1]
 
-    return stage_1_msg in log_1 and stage_2_msg in log_2 and stage_3_msg in log_3
+    return tool_1_msg in log_1 and tool_2_msg in log_2 and tool_3_msg in log_3
 
 
 def rebuild_always():
@@ -398,14 +402,14 @@ class Testing(unittest.TestCase):
     def test_005_full_compilation_onnx_model(self):
         assert full_compilation_onnx_model()
 
-    def test_009_custom_stage(self):
-        assert custom_stage()
+    def test_009_custom_tool(self):
+        assert custom_tool()
 
     def test_011_custom_sequence(self):
         assert custom_sequence()
 
     def test_012_illegal_onnx_opset(self):
-        self.assertRaises(exp.StageError, illegal_onnx_opset)
+        self.assertRaises(exp.ToolError, illegal_onnx_opset)
         if os.path.exists("illegal_onnx_opset.onnx"):
             os.remove("illegal_onnx_opset.onnx")
 
@@ -415,10 +419,10 @@ class Testing(unittest.TestCase):
         user_opset = 15
         assert user_opset != build.DEFAULT_ONNX_OPSET
 
-        sequence = stage.Sequence(
-            stages={
-                export.ExportPytorchModel(): ["--opset", str(user_opset)],
-                export.OptimizeOnnxModel(): [],
+        sequence = Sequence(
+            tools={
+                ExportPytorchModel(): ["--opset", str(user_opset)],
+                OptimizeOnnxModel(): [],
             }
         )
 
@@ -496,18 +500,18 @@ class Testing(unittest.TestCase):
         assert user_opset == model_opset
 
     def test_017_inputs_conversion(self):
-        custom_sequence_fp32 = stage.Sequence(
-            stages={
-                export.ExportPytorchModel(): [],
-                export.OptimizeOnnxModel(): [],
+        custom_sequence_fp32 = Sequence(
+            tools={
+                ExportPytorchModel(): [],
+                OptimizeOnnxModel(): [],
             },
         )
 
-        custom_sequence_fp16 = stage.Sequence(
-            stages={
-                export.ExportPytorchModel(): [],
-                export.OptimizeOnnxModel(): [],
-                export.ConvertOnnxToFp16(): [],
+        custom_sequence_fp16 = Sequence(
+            tools={
+                ExportPytorchModel(): [],
+                OptimizeOnnxModel(): [],
+                ConvertOnnxToFp16(): [],
             },
         )
 

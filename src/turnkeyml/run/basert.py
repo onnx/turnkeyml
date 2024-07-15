@@ -181,7 +181,7 @@ class BaseRT(ABC):
 
         # Make sure state.results is an ONNX file
         if not (isinstance(state.results, str) and state.results.endswith(".onnx")):
-            raise exp.StageError(
+            raise exp.ToolError(
                 "This benchmarking runtime requires the preceeding "
                 "stages to produce an ONNX file, however they did not. "
                 "Please either select different stages, or select a different "

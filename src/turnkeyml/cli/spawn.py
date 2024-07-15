@@ -18,7 +18,7 @@ import turnkeyml.common.filesystem as filesystem
 import turnkeyml.common.printing as printing
 import turnkeyml.common.build as build
 from turnkeyml.cli.parser_helpers import encode_args
-from turnkeyml.build.stage import Sequence
+from turnkeyml.sequence import Sequence
 
 
 class WatchdogTimer(Thread):

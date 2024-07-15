@@ -142,7 +142,7 @@ class MeasuredPerformance:
 
 
 def parse_device(
-    state: fs.State,
+    state: State,
     parsed_args: argparse.Namespace,
     default_device: str,
     stage_name: str,
