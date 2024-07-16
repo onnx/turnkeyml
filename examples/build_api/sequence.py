@@ -6,8 +6,9 @@
 
 import torch
 from turnkeyml import build_model
-from turnkeyml.build.export import ExportPytorchModel, OptimizeOnnxModel
-import turnkeyml.build.stage as stage
+from turnkeyml.tools.export import ExportPytorchModel
+from turnkeyml.tools.onnx import OptimizeOnnxModel
+from turnkeyml.sequence import Sequence
 
 
 torch.manual_seed(0)
@@ -31,9 +32,7 @@ output_size = 5
 pytorch_model = SmallModel(input_size, output_size)
 inputs = {"x": torch.rand(input_size, dtype=torch.float32)}
 
-onnx_sequence = stage.Sequence(
-    stages={ExportPytorchModel(): [], OptimizeOnnxModel(): []}
-)
+onnx_sequence = Sequence(tools={ExportPytorchModel(): [], OptimizeOnnxModel(): []})
 
 # Build model
 build_model(sequence=onnx_sequence, model=pytorch_model, inputs=inputs)

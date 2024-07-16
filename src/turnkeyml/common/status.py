@@ -7,7 +7,7 @@ import torch
 from turnkeyml.common import printing
 import turnkeyml.common.build as build
 import turnkeyml.common.filesystem as fs
-import turnkeyml.analyze.model as analyze_model
+import turnkeyml.common.analyze_model as analyze_model
 
 
 def _pretty_print_key(key: str) -> str:
@@ -208,7 +208,7 @@ class UniqueInvocationInfo(BasicInfo):
                     value = stats.stats[key]
                     if isinstance(value, float):
                         value = "{0:.3f}".format(value)
-                    # Stages may provide a unit of measurement for their status
+                    # Tools may provide a unit of measurement for their status
                     # stats, whose key name should follow the format
                     # "STATUS_STATS_KEY_units"
                     units_key = key + "_units"
