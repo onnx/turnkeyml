@@ -21,7 +21,7 @@ import turnkeyml.tools.report as report
 import turnkeyml.common.filesystem as fs
 import turnkeyml.common.build as build
 import turnkeyml.common.exceptions as exceptions
-import turnkeyml.tools.export as export
+import turnkeyml.common.onnx_helpers as onnx_helpers
 from turnkeyml.cli.parser_helpers import decode_args, encode_args
 import turnkeyml.common.test_helpers as common
 from turnkeyml.state import load_state
@@ -95,7 +95,7 @@ def assert_success_of_builds(
                     assert model_opset == check_opset
 
                 if check_onnx_file_count:
-                    onnx_dir = export.onnx_dir(build_state)
+                    onnx_dir = onnx_helpers.onnx_dir(build_state)
                     assert len(os.listdir(onnx_dir)) == check_onnx_file_count
 
         assert script_build_found
