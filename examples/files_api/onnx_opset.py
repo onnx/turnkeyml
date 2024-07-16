@@ -1,5 +1,5 @@
 """
-Example script that demonstrates how to set a custom ONNX opset for a benchmarking run
+Example script that demonstrates how to set a custom ONNX opset for a build run
 
 You can run this script in your turnkey Conda environment with:
     python onnx_opset.py --onnx-opset YOUR_OPSET
@@ -10,7 +10,7 @@ And then you can observe the ONNX opset in the resulting ONNX files with:
 
 import pathlib
 import argparse
-from turnkeyml import benchmark_files
+from turnkeyml import evaluate_files
 from turnkeyml.build.stage import Sequence
 from turnkeyml.build.export import ExportPytorchModel
 from turnkeyml.analyze.discover import Discover
@@ -39,7 +39,7 @@ def main():
     sequence = Sequence(
         stages={Discover(): [], ExportPytorchModel(): ["--opset", args.onnx_opset]}
     )
-    benchmark_files(
+    evaluate_files(
         input_files=[path_to_hello_world_script],
         sequence=sequence,
     )

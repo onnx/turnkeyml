@@ -9,7 +9,7 @@ import turnkeyml.common.filesystem as fs
 from turnkeyml.build.stage import Stage, Sequence
 from turnkeyml.build.stage_plugins import SUPPORTED_STAGES
 from turnkeyml.cli.spawn import DEFAULT_TIMEOUT_SECONDS
-from turnkeyml.files_api import benchmark_files
+from turnkeyml.files_api import evaluate_files
 import turnkeyml.common.build as build
 import turnkeyml.common.printing as printing
 from turnkeyml.common.management_tools import ManagementTool
@@ -255,7 +255,7 @@ Management tool choices:
     if len(evaluation_stages) > 0:
         # Run the evaluation stages as a build
         sequence = Sequence(stages=stage_instances)
-        benchmark_files(sequence=sequence, **global_args)
+        evaluate_files(sequence=sequence, **global_args)
     else:
         # Run the management stages
         for management_stage, argv in stage_instances.items():

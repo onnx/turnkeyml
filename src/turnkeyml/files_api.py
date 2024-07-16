@@ -48,28 +48,22 @@ def unpack_txt_inputs(input_files: List[str]) -> List[str]:
     return processed_files + [f for f in input_files if not f.endswith(".txt")]
 
 
-# pylint: disable=unused-argument
-def benchmark_files(
+def evaluate_files(
     input_files: List[str],
     use_slurm: bool = False,
     process_isolation: bool = False,
     lean_cache: bool = False,
     cache_dir: str = fs.DEFAULT_CACHE_DIR,
     labels: List[str] = None,
-    rebuild: Optional[str] = None,
     timeout: Optional[int] = None,
     sequence: Union[Dict, stage.Sequence] = None,
 ):
-
-    # Capture the function arguments so that we can forward them
-    # to downstream APIs
-    benchmarking_args = copy.deepcopy(locals())
-    regular_files = []
 
     # Replace .txt files with the models listed inside them
     input_files = unpack_txt_inputs(input_files)
 
     # Iterate through each string in the input_files list
+    regular_files = []
     for input_string in input_files:
         if not any(char in input_string for char in "*?[]"):
             regular_files.append(input_string)
@@ -97,18 +91,9 @@ def benchmark_files(
     else:
         timeout_to_use = spawn.DEFAULT_TIMEOUT_SECONDS
 
-    benchmarking_args["timeout"] = timeout_to_use
-
     # Convert regular expressions in input files argument
     # into full file paths (e.g., [*.py] -> [a.py, b.py] )
     input_files_expanded = fs.expand_inputs(input_files)
-
-    # Do not forward arguments to downstream APIs
-    # that will be decoded in this function body
-    benchmarking_args.pop("input_files")
-    benchmarking_args.pop("labels")
-    benchmarking_args.pop("use_slurm")
-    benchmarking_args.pop("process_isolation")
 
     # Make sure the cache directory exists
     fs.make_cache_dir(cache_dir)
@@ -174,30 +159,14 @@ def benchmark_files(
                 continue
 
         if use_slurm or process_isolation:
-            # Decode args into spawn.Target
-            if use_slurm and process_isolation:
-                raise ValueError(
-                    "use_slurm and process_isolation are mutually exclusive, but both are True"
-                )
-            elif use_slurm:
-                process_type = spawn.Target.SLURM
-            elif process_isolation:
-                process_type = spawn.Target.LOCAL_PROCESS
-            else:
-                raise ValueError(
-                    "This code path requires use_slurm or use_process to be True, "
-                    "but both are False"
-                )
-
-            # We want to pass sequence in explicity
-            benchmarking_args.pop("sequence")
-
             spawn.run_turnkey(
                 build_name=build_name,
                 sequence=sequence,
-                target=process_type,
                 file_name=encoded_input,
-                **benchmarking_args,
+                use_slurm=use_slurm,
+                process_isolation=process_isolation,
+                timeout=timeout_to_use,
+                lean_cache=lean_cache,
             )
 
         else:
@@ -261,7 +230,7 @@ def benchmark_files(
                 model=file_path_absolute,
                 sequence=sequence,
                 cache_dir=cache_dir,
-                rebuild=rebuild,
+                rebuild="always",
                 lean_cache=lean_cache,
             )
 
