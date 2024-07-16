@@ -921,6 +921,9 @@ class Testing(unittest.TestCase):
             # Edge case where the CSV is empty because the build timed out before
             # the stats.yaml was created, which in turn means the CSV is empty
             pass
+        except KeyError:
+            # Edge case where the CSV only contains a key for "error_log"
+            assert "timeout" in timeout_summary["error_log"]
 
     def test_026_cli_report(self):
         # NOTE: this is not a unit test, it relies on other command
