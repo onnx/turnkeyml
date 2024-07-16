@@ -21,14 +21,14 @@ class ManagementTool(abc.ABC):
     def parser() -> argparse.ArgumentParser:
         """
         Static method that returns an ArgumentParser that defines the command
-        line interface for this Stage.
+        line interface for this Tool.
         """
 
     # pylint: disable=unused-argument
     def parse(self, args, known_only=True) -> argparse.Namespace:
         """
         Run the parser and return a Namespace of keyword arguments that the user
-        passed to the Stage via the command line.
+        passed to the Tool via the command line.
 
         Tools should extend this function only if they require specific parsing
         logic.
@@ -55,7 +55,7 @@ class ManagementTool(abc.ABC):
     def parse_and_run(self, cache_dir: str, args, known_only=True):
         """
         Helper function to parse CLI arguments into the args expected
-        by run(), and then forward them into the fire() method.
+        by run(), and then forward them into the run() method.
         """
 
         parsed_args = self.parse(args, known_only)

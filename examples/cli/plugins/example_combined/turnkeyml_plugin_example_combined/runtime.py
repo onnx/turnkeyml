@@ -4,6 +4,7 @@ from timeit import default_timer as timer
 import onnxruntime as ort
 import numpy as np
 from turnkeyml.run.basert import BaseRT
+from turnkeyml.state import load_state
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.filesystem as fs
 from turnkeyml.run.onnxrt.within_conda import dummy_inputs
@@ -56,7 +57,7 @@ class CombinedExampleRT(BaseRT):
         pass
 
     def benchmark(self):
-        state = fs.load_state(self.cache_dir, self.build_name)
+        state = load_state(self.cache_dir, self.build_name)
         per_iteration_latency = []
         sess_options = ort.SessionOptions()
         sess_options.graph_optimization_level = (

@@ -1,16 +1,17 @@
-import turnkeyml.build.export as export
+import turnkeyml.tools.export as export
+import turnkeyml.tools.onnx as onnx_tools
 import turnkeyml.common.plugins as plugins
-import turnkeyml.common.management_tools as mgmt
+import turnkeyml.tools.management_tools as mgmt
 from turnkeyml.run.benchmark_build import BenchmarkBuild
 from turnkeyml.run.benchmark_model import Benchmark
-from turnkeyml.analyze.discover import Discover
-import turnkeyml.cli.report as report
+from turnkeyml.tools.discovery import Discover
+import turnkeyml.tools.report as report
 
 # Plugin interface for sequences
 discovered_plugins = plugins.discover()
 
 # Populated supported sequences dict with builtin sequences
-SUPPORTED_STAGES = [
+SUPPORTED_TOOLS = [
     mgmt.Version,
     mgmt.Cache,
     mgmt.ModelsLocation,
@@ -19,23 +20,23 @@ SUPPORTED_STAGES = [
     Benchmark,
     Discover,
     export.ExportPytorchModel,
-    export.OptimizeOnnxModel,
-    export.LoadOnnx,
-    export.ConvertOnnxToFp16,
+    onnx_tools.OptimizeOnnxModel,
+    onnx_tools.LoadOnnx,
+    onnx_tools.ConvertOnnxToFp16,
     export.VerifyOnnxExporter,
 ]
 
 # Add sequences from plugins to supported sequences dict
 for module in discovered_plugins.values():
-    if "stages" in module.implements.keys():
-        for stage_class in module.implements["stages"]:
-            if stage_class in SUPPORTED_STAGES:
-                name = stage_class.__class__.unique_name
+    if "tools" in module.implements.keys():
+        for tool_class in module.implements["tools"]:
+            if tool_class in SUPPORTED_TOOLS:
+                name = tool_class.__class__.unique_name
                 raise ValueError(
-                    f"Your turnkeyml installation has two stages named '{name}' "
+                    f"Your turnkeyml installation has two tools named '{name}' "
                     "installed. You must uninstall one of your plugins that includes "
-                    f"{name}. Your imported sequence plugins are: {SUPPORTED_STAGES}\n"
+                    f"{name}. Your imported sequence plugins are: {SUPPORTED_TOOLS}\n"
                     f"This error was thrown while trying to import {module}"
                 )
 
-            SUPPORTED_STAGES.append(stage_class)
+            SUPPORTED_TOOLS.append(tool_class)
