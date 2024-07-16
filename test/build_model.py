@@ -135,7 +135,7 @@ def custom_tool():
 
             return parser
 
-        def fire(self, state):
+        def run(self, state):
             input_onnx = state.results
             output_onnx = os.path.join(onnx_helpers.onnx_dir(state), "custom.onnx")
             fp32_model = load_model(input_onnx)
@@ -191,7 +191,7 @@ class FullyCustomTool(Tool):
 
         return parser
 
-    def fire(self, state):
+    def run(self, state):
         print(self.saying)
 
         state.results = "great stuff"

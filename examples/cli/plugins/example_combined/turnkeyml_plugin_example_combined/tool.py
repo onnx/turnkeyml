@@ -25,5 +25,5 @@ class CombinedExampleTool(Tool):
 
         return parser
 
-    def fire(self, state: State):
+    def run(self, state: State):
         return state

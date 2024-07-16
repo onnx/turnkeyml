@@ -105,7 +105,7 @@ class Sequence:
                 state.current_build_tool = tool.unique_name
 
                 # Run the tool
-                state = tool.parse_and_fire(state, argv)
+                state = tool.parse_and_run(state, argv)
 
                 # Save the state so that it can be assessed for a cache hit
                 state.save()

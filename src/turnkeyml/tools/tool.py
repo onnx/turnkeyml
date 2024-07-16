@@ -127,19 +127,15 @@ class Tool(abc.ABC):
         self.monitor_message = monitor_message
         self.progress = None
         self.logfile_path = None
-        self.tools = None
         # Tools can provide a list of keys that can be found in
         # evaluation stats. Those key:value pairs will be presented
         # in the status at the end of the build.
         self.status_stats = []
 
     @abc.abstractmethod
-    def fire(self, state: State) -> State:
+    def run(self, state: State) -> State:
         """
-        Developer-defined function to fire the tool.
-        In less punny terms, this is the function that
-        build_model() will run to implement a model-to-model
-        transformation on the flow to producing a Model.
+        Execute the functionality of the Tool by acting on the state.
         """
 
     @staticmethod
@@ -174,18 +170,18 @@ class Tool(abc.ABC):
 
         return parsed_args
 
-    def parse_and_fire(self, state: State, args, known_only=True) -> Dict:
+    def parse_and_run(self, state: State, args, known_only=True) -> Dict:
         """
         Helper function to parse CLI arguments into the args expected
-        by fire(), and then forward them into the fire() method.
+        by run(), and then forward them into the run() method.
         """
 
         parsed_args = self.parse(state, args, known_only)
-        return self.fire_helper(state, **parsed_args.__dict__)
+        return self.run_helper(state, **parsed_args.__dict__)
 
-    def fire_helper(self, state: State, **kwargs) -> Tuple[State, int]:
+    def run_helper(self, state: State, **kwargs) -> Tuple[State, int]:
         """
-        Wraps the user-defined .fire method with helper functionality.
+        Wraps the developer-defined .run() method with helper functionality.
         Specifically:
             - Provides a path to a log file
             - Redirects the stdout of the tool to that log file
@@ -210,7 +206,7 @@ class Tool(abc.ABC):
         try:
             # Execute the build tool
             with build.Logger(self.monitor_message, self.logfile_path):
-                state = self.fire(state, **kwargs)
+                state = self.run(state, **kwargs)
 
         except Exception:  # pylint: disable=broad-except
             self.status_line(

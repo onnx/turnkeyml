@@ -63,7 +63,7 @@ class ExportPytorchModel(Tool):
 
         return parser
 
-    def fire(self, state: State, opset: int = build.DEFAULT_ONNX_OPSET):
+    def run(self, state: State, opset: int = build.DEFAULT_ONNX_OPSET):
         if not isinstance(state.model, (torch.nn.Module, torch.jit.ScriptModule)):
             msg = f"""
             The current tool (ExportPytorchModel) is only compatible with
@@ -207,7 +207,7 @@ class VerifyOnnxExporter(Tool):
 
         return parser
 
-    def fire(self, state: State):
+    def run(self, state: State):
 
         # Verify if the exported model matches the input torch model
         try:

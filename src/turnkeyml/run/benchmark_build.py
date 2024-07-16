@@ -94,7 +94,7 @@ def benchmark_build(
             f"has state: {state.build_status}"
         )
 
-    state = Benchmark().fire(
+    state = Benchmark().run(
         state, runtime=runtime, iterations=iterations, rt_args=rt_args
     )
 

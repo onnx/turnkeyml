@@ -92,7 +92,7 @@ class Benchmark(Tool):
 
         return parsed_args
 
-    def fire(
+    def run(
         self,
         state: State,
         device: str = benchmark_default_device,

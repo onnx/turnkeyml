@@ -82,7 +82,7 @@ class Discover(Tool):
 
         return parsed_args
 
-    def fire(
+    def run(
         self,
         state: State,
         input: str = "",

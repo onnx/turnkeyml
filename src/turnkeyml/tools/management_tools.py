@@ -55,7 +55,7 @@ class ManagementTool(abc.ABC):
     def parse_and_run(self, cache_dir: str, args, known_only=True):
         """
         Helper function to parse CLI arguments into the args expected
-        by run(), and then forward them into the fire() method.
+        by run(), and then forward them into the run() method.
         """
 
         parsed_args = self.parse(args, known_only)

@@ -73,7 +73,7 @@ class LoadOnnx(Tool):
 
         return parser
 
-    def fire(self, state: State, input: str = ""):
+    def run(self, state: State, input: str = ""):
 
         onnx_file = input
         state.model_hash = build.hash_model(onnx_file)
@@ -208,7 +208,7 @@ class OptimizeOnnxModel(Tool):
 
         return parser
 
-    def fire(self, state: State):
+    def run(self, state: State):
         input_onnx = state.results
         output_path = opt_onnx_file(state)
 
@@ -280,7 +280,7 @@ class ConvertOnnxToFp16(Tool):
 
         return parser
 
-    def fire(self, state: State):
+    def run(self, state: State):
         input_onnx = state.results
 
         # Convert the model to FP16
