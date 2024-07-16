@@ -6,7 +6,7 @@ import turnkeyml.common.exceptions as exp
 import turnkeyml.common.printing as printing
 import turnkeyml.common.tensor_helpers as tensor_helpers
 from turnkeyml.version import __version__ as turnkey_version
-from turnkeyml.sequence.state import State
+from turnkeyml.state import State, load_state
 
 
 def decode_version_number(version: str) -> Dict[str, int]:
@@ -227,7 +227,7 @@ def load_from_cache(
     else:
         # Try to load state and check if model successfully built before
         if os.path.isfile(build.state_file(new_state.cache_dir, new_state.build_name)):
-            cached_state = fs.load_state(
+            cached_state = load_state(
                 new_state.cache_dir,
                 new_state.build_name,
             )

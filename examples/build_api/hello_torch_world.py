@@ -2,7 +2,7 @@
     Hello ** PyTorch ** World!
 
     This example uses a small model to carry out a single vector matrix
-    multiplication to demonstrate building and build a PyTorch model.
+    multiplication to demonstrate building a PyTorch model.
 
     This example will help identify what you should expect from each build_model()
     PyTorch build. You can find the build results in the cache directory at

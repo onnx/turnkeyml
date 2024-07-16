@@ -3,14 +3,14 @@ import sys
 import time
 import os
 import argparse
-from typing import List, Tuple, Dict
+from typing import Tuple, Dict
 from multiprocessing import Process
 import psutil
 import turnkeyml.common.printing as printing
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.build as build
 import turnkeyml.common.filesystem as fs
-from turnkeyml.sequence.state import State
+from turnkeyml.state import State
 
 
 def _spinner(message):
@@ -40,7 +40,7 @@ def _name_is_file_safe(name: str):
 
     if len(name) == 0:
         msg = """
-        Stage __init__() was passed a unique_name with no length. A
+        Tool __init__() was passed a unique_name with no length. A
         uniquely identifying unique_name is required.
         """
         raise ValueError(msg)
@@ -48,7 +48,7 @@ def _name_is_file_safe(name: str):
     for char in name:
         if char not in allowed_in_unique_name:
             msg = f"""
-            Stage __init__() was passed a unique_name:
+            Tool __init__() was passed a unique_name:
             {name}
             with illegal characters. The unique_name must be safe to
             use in a filename, meaning it can only use characters: {allowed_in_unique_name}
@@ -56,16 +56,16 @@ def _name_is_file_safe(name: str):
             raise ValueError(msg)
 
 
-class StageParser(argparse.ArgumentParser):
+class ToolParser(argparse.ArgumentParser):
     def error(self, message):
         if message.startswith("unrecognized arguments"):
             unrecognized = message.split(": ")[1]
             if not unrecognized.startswith("-"):
-                # This was probably a misspelled stage name
+                # This was probably a misspelled tool name
                 message = message + (
                     f". If `{unrecognized}` was intended to invoke "
-                    "a stage, please run `turnkey -h` and check the spelling and "
-                    "availability of that stage."
+                    "a tool, please run `turnkey -h` and check the spelling and "
+                    "availability of that tool."
                 )
         self.print_usage()
         printing.log_error(message)
@@ -79,12 +79,12 @@ class Tool(abc.ABC):
     @classmethod
     def helpful_parser(cls, description: str, **kwargs):
         epilog = (
-            f"`{cls.unique_name}` is a Stage. It is intended to be invoked as "
-            "part of a sequence of Stages, for example: `turnkey -i INPUTS stage-one "
-            "stage-two stage-three`"
+            f"`{cls.unique_name}` is a Tool. It is intended to be invoked as "
+            "part of a sequence of Tools, for example: `turnkey -i INPUTS tool-one "
+            "tool-two tool-three`"
         )
 
-        return StageParser(
+        return ToolParser(
             prog=f"turnkey {cls.unique_name}",
             description=description,
             epilog=epilog,
@@ -93,7 +93,7 @@ class Tool(abc.ABC):
 
     def status_line(self, successful, verbosity):
         """
-        Print a line of status information for this Stage into the monitor.
+        Print a line of status information for this Tool into the monitor.
         """
         if verbosity:
             # Only use special characters when the terminal encoding supports it
@@ -122,13 +122,13 @@ class Tool(abc.ABC):
     ):
         _name_is_file_safe(self.__class__.unique_name)
 
-        self.status_key = f"{fs.Keys.STAGE_STATUS}:{self.__class__.unique_name}"
-        self.duration_key = f"{fs.Keys.STAGE_DURATION}:{self.__class__.unique_name}"
+        self.status_key = f"{fs.Keys.TOOL_STATUS}:{self.__class__.unique_name}"
+        self.duration_key = f"{fs.Keys.TOOL_DURATION}:{self.__class__.unique_name}"
         self.monitor_message = monitor_message
         self.progress = None
         self.logfile_path = None
-        self.stages = None
-        # Stages can provide a list of keys that can be found in
+        self.tools = None
+        # Tools can provide a list of keys that can be found in
         # evaluation stats. Those key:value pairs will be presented
         # in the status at the end of the build.
         self.status_stats = []
@@ -136,7 +136,7 @@ class Tool(abc.ABC):
     @abc.abstractmethod
     def fire(self, state: State) -> State:
         """
-        Developer-defined function to fire the stage.
+        Developer-defined function to fire the tool.
         In less punny terms, this is the function that
         build_model() will run to implement a model-to-model
         transformation on the flow to producing a Model.
@@ -147,20 +147,20 @@ class Tool(abc.ABC):
     def parser() -> argparse.ArgumentParser:
         """
         Static method that returns an ArgumentParser that defines the command
-        line interface for this Stage.
+        line interface for this Tool.
         """
 
     # pylint: disable=unused-argument
     def parse(self, state: State, args, known_only=True) -> argparse.Namespace:
         """
         Run the parser and return a Namespace of keyword arguments that the user
-        passed to the Stage via the command line.
+        passed to the Tool via the command line.
 
-        Stages should extend this function only if they require specific parsing
+        Tools should extend this function only if they require specific parsing
         logic, for example decoding the name of a data type into a data type class.
 
         Args:
-            state: the same state passed into the run method of the Stage, useful if
+            state: the same state passed into the run method of the Tool, useful if
                 the parse decoding logic needs to take the state into account.
             args: command line arguments passed from the CLI.
             known_only: this argument allows the CLI framework to
@@ -188,13 +188,13 @@ class Tool(abc.ABC):
         Wraps the user-defined .fire method with helper functionality.
         Specifically:
             - Provides a path to a log file
-            - Redirects the stdout of the stage to that log file
-            - Monitors the progress of the stage on the command line,
+            - Redirects the stdout of the tool to that log file
+            - Monitors the progress of the tool on the command line,
                 including in the event of an exception
         """
 
-        # Set the build status to INCOMPLETE to indicate that a Stage
-        # started running. This allows us to test whether the Stage exited
+        # Set the build status to INCOMPLETE to indicate that a Tool
+        # started running. This allows us to test whether the Tool exited
         # unexpectedly, before it was able to set ERROR
         state.build_status = build.FunctionStatus.INCOMPLETE
 
@@ -208,7 +208,7 @@ class Tool(abc.ABC):
             self.progress.start()
 
         try:
-            # Execute the build stage
+            # Execute the build tool
             with build.Logger(self.monitor_message, self.logfile_path):
                 state = self.fire(state, **kwargs)
 
@@ -223,11 +223,11 @@ class Tool(abc.ABC):
         else:
             self.status_line(successful=True, verbosity=state.monitor)
 
-            # Stages should not set build.FunctionStatus.SUCCESSFUL for the whole build,
+            # Tools should not set build.FunctionStatus.SUCCESSFUL for the whole build,
             # as that is reserved for Sequence.launch()
             if state.build_status == build.FunctionStatus.SUCCESSFUL:
                 raise exp.ToolError(
-                    "TurnkeyML Stages are not allowed to set "
+                    "TurnkeyML Tools are not allowed to set "
                     "`state.build_status == build.FunctionStatus.SUCCESSFUL`, "
                     "however that has happened. If you are a plugin developer, "
                     "do not do this. If you are a user, please file an issue at "

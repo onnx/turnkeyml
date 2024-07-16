@@ -2,6 +2,7 @@ import os
 import shutil
 from typing import Dict
 import turnkeyml.common.filesystem as fs
+from turnkeyml.state import load_state
 
 
 # We generate a corpus on to the filesystem during the test
@@ -137,7 +138,7 @@ def get_stats_and_state(
 
     for build_state_file in builds:
         if test_script_name in build_state_file:
-            build_state = fs.load_state(state_path=build_state_file)
+            build_state = load_state(state_path=build_state_file)
             stats = fs.Stats(
                 build_state.cache_dir,
                 build_state.build_name,

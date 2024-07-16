@@ -37,7 +37,7 @@ def main():
     )
 
     sequence = Sequence(
-        stages={Discover(): [], ExportPytorchModel(): ["--opset", args.onnx_opset]}
+        tools={Discover(): [], ExportPytorchModel(): ["--opset", args.onnx_opset]}
     )
     benchmark_files(
         input_files=[path_to_hello_world_script],

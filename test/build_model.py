@@ -9,6 +9,7 @@ from onnxmltools.utils import save_model
 from onnxmltools.utils import load_model
 from turnkeyml import build_model
 import turnkeyml.tools.export as export
+import turnkeyml.tools.onnx as onnx_tools
 from turnkeyml.tools.export import ExportPytorchModel
 from turnkeyml.tools.onnx import LoadOnnx, ConvertOnnxToFp16, OptimizeOnnxModel
 import turnkeyml.common.filesystem as fs
@@ -457,7 +458,7 @@ class Testing(unittest.TestCase):
 
         assert state.build_status == build.FunctionStatus.SUCCESSFUL
         assert os.path.exists(export.base_onnx_file(state))
-        assert not os.path.exists(export.opt_onnx_file(state))
+        assert not os.path.exists(onnx_tools.opt_onnx_file(state))
 
     def test_015_receive_onnx(self):
         """

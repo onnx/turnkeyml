@@ -1,9 +1,9 @@
 import argparse
 from typing import Optional
-import turnkeyml.build.stage as stage
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.filesystem as fs
-from turnkeyml.sequence.state import State
+from turnkeyml.tools import Tool
+from turnkeyml.state import State
 from turnkeyml.run.devices import (
     SUPPORTED_RUNTIMES,
     SUPPORTED_DEVICES,
@@ -16,9 +16,9 @@ default_iterations = 100
 benchmark_default_device = "x86"
 
 
-class Benchmark(stage.Stage):
+class Benchmark(Tool):
     """
-    Stage that benchmarks a model based on the selected device and runtime.
+    Tool that benchmarks a model based on the selected device and runtime.
 
     Expected inputs:
      - state.results is a model to be benchmarked
@@ -83,7 +83,7 @@ class Benchmark(stage.Stage):
     def parse(self, state: State, args, known_only=True) -> argparse.Namespace:
         parsed_args = super().parse(state, args, known_only)
 
-        # Inherit the device from the stage of a prior stage, if available
+        # Inherit the device from the tool of a prior tool, if available
         parse_device(
             state, parsed_args, benchmark_default_device, self.__class__.__name__
         )
@@ -151,7 +151,7 @@ class Benchmark(stage.Stage):
         if runtime_info.get("status_stats"):
             self.status_stats += runtime_info.get("status_stats")
 
-        # FIXME: this wont be necessary once Discovery is a stage and
+        # FIXME: this wont be necessary once Discovery is a tool and
         # it passes state.results
         if state.results:
             model_to_use = state.results

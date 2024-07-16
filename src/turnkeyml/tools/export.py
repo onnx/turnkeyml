@@ -12,7 +12,7 @@ import turnkeyml.common.build as build
 import turnkeyml.common.tensor_helpers as tensor_helpers
 import turnkeyml.common.onnx_helpers as onnx_helpers
 import turnkeyml.common.filesystem as fs
-from turnkeyml.sequence.state import State
+from turnkeyml.state import State
 
 
 def _warn_to_stdout(message, category, filename, line_number, _, line):

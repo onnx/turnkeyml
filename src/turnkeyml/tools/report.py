@@ -122,7 +122,7 @@ class Report(ManagementTool):
                             # out-of-memory (OOM), or some other uncaught exception
                             if (
                                 key == fs.Keys.BUILD_STATUS
-                                or fs.Keys.STAGE_STATUS in key
+                                or fs.Keys.TOOL_STATUS in key
                             ) and value == build.FunctionStatus.INCOMPLETE:
                                 value = build.FunctionStatus.KILLED
 

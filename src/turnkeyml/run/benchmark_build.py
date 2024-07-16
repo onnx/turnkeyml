@@ -11,6 +11,7 @@ import turnkeyml.cli.parser_helpers as parser_helpers
 from turnkeyml.tools.management_tools import ManagementTool
 from turnkeyml.run.benchmark_model import Benchmark
 from turnkeyml.run.devices import SUPPORTED_RUNTIMES
+from turnkeyml.state import load_state
 
 # The licensing for tqdm is confusing. Pending a legal scan,
 # the following code provides tqdm to users who have installed
@@ -84,7 +85,7 @@ def benchmark_build(
         rt_args: same as turnkey
     """
 
-    state = fs.load_state(cache_dir, build_name)
+    state = load_state(cache_dir, build_name)
 
     if state.build_status != build.FunctionStatus.SUCCESSFUL:
         raise SkippedBenchmark(
@@ -237,7 +238,7 @@ class BenchmarkBuild(ManagementTool):
             # loop if the evaluation's pre-existing benchmark status doesn't
             # meet certain criteria
             eval_stats = stats.stats
-            benchmark_status_key = "stage_status:benchmark"
+            benchmark_status_key = "tool_status:benchmark"
             if (
                 benchmark_status_key in eval_stats
                 and eval_stats[benchmark_status_key] != build.FunctionStatus.NOT_STARTED

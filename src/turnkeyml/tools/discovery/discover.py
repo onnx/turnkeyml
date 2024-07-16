@@ -12,7 +12,7 @@ from turnkeyml.tools.discovery.script import (
     TracerArgs,
 )
 import turnkeyml.common.printing as printing
-from turnkeyml.sequence.state import State
+from turnkeyml.state import State
 
 
 default_max_depth = 0
@@ -92,7 +92,7 @@ class Discover(Tool):
     ):
         if not input.endswith(".py"):
             raise exp.ArgError(
-                "Inputs to the `discover` stage must by python scripts "
+                "Inputs to the `discover` tool must by python scripts "
                 f"(.py files), got {input}",
             )
 
@@ -113,7 +113,7 @@ class Discover(Tool):
         state.models_found = evaluate_script(tracer_args)
 
         # Count the amount of build-able model invocations discovered
-        # If there is only 1, pass it to the next build stage. Otherwise,
+        # If there is only 1, pass it to the next build tool. Otherwise,
         # print all the invocations and suggest that the user select one.
         count = 0
         for model_info in state.models_found.values():

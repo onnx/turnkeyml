@@ -10,7 +10,7 @@ import numpy as np
 import onnx
 import onnxruntime as ort
 import turnkeyml.common.exceptions as exp
-from turnkeyml.sequence.state import State
+from turnkeyml.state import State
 import turnkeyml.common.build as build
 
 

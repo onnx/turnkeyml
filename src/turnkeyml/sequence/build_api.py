@@ -4,7 +4,7 @@ from turnkeyml.sequence import Sequence
 import turnkeyml.common.printing as printing
 import turnkeyml.common.build as build
 import turnkeyml.common.filesystem as fs
-from turnkeyml.sequence.state import State
+from turnkeyml.state import State
 
 
 def build_model(
@@ -20,7 +20,7 @@ def build_model(
     """Use build a model instance into an optimized ONNX file.
 
     Args:
-        sequence: the build stages and their arguments used to build the model.
+        sequence: the build tools and their arguments used to build the model.
         model: Model to be mapped to an optimized ONNX file, which can be a PyTorch
             model instance or a path to an ONNX file.
         inputs: Example inputs to the user's model. The ONNX file will be

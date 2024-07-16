@@ -13,7 +13,7 @@ from types import FrameType, TracebackType
 import torch
 import turnkeyml.common.build as build
 import turnkeyml.common.status as status
-import turnkeyml.tools.discovery.model as analyze_model
+import turnkeyml.common.analyze_model as analyze_model
 import turnkeyml.common.filesystem as fs
 
 

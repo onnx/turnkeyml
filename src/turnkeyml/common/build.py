@@ -98,21 +98,21 @@ def hash_model(model, hash_params: bool = True):
 
 class FunctionStatus:
     """
-    Status values that are assigned to stages, builds, benchmarks, and other
+    Status values that are assigned to tools, builds, benchmarks, and other
     functionality to help the user understand whether that function completed
     successfully or not.
     """
 
-    # SUCCESSFUL means the stage/build/benchmark completed successfully.
+    # SUCCESSFUL means the tool/build/benchmark completed successfully.
     SUCCESSFUL = "successful"
 
-    # ERROR means the stage/build/benchmark failed and threw some error that
+    # ERROR means the tool/build/benchmark failed and threw some error that
     # was caught by turnkey. You should proceed by looking at the build
     # logs to see what happened.
 
     ERROR = "error"
 
-    # TIMEOUT means the stage/build/benchmark failed because it exceeded the timeout
+    # TIMEOUT means the tool/build/benchmark failed because it exceeded the timeout
     # set for the turnkey command.
     TIMEOUT = "timeout"
 
@@ -122,21 +122,21 @@ class FunctionStatus:
     # why it is being killed (e.g., watch the RAM utilization to diagnose an OOM).
     KILLED = "killed"
 
-    # The NOT_STARTED status is applied to all stages/builds/benchmarks at startup.
-    # It will be replaced by one of the other status values if the stage/build/benchmark
+    # The NOT_STARTED status is applied to all tools/builds/benchmarks at startup.
+    # It will be replaced by one of the other status values if the tool/build/benchmark
     # has a chance to start running.
-    # A value of NOT_STARTED in the report CSV indicates that the stage/build/benchmark
+    # A value of NOT_STARTED in the report CSV indicates that the tool/build/benchmark
     # never had a chance to start because turnkey exited before that functionality had
     # a chance to start running.
     NOT_STARTED = "not_started"
 
-    # INCOMPLETE indicates that a stage/build/benchmark started running and did not complete.
-    # Each stage, build, and benchmark are marked as INCOMPLETE when they start running.
-    # If you open the turnkey_stats.yaml file while the stage/build/benchmark
-    # is still running, the status will show as INCOMPLETE. If the stage/build/benchmark
+    # INCOMPLETE indicates that a tool/build/benchmark started running and did not complete.
+    # Each tool, build, and benchmark are marked as INCOMPLETE when they start running.
+    # If you open the turnkey_stats.yaml file while the tool/build/benchmark
+    # is still running, the status will show as INCOMPLETE. If the tool/build/benchmark
     # is killed without the chance to do any stats cleanup, the status will continue to
     # show as INCOMPLETE in turnkey_stats.yaml.
-    # When the report CSV is created, any instance of an INCOMPLETE stage/build/benchmark
+    # When the report CSV is created, any instance of an INCOMPLETE tool/build/benchmark
     # status will be replaced by KILLED.
     INCOMPLETE = "incomplete"
 

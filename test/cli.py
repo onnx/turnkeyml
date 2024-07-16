@@ -17,14 +17,14 @@ import onnx
 import platform
 import torch
 from turnkeyml.cli.cli import main as turnkeycli
-import turnkeyml.cli.report as report
+import turnkeyml.tools.report as report
 import turnkeyml.common.filesystem as fs
 import turnkeyml.common.build as build
 import turnkeyml.common.exceptions as exceptions
-import turnkeyml.build.export as export
-import turnkeyml.cli.spawn as spawn
+import turnkeyml.tools.export as export
 from turnkeyml.cli.parser_helpers import decode_args, encode_args
 import turnkeyml.common.test_helpers as common
+from turnkeyml.state import load_state
 
 
 def bash(cmd: str) -> List[str]:
@@ -67,7 +67,7 @@ def assert_success_of_builds(
 
         for build_state_file in builds:
             if test_script_name in build_state_file:
-                build_state = fs.load_state(state_path=build_state_file)
+                build_state = load_state(state_path=build_state_file)
                 stats = fs.Stats(
                     build_state.cache_dir,
                     build_state.build_name,
@@ -505,7 +505,7 @@ class Testing(unittest.TestCase):
             turnkeycli()
 
         # Ensure test failed
-        build_state = fs.load_state(state_path=fs.get_all(cache_dir)[0])
+        build_state = load_state(state_path=fs.get_all(cache_dir)[0])
         assert build_state.build_status != build.FunctionStatus.SUCCESSFUL
 
         # Generate report
@@ -970,7 +970,7 @@ class Testing(unittest.TestCase):
             "device",
             "mean_latency",
             "throughput",
-            "selected_sequence_of_stages",
+            "selected_sequence_of_tools",
         ]
         linear_summary = summary[1]
         assert len(summary) == len(test_scripts)
@@ -1009,31 +1009,31 @@ class Testing(unittest.TestCase):
         result_dict = report.get_dict(
             summary_csv_path,
             [
-                "selected_sequence_of_stages",
-                "stage_duration:discover",
-                "stage_duration:export-pytorch",
-                "stage_duration:optimize-ort",
-                "stage_status:discover",
-                "stage_status:export-pytorch",
-                "stage_status:optimize-ort",
+                "selected_sequence_of_tools",
+                "tool_duration:discover",
+                "tool_duration:export-pytorch",
+                "tool_duration:optimize-ort",
+                "tool_status:discover",
+                "tool_status:export-pytorch",
+                "tool_status:optimize-ort",
             ],
         )
         for result in result_dict.values():
             # All of the models should have exported to ONNX and optimized the ONNX model
-            for stage in ["export-pytorch", "optimize-ort"]:
-                assert stage in result["selected_sequence_of_stages"]
-                duration = result[f"stage_duration:{stage}"]
-                status = result[f"stage_status:{stage}"]
+            for tool in ["export-pytorch", "optimize-ort"]:
+                assert tool in result["selected_sequence_of_tools"]
+                duration = result[f"tool_duration:{tool}"]
+                status = result[f"tool_status:{tool}"]
                 assert (
                     status == "successful"
-                ), f"Unexpected status {status} for stage '{stage}'"
+                ), f"Unexpected status {status} for tool '{tool}'"
                 try:
                     assert (
                         float(duration) > 0
-                    ), f"Stage {stage} has invalid duration '{duration}'"
+                    ), f"Tool {tool} has invalid duration '{duration}'"
                 except ValueError:
                     # Catch the case where the value is not numeric
-                    assert False, f"Stage {stage} has invalid duration {duration}"
+                    assert False, f"Tool {tool} has invalid duration {duration}"
 
     def test_027_cli_cache_benchmark(self):
 

@@ -11,6 +11,7 @@ from turnkeyml.common.performance import MeasuredPerformance, Device
 import turnkeyml.common.build as build
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.filesystem as fs
+from turnkeyml.state import load_state
 
 
 def _check_docker_install():
@@ -177,14 +178,14 @@ class BaseRT(ABC):
             os.remove(self.local_outputs_file)
 
         # Transfer input artifacts
-        state = fs.load_state(self.cache_dir, self.build_name)
+        state = load_state(self.cache_dir, self.build_name)
 
         # Make sure state.results is an ONNX file
         if not (isinstance(state.results, str) and state.results.endswith(".onnx")):
             raise exp.ToolError(
                 "This benchmarking runtime requires the preceeding "
-                "stages to produce an ONNX file, however they did not. "
-                "Please either select different stages, or select a different "
+                "tools to produce an ONNX file, however they did not. "
+                "Please either select different tools, or select a different "
                 "benchmarking runtime that does not require an ONNX result."
             )
 

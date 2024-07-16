@@ -1,5 +1,5 @@
 from .runtime import CombinedExampleRT, combined_rt_name
-from .stage import CombinedExampleStage
+from .tool import CombinedExampleTool
 
 implements = {
     "runtimes": {
@@ -12,5 +12,5 @@ implements = {
             },
         }
     },
-    "stages": [CombinedExampleStage],
+    "tools": [CombinedExampleTool],
 }

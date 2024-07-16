@@ -299,8 +299,8 @@ class Keys:
     ONNX_MODEL_INFO = "onnx_model_information"
     # ONNX model input tensor dimensions
     ONNX_INPUT_DIMENSIONS = "onnx_input_dimensions"
-    # List of all build stages in the Sequence
-    SELECTED_SEQUENCE_OF_TOOLS = "selected_sequence_of_stages"
+    # List of all build tools in the Sequence
+    SELECTED_SEQUENCE_OF_TOOLS = "selected_sequence_of_tools"
     # Location of the most up-to-date ONNX file for this build. If the
     # build completed successfully, this is the final ONNX file.
     ONNX_FILE = "onnx_file"
@@ -333,20 +333,20 @@ class Keys:
     # Indicates the match between the TorchScript IR graph and
     # the exported onnx model (verified with torch.onnx.verification)
     TORCH_ONNX_EXPORT_VALIDITY = "torch_export_validity"
-    # Prefix for reporting the execution duration of a stage
-    # In the report this will look like stage_duration:STAGE_NAME
-    STAGE_DURATION = "stage_duration"
-    # Prefix for reporting the execution status of a stage
-    # In the report this will look like stage_status:STAGE_NAME
-    STAGE_STATUS = "stage_status"
+    # Prefix for reporting the execution duration of a tool
+    # In the report this will look like tool_duration:TOOL_NAME
+    TOOL_DURATION = "tool_duration"
+    # Prefix for reporting the execution status of a tool
+    # In the report this will look like tool_status:TOOL_NAME
+    TOOL_STATUS = "tool_status"
     # Records the date and time of the evaluation after analysis but before
     # build and benchmark
     TIMESTAMP = "timestamp"
-    # Records the logfile of any failed stage/benchmark
+    # Records the logfile of any failed tool/benchmark
     ERROR_LOG = "error_log"
     # Name of the build in the cache
     BUILD_NAME = "build_name"
-    # Sequence of stages used for this build, along with their args
+    # Sequence of tools used for this build, along with their args
     SEQUENCE_INFO = "sequence_info"
     # Version of TurnkeyML used for the build
     TURNKEY_VERSION = "turnkey_version"
@@ -432,7 +432,7 @@ class Stats:
     def save_eval_error_log(self, logfile_path):
         if logfile_path is None:
             # Avoid an error in the situation where we crashed before
-            # initializing the stage (in which case it has no logfile path yet)
+            # initializing the tool (in which case it has no logfile path yet)
             return
         if os.path.exists(logfile_path):
             with open(logfile_path, "r", encoding="utf-8") as f:

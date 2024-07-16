@@ -39,13 +39,13 @@ def _sanitize_for_yaml(input_dict: Dict) -> Dict:
 class State:
     """
     The State class is meant to carry build state, starting with the user's
-    initial arguments, through each build Stage in the Sequence, and finally
+    initial arguments, through each build Tool in the Sequence, and finally
     to the disk, where it is used to assess cache hits.
 
     State is initialized with the key members that are shared by every build,
     and reasonable default values are assigned as appropriate.
 
-    Stage developers can also add any members they wish. To get or set an
+    Tool developers can also add any members they wish. To get or set an
     attribute, reference it as an attribute:
         1. get: `my_variable = state.attribute_name`
         2. set: `state.attribute_name = my_variable`
@@ -112,7 +112,7 @@ class State:
 
     def __setattr__(self, name: str, value: Any) -> None:
         """
-        Stage developers can add a new member to State by simply
+        Tool developers can add a new member to State by simply
         assigning it as an attribute, ie `state.new_member = value`.
         """
         return super().__setattr__(name, value)

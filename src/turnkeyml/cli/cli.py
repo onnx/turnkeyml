@@ -8,7 +8,7 @@ from typing import List
 import turnkeyml.common.filesystem as fs
 from turnkeyml.sequence import Sequence
 from turnkeyml.tools import Tool
-from turnkeyml.sequence.stage_plugins import SUPPORTED_TOOLS
+from turnkeyml.sequence.tool_plugins import SUPPORTED_TOOLS
 from turnkeyml.cli.spawn import DEFAULT_TIMEOUT_SECONDS
 from turnkeyml.files_api import benchmark_files
 import turnkeyml.common.build as build
@@ -111,7 +111,7 @@ def main():
         help=f"""\
 Available tools that can be sequenced together to perform an evaluation. 
 
-Call `turnkey STAGE -h` to learn more about each tool.
+Call `turnkey TOOL -h` to learn more about each tool.
 
 Tool choices: 
 {eval_tool_choices}

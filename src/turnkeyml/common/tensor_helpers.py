@@ -16,7 +16,7 @@ def check_shapes_and_dtypes(
 ):
     current_shapes, current_dtypes = build.get_shapes_and_dtypes(inputs)
 
-    # If we are modifying the data type of inputs on a later stage we
+    # If we are modifying the data type of inputs on a later tool we
     # verify input type based on the future data type conversion
     if expect_downcast:
         for key, value in current_dtypes.items():
