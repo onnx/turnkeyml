@@ -122,9 +122,6 @@ else:
     DEFAULT_TIMEOUT_SECONDS = 3600
 
 
-
-
-
 def slurm_jobs_in_queue(job_name=None) -> List[str]:
     """Return the set of slurm jobs that are currently pending/running"""
     user = getpass.getuser()
@@ -216,7 +213,7 @@ def run_turnkey(
         raise ValueError(
             "use_slurm and process_isolation are mutually exclusive, but both are True"
         )
-    
+
     type_to_formatter = {
         str: value_arg,
         int: value_arg,
@@ -280,7 +277,7 @@ def run_turnkey(
 
         print(f"Submitting job {job_name} to Slurm")
         subprocess.check_call(slurm_command)
-    else: # process isolation
+    else:  # process isolation
         command = "turnkey " + invocation_args
         printing.log_info(f"Starting process with command: {command}")
 
@@ -377,6 +374,3 @@ def run_turnkey(
                         "Stats file found, but unable to perform cleanup due to "
                         f"exception: {stats_exception}"
                     )
-
-    else:
-        raise ValueError(f"Unsupported value for target: {target}.")
