@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from typing import Optional, Union, Dict, List
 import argparse
-import turnkeyml.common.filesystem as fs
 import turnkeyml.common.printing as printing
 import turnkeyml.common.exceptions as exp
+from turnkeyml.state import State
 
 
 def enumerate_supported_devices(rt_supported_devices: set) -> List[str]:
@@ -142,13 +142,13 @@ class MeasuredPerformance:
 
 
 def parse_device(
-    state: fs.State,
+    state: State,
     parsed_args: argparse.Namespace,
     default_device: str,
-    stage_name: str,
+    tool_name: str,
     supported_devices=None,
 ):
-    # Inherit the device from the stage of a prior stage, if available
+    # Inherit the device from the state of a prior tool, if available
     if parsed_args.device is None:
         if vars(state).get("device") is None:
             device_to_use = default_device
@@ -159,11 +159,11 @@ def parse_device(
             parsed_args.device
         ):
             raise exp.ArgError(
-                f"A previous stage set the device to {state.device}, "
-                f"however this stage ({stage_name}) "
+                f"A previous tool set the device to {state.device}, "
+                f"however this tool ({tool_name}) "
                 f"is attempting to set device to {parsed_args.device}. "
                 "We suggest ommitting the `--device` argument from "
-                "this stage."
+                "this tool."
             )
 
         device_to_use = parsed_args.device

@@ -1,17 +1,15 @@
 import argparse
-from turnkeyml.build.stage import Stage
-import turnkeyml.common.filesystem as fs
-
-combined_seq_name = "example-combined-seq"
+from turnkeyml.tools import Tool
+from turnkeyml.state import State
 
 
-class CombinedExampleStage(Stage):
+class CombinedExampleTool(Tool):
     """
-    This is an empty Stage that we include in our example that provides both
+    This is an empty Tool that we include in our example that provides both
     a sequence and a runtime in a single plugin package.
     """
 
-    unique_name = "combined-example-stage"
+    unique_name = "combined-example-tool"
 
     def __init__(self):
         super().__init__(
@@ -21,11 +19,11 @@ class CombinedExampleStage(Stage):
     @staticmethod
     def parser(add_help: bool = True) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser(
-            description="This is an examples stage from the combined example",
+            description="This is an examples tool from the combined example",
             add_help=add_help,
         )
 
         return parser
 
-    def fire(self, state: fs.State):
+    def run(self, state: State):
         return state

@@ -2,13 +2,49 @@
 Helper functions for dealing with ONNX files and ONNX models
 """
 
-from typing import Tuple
+import os
+from typing import Tuple, Union
 import re
 import math
 import numpy as np
 import onnx
 import onnxruntime as ort
 import turnkeyml.common.exceptions as exp
+from turnkeyml.state import State
+import turnkeyml.common.build as build
+
+
+def check_model(onnx_file, success_message, fail_message) -> bool:
+    if os.path.isfile(onnx_file):
+        print(success_message)
+    else:
+        print(fail_message)
+        return False
+    try:
+        onnx.checker.check_model(onnx_file)
+        print("\tSuccessfully checked onnx file")
+        return True
+    except onnx.checker.ValidationError as e:
+        print("\tError while checking generated ONNX file")
+        print(e)
+        return False
+
+
+def original_inputs_file(cache_dir: str, build_name: str):
+    return os.path.join(build.output_dir(cache_dir, build_name), "inputs.npy")
+
+
+def onnx_dir(state: State):
+    return os.path.join(build.output_dir(state.cache_dir, state.build_name), "onnx")
+
+
+def get_output_names(
+    onnx_model: Union[str, onnx.ModelProto]
+):  # pylint: disable=no-member
+    # Get output names of ONNX file/model
+    if not isinstance(onnx_model, onnx.ModelProto):  # pylint: disable=no-member
+        onnx_model = onnx.load(onnx_model)
+    return [node.name for node in onnx_model.graph.output]  # pylint: disable=no-member
 
 
 def parameter_count(model):

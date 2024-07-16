@@ -310,7 +310,7 @@ class Testing(unittest.TestCase):
         assert np.array_equal(output, (1, 0, 0))
 
     def test_10_activation(self):
-        with self.assertRaises(exp.StageError):
+        with self.assertRaises(exp.ToolError):
             run_analysis(
                 [
                     "turnkey",

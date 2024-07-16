@@ -12,8 +12,9 @@ setup(
     package_dir={"": "src", "turnkeyml_models": "models"},
     packages=[
         "turnkeyml",
-        "turnkeyml.analyze",
-        "turnkeyml.build",
+        "turnkeyml.tools",
+        "turnkeyml.tools.discovery",
+        "turnkeyml.sequence",
         "turnkeyml.run",
         "turnkeyml.run.onnxrt",
         "turnkeyml.run.tensorrt",
