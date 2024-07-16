@@ -154,15 +154,6 @@ Management tool choices:
         default=[],
     )
 
-    parser.add_argument(
-        "--rebuild",
-        choices=build.REBUILD_OPTIONS,
-        dest="rebuild",
-        help=f"Sets the cache rebuild policy (defaults to {build.DEFAULT_REBUILD_POLICY})",
-        required=False,
-        default=build.DEFAULT_REBUILD_POLICY,
-    )
-
     slurm_or_processes_group = parser.add_mutually_exclusive_group()
 
     slurm_or_processes_group.add_argument(
