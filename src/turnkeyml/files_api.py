@@ -1,8 +1,6 @@
 import time
 import os
-import copy
 import glob
-from datetime import datetime
 from typing import List, Dict, Optional, Union
 import git
 import turnkeyml.common.printing as printing
@@ -11,8 +9,7 @@ from turnkeyml.sequence import Sequence
 import turnkeyml.cli.spawn as spawn
 import turnkeyml.common.filesystem as fs
 import turnkeyml.common.labels as labels_library
-import turnkeyml.common.build as build
-from turnkeyml.sequence.build_api import build_model
+from turnkeyml.state import State
 
 # The licensing for tqdm is confusing. Pending a legal scan,
 # the following code provides tqdm to users who have installed
@@ -58,6 +55,18 @@ def evaluate_files(
     timeout: Optional[int] = None,
     sequence: Union[Dict, Sequence] = None,
 ):
+    """
+    Args:
+        sequence: the build tools and their arguments used to build the model.
+        build_name: Unique name for the model that will be
+            used to store the ONNX file and build state on disk. Defaults to the
+            name of the file that calls build_model().
+        cache_dir: Directory to use as the cache for this build. Output files
+            from this build will be stored at cache_dir/build_name/
+            Defaults to the current working directory, but we recommend setting it to
+            an absolute path of your choosing.
+        lean_cache: delete build artifacts after the build has completed.
+    """
 
     # Replace .txt files with the models listed inside them
     input_files = unpack_txt_inputs(input_files)
@@ -152,8 +161,10 @@ def evaluate_files(
 
         # Skip a file if the required_labels are not a subset of the script_labels.
         if labels:
-            # Labels argument is not supported for ONNX files
-            if file_path_absolute.endswith(".onnx"):
+            # Labels argument is not supported for ONNX files or cached builds
+            if file_path_absolute.endswith(".onnx") or file_path_absolute.endswith(
+                ".yaml"
+            ):
                 raise ValueError(
                     "The labels argument is not supported for .onnx files, got",
                     file_path_absolute,
@@ -179,31 +190,18 @@ def evaluate_files(
             first_tool_args.append("--input")
             first_tool_args.append(file_path_encoded)
 
-            # Create a build directory and stats file in the cache
-            fs.make_build_dir(cache_dir, build_name)
-            stats = fs.Stats(cache_dir, build_name)
-
-            # Save the system information used for this build
-            system_info = build.get_system_info()
-            stats.save_stat(
-                fs.Keys.SYSTEM_INFO,
-                system_info,
-            )
+            # Collection of statistics that the sequence instance should save
+            # to the stats file
+            stats_to_save = {}
 
             # Save lables info
             if fs.Keys.AUTHOR in file_labels:
-                stats.save_stat(fs.Keys.AUTHOR, file_labels[fs.Keys.AUTHOR][0])
+                stats_to_save[fs.Keys.AUTHOR] = file_labels[fs.Keys.AUTHOR][0]
             if fs.Keys.TASK in file_labels:
-                stats.save_stat(fs.Keys.TASK, file_labels[fs.Keys.TASK][0])
+                stats_to_save[fs.Keys.TASK] = file_labels[fs.Keys.TASK][0]
 
             # Save all of the lables in one place
-            stats.save_stat(fs.Keys.LABELS, file_labels)
-
-            # Save a timestamp so that we know the order of builds within a cache
-            stats.save_stat(
-                fs.Keys.TIMESTAMP,
-                datetime.now(),
-            )
+            stats_to_save[fs.Keys.LABELS] = file_labels
 
             # If the input script is a built-in TurnkeyML model, make a note of
             # which one
@@ -221,21 +219,17 @@ def evaluate_files(
                     fs.MODELS_DIR,
                     f"https://github.com/onnx/turnkeyml/tree/{git_hash}/models",
                 ).replace("\\", "/")
-                stats.save_stat(fs.Keys.MODEL_SCRIPT, relative_path)
+                stats_to_save[fs.Keys.MODEL_SCRIPT] = relative_path
 
-            # Indicate that the build is running. If the build fails for any reason,
-            # we will try to catch the exception and note it in the stats.
-            # If a concluded build still has a status of "running", this means
-            # there was an uncaught exception.
-            stats.save_stat(fs.Keys.BUILD_STATUS, build.FunctionStatus.INCOMPLETE)
-
-            build_model(
-                build_name=build_name,
-                model=file_path_absolute,
-                sequence=sequence,
+            state = State(
                 cache_dir=cache_dir,
-                rebuild="always",
+                build_name=build_name,
+                sequence_info=sequence.info,
+            )
+            sequence.launch(
+                state,
                 lean_cache=lean_cache,
+                stats_to_save=stats_to_save,
             )
 
     # Wait until all the Slurm jobs are done

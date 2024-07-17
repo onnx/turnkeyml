@@ -76,7 +76,7 @@ class UniqueInvocationInfo(BasicInfo):
     executed: int = 0
     exec_time: float = 0.0
     status_message: str = ""
-    extra_status: Optional[str] = None
+    extra_status: Optional[str] = ""
     is_target: bool = False
     auto_selected: bool = False
     status_message_color: printing.Colors = printing.Colors.ENDC
@@ -106,7 +106,7 @@ class UniqueInvocationInfo(BasicInfo):
             print(f"{self.script_name}{self.extension}:")
 
         # Print invocation about the model (only applies to scripts, not ONNX files)
-        if not self.extension == ".onnx":
+        if not (self.extension == ".onnx" or self.extension == "_state.yaml"):
             if self.depth == 0 and multiple_unique_invocations:
                 if not model_visited:
                     printing.logn(f"{self.indent}{self.name}")
@@ -121,7 +121,7 @@ class UniqueInvocationInfo(BasicInfo):
         self.skip.model_name = True
 
     def _print_location(self):
-        if self.skip.location:
+        if self.skip.location or self.file == "":
             return
 
         if self.depth == 0:
@@ -133,7 +133,7 @@ class UniqueInvocationInfo(BasicInfo):
             self.skip.location = True
 
     def _print_parameters(self):
-        if self.skip.parameters:
+        if self.skip.parameters or self.params is None:
             return
 
         # Display number of parameters and size
@@ -163,7 +163,7 @@ class UniqueInvocationInfo(BasicInfo):
         self.skip.unique_input_shape = True
 
     def _print_input_shape(self):
-        if self.skip.input_shape:
+        if self.skip.input_shape or self.input_shapes is None:
             return
 
         # Prepare input shape to be printed

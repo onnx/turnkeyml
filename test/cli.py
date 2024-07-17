@@ -1056,16 +1056,30 @@ class Testing(unittest.TestCase):
 
         # Benchmark the single model from cache directory
         selected_build = fs.get_available_builds(cache_dir)[-1]
+        state_file_path = os.path.join(
+            cache_dir, selected_build, f"{selected_build}_state.yaml"
+        )
+
         testargs = [
             "turnkey",
             "--cache-dir",
             cache_dir,
-            "benchmark-build",
-            "--build-names",
-            selected_build,
+            "-i",
+            state_file_path,
+            "load-build",
+            "benchmark",
         ]
-        with patch.object(sys, "argv", flatten(testargs)):
-            turnkeycli()
+
+        # testargs = [
+        #     "turnkey",
+        #     "--cache-dir",
+        #     cache_dir,
+        #     "benchmark-build",
+        #     "--build-names",
+        #     selected_build,
+        # ]
+        # with patch.object(sys, "argv", flatten(testargs)):
+        #     turnkeycli()
 
         # Make sure the benchmark happened
         test_script = selected_build + ".py"
@@ -1076,8 +1090,10 @@ class Testing(unittest.TestCase):
             "turnkey",
             "--cache-dir",
             cache_dir,
-            "benchmark-build",
-            "--all",
+            "-i",
+            os.path.join(cache_dir, "*", "*_state.yaml"),
+            "load-build",
+            "benchmark",
         ]
         with patch.object(sys, "argv", flatten(testargs)):
             turnkeycli()

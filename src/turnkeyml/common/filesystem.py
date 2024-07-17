@@ -98,7 +98,8 @@ def clean_file_name(script_path: str) -> str:
     If its a state.yaml file, trim the "state.yaml"
     """
     if script_path.endswith("_state.yaml"):
-        return script_path.replace("_state.yaml", "")
+        return pathlib.Path(script_path).stem.replace("_state", "")
+        # return script_path.replace("_state.yaml", "")
     else:
         return pathlib.Path(script_path).stem
 
@@ -117,7 +118,7 @@ def _load_yaml(file) -> Dict:
         return {}
 
 
-def _save_yaml(dict: Dict, file):
+def save_yaml(dict: Dict, file):
     with open(file, "w", encoding="utf8") as outfile:
         yaml.dump(dict, outfile)
 
@@ -395,7 +396,7 @@ class Stats:
         os.makedirs(os.path.dirname(self.file), exist_ok=True)
         if not os.path.exists(self.file):
             # Start an empty stats file
-            _save_yaml({}, self.file)
+            save_yaml({}, self.file)
 
     @property
     def stats(self):
@@ -427,14 +428,14 @@ class Stats:
 
         self._set_key(stats_dict, [key], value)
 
-        _save_yaml(stats_dict, self.file)
+        save_yaml(stats_dict, self.file)
 
     def save_sub_stat(self, parent_key: str, key: str, value):
         stats_dict = self.stats
 
         self._set_key(stats_dict, [parent_key, key], value)
 
-        _save_yaml(stats_dict, self.file)
+        save_yaml(stats_dict, self.file)
 
     def save_eval_error_log(self, logfile_path):
         if logfile_path is None:
