@@ -10,7 +10,7 @@ from turnkeyml.sequence import Sequence
 from turnkeyml.tools import Tool
 from turnkeyml.sequence.tool_plugins import SUPPORTED_TOOLS
 from turnkeyml.cli.spawn import DEFAULT_TIMEOUT_SECONDS
-from turnkeyml.files_api import benchmark_files
+from turnkeyml.files_api import evaluate_files
 import turnkeyml.common.build as build
 import turnkeyml.common.printing as printing
 from turnkeyml.tools.management_tools import ManagementTool
@@ -156,15 +156,6 @@ Management tool choices:
         default=[],
     )
 
-    parser.add_argument(
-        "--rebuild",
-        choices=build.REBUILD_OPTIONS,
-        dest="rebuild",
-        help=f"Sets the cache rebuild policy (defaults to {build.DEFAULT_REBUILD_POLICY})",
-        required=False,
-        default=build.DEFAULT_REBUILD_POLICY,
-    )
-
     slurm_or_processes_group = parser.add_mutually_exclusive_group()
 
     slurm_or_processes_group.add_argument(
@@ -255,7 +246,7 @@ Management tool choices:
     if len(evaluation_tools) > 0:
         # Run the evaluation tools as a build
         sequence = Sequence(tools=tool_instances)
-        benchmark_files(sequence=sequence, **global_args)
+        evaluate_files(sequence=sequence, **global_args)
     else:
         # Run the management tools
         for management_tool, argv in tool_instances.items():

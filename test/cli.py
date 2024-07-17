@@ -395,8 +395,6 @@ class Testing(unittest.TestCase):
             "turnkey",
             "-i",
             os.path.join(corpus_dir, test_script),
-            "--rebuild",
-            "always",
             "--cache-dir",
             cache_dir,
             "discover",
