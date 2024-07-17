@@ -6,6 +6,7 @@ from turnkeyml.run.benchmark_build import BenchmarkBuild
 from turnkeyml.run.benchmark_model import Benchmark
 from turnkeyml.tools.discovery import Discover
 import turnkeyml.tools.report as report
+from turnkeyml.tools.load_build import LoadBuild
 
 # Plugin interface for sequences
 discovered_plugins = plugins.discover()
@@ -24,6 +25,7 @@ SUPPORTED_TOOLS = [
     onnx_tools.LoadOnnx,
     onnx_tools.ConvertOnnxToFp16,
     export.VerifyOnnxExporter,
+    LoadBuild,
 ]
 
 # Add sequences from plugins to supported sequences dict

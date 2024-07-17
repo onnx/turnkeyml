@@ -130,7 +130,11 @@ def benchmark_files(
     # Validate that the files have supported file extensions
     # Note: We are not checking for .txt files here as those were previously handled
     for file_name in clean_file_names:
-        if not file_name.endswith(".py") and not file_name.endswith(".onnx"):
+        if (
+            not file_name.endswith(".py")
+            and not file_name.endswith(".onnx")
+            and not file_name.endswith("state.yaml")
+        ):
             raise exceptions.ArgError(
                 f"File extension must be .py, .onnx, or .txt (got {file_name})"
             )

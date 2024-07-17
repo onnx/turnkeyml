@@ -125,9 +125,10 @@ Management tool choices:
         "-i",
         "--input-files",
         nargs="+",
-        help="One or more script (.py), ONNX (.onnx), or input list (.txt) files to be benchmarked",
+        help="One or more inputs that will be evaluated by the tool sequence "
+        "(e.g., script (.py), ONNX (.onnx), turnkey build state (state.yaml), input list (.txt) files)",
         type=lambda file: _check_extension(
-            ("py", "onnx", "txt"), file, parser.error, tool_classes
+            ("py", "onnx", "txt", "yaml"), file, parser.error, tool_classes
         ),
     )
 

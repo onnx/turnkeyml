@@ -92,8 +92,15 @@ def get_all(path, exclude_path=False, file_type="state.yaml", recursive=True):
 
 
 def clean_file_name(script_path: str) -> str:
-    # Trim the ".py" / ".onnx"
-    return pathlib.Path(script_path).stem
+    """
+    Trim the ".py" / ".onnx" if present.
+
+    If its a state.yaml file, trim the "state.yaml"
+    """
+    if script_path.endswith("_state.yaml"):
+        return script_path.replace("_state.yaml", "")
+    else:
+        return pathlib.Path(script_path).stem
 
 
 class CacheError(exp.Error):

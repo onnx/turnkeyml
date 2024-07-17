@@ -59,10 +59,10 @@ def build_model(
     )
 
     # Get the state of the model from the cache if a valid build is available
-    state = ignition.load_from_cache(
-        new_state=state,
-        rebuild=rebuild or build.DEFAULT_REBUILD_POLICY,
-    )
+    # state = ignition.load_from_cache(
+    #     new_state=state,
+    #     rebuild=rebuild or build.DEFAULT_REBUILD_POLICY,
+    # )
 
     # Return a cached build if possible, otherwise prepare the model State for
     # a build
