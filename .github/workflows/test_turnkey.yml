@@ -52,7 +52,7 @@ jobs:
           # turnkey examples
           # Note: we clear the default cache location prior to each example run
           rm -rf ~/.cache/turnkey
-          python examples/files_api/onnx_opset.py --onnx-opset 15
+          python examples/api/onnx_opset.py --onnx-opset 15
           rm -rf ~/.cache/turnkey
           turnkey -i examples/cli/scripts/hello_world.py discover export-pytorch benchmark
           rm -rf ~/.cache/turnkey

@@ -5,7 +5,7 @@ You can run this script in your turnkey Conda environment with:
     python onnx_opset.py --onnx-opset YOUR_OPSET
 
 And then you can observe the ONNX opset in the resulting ONNX files with:
-   turnkey cache stats BUILD_NAME
+   turnkey cache --stats -b BUILD_NAME
 """
 
 import pathlib
@@ -19,7 +19,7 @@ from turnkeyml.tools.discovery import Discover
 def main():
     # Define the argument parser
     parser = argparse.ArgumentParser(
-        description="Benchmark a PyTorch model with a specified ONNX opset."
+        description="Export a PyTorch model with a specified ONNX opset."
     )
 
     # Add the arguments

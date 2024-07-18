@@ -1,14 +1,14 @@
 # labels: name::hello_world author::turnkey test_group::a
 """
 Hello, world! This is an example script that can be used to 
-demonstrate the file-benchmarking API, `benchmark_files()`.
+demonstrate the file-sweeping API, `evaluate_files()`.
 
 To see this in action, write a Python script that calls:
 
-    benchmark_files(input_files=[path_to_this_file])
+    evaluate_files(input_files=[path_to_this_file])
 
 You should see the analysis phase pick up the SmallModel instance
-and then benchmark it.
+and then export it to ONNX.
 """
 
 import torch
