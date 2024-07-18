@@ -1069,17 +1069,8 @@ class Testing(unittest.TestCase):
             "load-build",
             "benchmark",
         ]
-
-        # testargs = [
-        #     "turnkey",
-        #     "--cache-dir",
-        #     cache_dir,
-        #     "benchmark-build",
-        #     "--build-names",
-        #     selected_build,
-        # ]
-        # with patch.object(sys, "argv", flatten(testargs)):
-        #     turnkeycli()
+        with patch.object(sys, "argv", flatten(testargs)):
+            turnkeycli()
 
         # Make sure the benchmark happened
         test_script = selected_build + ".py"

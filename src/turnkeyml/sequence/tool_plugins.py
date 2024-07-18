@@ -2,7 +2,6 @@ import turnkeyml.tools.export as export
 import turnkeyml.tools.onnx as onnx_tools
 import turnkeyml.common.plugins as plugins
 import turnkeyml.tools.management_tools as mgmt
-from turnkeyml.run.benchmark_build import BenchmarkBuild
 from turnkeyml.run.benchmark_model import Benchmark
 from turnkeyml.tools.discovery import Discover
 import turnkeyml.tools.report as report
@@ -17,7 +16,6 @@ SUPPORTED_TOOLS = [
     mgmt.Cache,
     mgmt.ModelsLocation,
     report.Report,
-    BenchmarkBuild,
     Benchmark,
     Discover,
     export.ExportPytorchModel,

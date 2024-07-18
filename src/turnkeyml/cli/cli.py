@@ -7,11 +7,10 @@ from difflib import get_close_matches
 from typing import List
 import turnkeyml.common.filesystem as fs
 from turnkeyml.sequence import Sequence
-from turnkeyml.tools import Tool
+from turnkeyml.tools import Tool, FirstTool
 from turnkeyml.sequence.tool_plugins import SUPPORTED_TOOLS
 from turnkeyml.cli.spawn import DEFAULT_TIMEOUT_SECONDS
 from turnkeyml.files_api import evaluate_files
-import turnkeyml.common.build as build
 import turnkeyml.common.printing as printing
 from turnkeyml.tools.management_tools import ManagementTool
 
@@ -47,9 +46,12 @@ class PreserveWhiteSpaceWrapRawTextHelpFormatter(argparse.RawDescriptionHelpForm
         return [item for sublist in textRows for item in sublist]
 
 
-def _tool_list_help(tools: List[Tool], subclass) -> str:
+def _tool_list_help(tools: List[Tool], subclass, exclude=None) -> str:
     help = ""
+
     for tool_class in tools:
+        if exclude and issubclass(tool_class, exclude):
+            continue
         if issubclass(tool_class, subclass):
             help = (
                 help
@@ -101,7 +103,8 @@ def main():
     )
 
     # Sort tools into categories and format for the help menu
-    eval_tool_choices = _tool_list_help(SUPPORTED_TOOLS, Tool)
+    first_tool_choices = _tool_list_help(SUPPORTED_TOOLS, FirstTool)
+    eval_tool_choices = _tool_list_help(SUPPORTED_TOOLS, Tool, exclude=FirstTool)
     mgmt_tool_choices = _tool_list_help(SUPPORTED_TOOLS, ManagementTool)
 
     parser.add_argument(
@@ -109,11 +112,14 @@ def main():
         metavar="tool --tool-args [tool --tool-args...]",
         nargs="?",
         help=f"""\
-Available tools that can be sequenced together to perform an evaluation. 
+Available tools that can be sequenced together to perform a build. 
 
 Call `turnkey TOOL -h` to learn more about each tool.
 
-Tool choices: 
+Tools that can start a sequence:
+{first_tool_choices}
+
+Tools that go into a sequence:
 {eval_tool_choices}
 
 Management tool choices:
@@ -126,7 +132,8 @@ Management tool choices:
         "--input-files",
         nargs="+",
         help="One or more inputs that will be evaluated by the tool sequence "
-        "(e.g., script (.py), ONNX (.onnx), turnkey build state (state.yaml), input list (.txt) files)",
+        "(e.g., script (.py), ONNX (.onnx), turnkey build state (state.yaml), "
+        "input list (.txt) files)",
         type=lambda file: _check_extension(
             ("py", "onnx", "txt", "yaml"), file, parser.error, tool_classes
         ),
@@ -244,6 +251,12 @@ Management tool choices:
     tool_instances = {tool_classes[cmd](): argv for cmd, argv in tools_invoked.items()}
 
     if len(evaluation_tools) > 0:
+        if not issubclass(tool_classes[evaluation_tools[0]], FirstTool):
+            parser.error(
+                "The first tool in the sequence needs to be one "
+                "of the 'tools that can start a sequence.' Use "
+                "`turnkey -h` to see that list of tools."
+            )
         # Run the evaluation tools as a build
         sequence = Sequence(tools=tool_instances)
         evaluate_files(sequence=sequence, **global_args)

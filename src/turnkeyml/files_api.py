@@ -182,6 +182,7 @@ def evaluate_files(
                 process_isolation=process_isolation,
                 timeout=timeout_to_use,
                 lean_cache=lean_cache,
+                cache_dir=cache_dir,
             )
 
         else:

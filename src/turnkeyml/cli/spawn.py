@@ -12,7 +12,6 @@ from threading import Event, Lock, Thread
 from time import monotonic
 import getpass
 from typing import List, Optional, Dict, Union
-from enum import Enum
 import psutil
 import turnkeyml.common.filesystem as filesystem
 import turnkeyml.common.printing as printing

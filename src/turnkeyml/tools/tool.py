@@ -259,7 +259,7 @@ class FirstTool(Tool):
         return parser
 
     @abc.abstractmethod
-    def run(self, state: State, input) -> State:
+    def run(self, state: State, input=None) -> State:
         """
         The run() method of any FirstTool must accept the `input` argument
         """

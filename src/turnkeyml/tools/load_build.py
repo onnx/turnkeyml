@@ -149,8 +149,8 @@ class LoadBuild(FirstTool):
                 and state.build_status != build.FunctionStatus.SUCCESSFUL
             ):
                 raise exp.SkipBuild(
-                    f"Skipping {state.build_name} because it was previously unsuccessfully attempted "
-                    f"and the skip policy is set to {skip_policy}"
+                    f"Skipping {state.build_name} because it was previously "
+                    f"unsuccessfully attempted and the skip policy is set to {skip_policy}"
                 )
             elif skip_policy == "none":
                 # Skip policy of "none" means we should never skip over a build
