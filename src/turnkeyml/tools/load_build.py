@@ -70,6 +70,7 @@ class LoadBuild(FirstTool):
 
     def run(self, state: State, input: str = "", skip_policy=skip_policy_default):
 
+        # Extract the cache directory, build directory, and build name from the input
         source_build_dir = pathlib.Path(input).parent
         source_build_dir_name = source_build_dir.name
         source_cache_dir = source_build_dir.parent
@@ -81,18 +82,16 @@ class LoadBuild(FirstTool):
                 "Try running `turnkey cache --list --all` to see the builds in your build cache."
             )
 
-        # Save the new sequence's information so that we can append it to the
+        # Record the new sequence's information so that we can append it to the
         # loaded build's sequence information later
         new_sequence_info = state.sequence_info
 
         # Load the cached build
         printing.log_info(f"Attempting to load: {input}")
         state = load_state(state_path=input)
-        # Save the sequence of the prior build so that we can test against it later
-        prior_selected_sequence = list(state.sequence_info.keys())
 
-        if state.build_status != build.FunctionStatus.SUCCESSFUL:
-            print(f"Warning: loaded build status is {state.build_status}")
+        # Record the sequence used for the loaded build so that we examine it later
+        prior_selected_sequence = list(state.sequence_info.keys())
 
         # Raise an exception if there is a version mismatch between the installed
         # version of turnkey and the version of turnkey used to create the loaded
@@ -115,7 +114,9 @@ class LoadBuild(FirstTool):
                 "version number changing. See **docs/versioning.md** for details."
             )
 
-        # Append the sequence of this build to the sequence of the loaded build
+        # Append the sequence of this build to the sequence of the loaded build.
+        # so that the stats file reflects the complete set of Tools that have been
+        # attempted on this build
         stats = fs.Stats(state.cache_dir, state.build_name)
         combined_selected_sequence = copy.deepcopy(prior_selected_sequence)
         for new_tool, new_tool_args in new_sequence_info.items():
@@ -123,13 +124,23 @@ class LoadBuild(FirstTool):
             state.sequence_info[new_tool] = new_tool_args
         stats.save_stat(fs.Keys.SELECTED_SEQUENCE_OF_TOOLS, combined_selected_sequence)
 
-        # Apply the skip policy by skipping over this iteration of the
-        # loop if the evaluation's pre-existing build status doesn't
-        # meet certain criteria
+        # Apply the skip policy by raising a SkipBuild exception
+        # if the pre-existing build status doesn't meet certain criteria
         if self.__class__.unique_name not in prior_selected_sequence:
-            # This build has not been attempted by load_build yet, so there
-            # is no condition under which it should be skipped
-            pass
+            if state.build_status != build.FunctionStatus.SUCCESSFUL:
+                if skip_policy == "attempted" or skip_policy == "failed":
+                    raise exp.SkipBuild(
+                        f"Skipping {state.build_name} because it has a "
+                        f"status of {state.build_status} and the skip policy "
+                        f"is set to {skip_policy}."
+                    )
+                else:
+                    # Issue a warning to users if they loaded an unsuccessful build
+                    # This is a warning, instead of an exception, to allow for the case
+                    # where a Tool is being re-attempted under different conditions (e.g.,
+                    # re-attempting a benchmark after a system restart).
+                    if state.build_status != build.FunctionStatus.SUCCESSFUL:
+                        print(f"Warning: loaded build status is {state.build_status}")
         else:
             if skip_policy == "attempted":
                 raise exp.SkipBuild(
@@ -141,8 +152,8 @@ class LoadBuild(FirstTool):
                 and state.build_status == build.FunctionStatus.SUCCESSFUL
             ):
                 raise exp.SkipBuild(
-                    f"Skipping {state.build_name} because it was previously successfully attempted "
-                    f"and the skip policy is set to {skip_policy}"
+                    f"Skipping {state.build_name} because it was previously successfully "
+                    f"attempted and the skip policy is set to {skip_policy}"
                 )
             elif (
                 skip_policy == "failed"

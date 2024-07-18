@@ -101,7 +101,6 @@ class Benchmark(Tool):
         rt_args: Optional[str] = None,
     ):
 
-        # raise Exception("lmao!")
         selected_runtime = apply_default_runtime(device, runtime)
 
         # Get the default part and config by providing the Device class with

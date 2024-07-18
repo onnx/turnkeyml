@@ -47,25 +47,32 @@ def unpack_txt_inputs(input_files: List[str]) -> List[str]:
 
 def evaluate_files(
     input_files: List[str],
+    sequence: Union[Dict, Sequence] = None,
+    cache_dir: str = fs.DEFAULT_CACHE_DIR,
+    lean_cache: bool = False,
+    labels: List[str] = None,
     use_slurm: bool = False,
     process_isolation: bool = False,
-    lean_cache: bool = False,
-    cache_dir: str = fs.DEFAULT_CACHE_DIR,
-    labels: List[str] = None,
     timeout: Optional[int] = None,
-    sequence: Union[Dict, Sequence] = None,
 ):
     """
+    Iterate over a list of input files, evaluating each one with the provided sequence.
+
     Args:
-        sequence: the build tools and their arguments used to build the model.
-        build_name: Unique name for the model that will be
-            used to store the ONNX file and build state on disk. Defaults to the
-            name of the file that calls build_model().
+        input_files: each file in this list will be passed into the first tool in
+            the provided build sequence.
+        sequence: the build tools and their arguments used to act on the inputs.
         cache_dir: Directory to use as the cache for this build. Output files
             from this build will be stored at cache_dir/build_name/
-            Defaults to the current working directory, but we recommend setting it to
-            an absolute path of your choosing.
-        lean_cache: delete build artifacts after the build has completed.
+        lean_cache: delete build artifacts from the cache after the build has completed.
+        lables: if provided, only input files that are marked with these labels will be
+            passed into the sequence; the other input files will be skipped.
+        use_slurm: evaluate each input file as its own slurm job (requires slurm to be)
+            set up in advance on your system.
+        process_isolation: evaluate each input file in a subprocess. If one subprocess
+            fails, this function will move on to the next input file.
+        timeout: in slurm or process isolation modes, the evaluation of each input file
+            will be canceled if it exceeds this timeout value (in seconds).
     """
 
     # Replace .txt files with the models listed inside them
