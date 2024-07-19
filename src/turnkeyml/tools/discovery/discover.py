@@ -31,6 +31,9 @@ class Discover(FirstTool):
      - state.results: a PyTorch model instance (torch.nn.Module)
      - state.inputs: a dictionary of example inputs to the model's forward function,
             e.g., model(**inputs)
+
+    You can learn more about how discovery and its arguments work at
+    https://github.com/onnx/turnkeyml/blob/main/docs/tools_user_guide.md
     """
 
     unique_name = "discover"

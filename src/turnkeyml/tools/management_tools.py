@@ -99,6 +99,7 @@ class Version(ManagementTool):
 
 
 class Cache(ManagementTool):
+    # pylint: disable=pointless-statement,f-string-without-interpolation
     f"""
     A set of functions for managing the turnkey build cache. The default
     cache location is {fs.DEFAULT_CACHE_DIR}, and can also be selected with
