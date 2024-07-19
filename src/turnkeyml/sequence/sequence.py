@@ -202,7 +202,7 @@ class Sequence:
                 self._advance_cursor(tool.unique_name)
 
                 if vars(state).get("invocation_info"):
-                    state.invocation_info.status_message = f"Error: {e}."
+                    state.invocation_info.status_message = f"Error: {e}"
                     state.invocation_info.status_message_color = printing.Colors.WARNING
                 else:
                     printing.log_error(e)

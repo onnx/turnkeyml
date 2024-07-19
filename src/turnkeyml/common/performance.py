@@ -162,7 +162,7 @@ def parse_device(
                 f"A previous tool set the device to {state.device}, "
                 f"however this tool ({tool_name}) "
                 f"is attempting to set device to {parsed_args.device}. "
-                "We suggest ommitting the `--device` argument from "
+                "We suggest omitting the `--device` argument from "
                 "this tool."
             )
 
