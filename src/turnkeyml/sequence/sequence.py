@@ -162,7 +162,11 @@ class Sequence:
                 state.save()
 
             except exp.SkipBuild as e:
-                # Do not modify the stats or build status for skipped builds
+                # SkipBuild is a special exception, which means that a build
+                # was loaded from disk, then we realized we want to skip it.
+                # In order to preserve the original stats and state of the build,
+                # we need to restore the stats file to what it was at the beginning
+                # of this function call. We also need to avoid calling state.save().
 
                 # Restore the prior stats
                 fs.save_yaml(
