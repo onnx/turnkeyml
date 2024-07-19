@@ -43,7 +43,7 @@ def _check_extension(
     if not extension:
         close_matches = get_close_matches(file_name, tool_names)
         if close_matches:
-            # Mispelled tool names can be picked up as input files, so we check
+            # Misspelled tool names can be picked up as input files, so we check
             # for this case here and try to provide a better suggestion
             error_func(
                 f"unrecognized argument '{file_name}', did you mean '{close_matches[0]}'?"
@@ -94,10 +94,8 @@ Call `turnkey TOOL -h` to learn more about each tool.
 
 Tools that can start a sequence:
 {first_tool_choices}
-
 Tools that go into a sequence:
 {eval_tool_choices}
-
 Management tool choices:
 {mgmt_tool_choices}""",
         choices=tool_parsers.keys(),
