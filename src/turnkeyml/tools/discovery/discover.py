@@ -5,6 +5,7 @@ import inspect
 from typing import Optional, List
 import torch
 from turnkeyml.tools import FirstTool
+import turnkeyml.common.build as build
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.filesystem as fs
 from turnkeyml.tools.discovery.script import (
@@ -23,11 +24,12 @@ class Discover(FirstTool):
     Discover the PyTorch models and their corresponding inputs in a python script (.py)
     and send one model/inputs pair onwards into the sequence.
 
-    Expected inputs: None
+    Expected inputs:
+     - Input file is a python script (.py file) that invokes at least one PyTorch model
 
     Outputs:
-        state.results: a PyTorch model instance (torch.nn.Module)
-        state.inputs: a dictionary of example inputs to the model's forward function,
+     - state.results: a PyTorch model instance (torch.nn.Module)
+     - state.inputs: a dictionary of example inputs to the model's forward function,
             e.g., model(**inputs)
     """
 
@@ -39,7 +41,7 @@ class Discover(FirstTool):
     @staticmethod
     def parser(add_help: bool = True) -> argparse.ArgumentParser:
         parser = __class__.helpful_parser(
-            description="Discover the PyTorch models in a python script",
+            short_description="Discover the PyTorch models in a python script",
             add_help=add_help,
         )
 
@@ -135,7 +137,7 @@ class Discover(FirstTool):
         #       bother the user about target selection
         #   Case 2. Input file has more than one model, and...
         #           a. user didn't select a target, so we auto-select the
-        #               least-deep (last discoverd) model and let the user
+        #               least-deep (last discovered) model and let the user
         #               know about target selection
         #           b. user selected a target, so we run with it
         #   Case 3. Exception: Input file contained no models
@@ -216,10 +218,6 @@ class Discover(FirstTool):
             type(model_selected.model).__name__,
         )
 
-        state.results = model_selected.model
-        # FIXME: we should be able to get rid of state.model now
-        state.model = model_selected.model
-
         # Organize the inputs to python model instances
         args, kwargs = state.invocation_info.inputs
         inputs = {}
@@ -239,6 +237,13 @@ class Discover(FirstTool):
                     inputs[all_args[i]] = torch.tensor(args[i].detach().numpy())
                 else:
                     inputs[all_args[i]] = args[i]
+
+        # Pass the model and inputs to the next tool
+        state.results = model_selected.model
+        state.model_hash = build.hash_model(model_selected.model)
+        state.expected_input_shapes, state.expected_input_dtypes = (
+            build.get_shapes_and_dtypes(inputs)
+        )
         state.inputs = inputs
 
         return state

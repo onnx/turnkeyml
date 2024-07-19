@@ -1,1 +1,1 @@
-from .tool import Tool, FirstTool
+from .tool import Tool, FirstTool, NiceHelpFormatter

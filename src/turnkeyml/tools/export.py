@@ -30,16 +30,17 @@ def base_onnx_file(state: State):
 
 class ExportPytorchModel(Tool):
     """
-    Tool that takes a PyTorch model instance, in state.model, and
-    exports it to an ONNX file.
+    Tool that takes a PyTorch model instance, from the state of the previous
+    tool in the sequence, and exports it to an ONNX file.
 
     Expected inputs:
-     - state.model is a torch.nn.Module or torch.jit.ScriptModule
-     - state.inputs is a dict that represents valid kwargs to the forward
-        function of state.model
+     - state.results: torch.nn.Module or torch.jit.ScriptModule
+     - state.inputs: dict that represents valid kwargs to the forward
+        function of state.results
 
     Outputs:
-     - A *-base.onnx file that implements state.model given state.inputs
+     - state.results: a *-base.onnx file that implements state.results
+        given state.inputs
     """
 
     unique_name = "export-pytorch"
@@ -50,7 +51,7 @@ class ExportPytorchModel(Tool):
     @staticmethod
     def parser(add_help: bool = True) -> argparse.ArgumentParser:
         parser = __class__.helpful_parser(
-            description="Export a PyTorch model to ONNX",
+            short_description="Export a PyTorch model to ONNX",
             add_help=add_help,
         )
 
@@ -64,11 +65,11 @@ class ExportPytorchModel(Tool):
         return parser
 
     def run(self, state: State, opset: int = build.DEFAULT_ONNX_OPSET):
-        if not isinstance(state.model, (torch.nn.Module, torch.jit.ScriptModule)):
+        if not isinstance(state.results, (torch.nn.Module, torch.jit.ScriptModule)):
             msg = f"""
             The current tool (ExportPytorchModel) is only compatible with
             models of type torch.nn.Module or torch.jit.ScriptModule, however
-            the tool received a model of type {type(state.model)}.
+            the tool received a model of type {type(state.results)}.
             """
             raise exp.ToolError(msg)
 
@@ -79,9 +80,9 @@ class ExportPytorchModel(Tool):
         # The dictionary must be last item in tuple.
         user_provided_args = list(state.inputs.keys())
 
-        if isinstance(state.model, torch.nn.Module):
+        if isinstance(state.results, torch.nn.Module):
             # Validate user provided args
-            all_args = list(inspect.signature(state.model.forward).parameters.keys())
+            all_args = list(inspect.signature(state.results.forward).parameters.keys())
 
             for inp in user_provided_args:
                 if inp not in all_args:
@@ -114,7 +115,7 @@ class ExportPytorchModel(Tool):
             # Create tuple: (first input, {rest of user_args dict as keyword args})
             dummy_inputs = (first_input, user_args)
 
-        else:  # state.model is a torch.jit.ScriptModule
+        else:  # state.results is a torch.jit.ScriptModule
             dummy_inputs = tuple(state.inputs.values())
 
             # Collect input names
@@ -130,7 +131,7 @@ class ExportPytorchModel(Tool):
         os.makedirs(onnx_helpers.onnx_dir(state), exist_ok=True)
 
         torch.onnx.export(
-            state.model,
+            state.results,
             dummy_inputs,
             output_path,
             input_names=dummy_input_names,
@@ -185,9 +186,9 @@ class VerifyOnnxExporter(Tool):
         discover -> verify-exporter -> export-pytorch -> other tools
 
     Expected inputs:
-     - state.model is a torch.nn.Module or torch.jit.ScriptModule
-     - state.inputs is a dict that represents valid kwargs to the forward
-        function of state.model
+     - state.results: torch.nn.Module or torch.jit.ScriptModule
+     - state.inputs: dict that represents valid kwargs to the forward
+        function of state.results
 
     Outputs: No change to state
     """
@@ -199,8 +200,8 @@ class VerifyOnnxExporter(Tool):
 
     @staticmethod
     def parser(add_help: bool = True) -> argparse.ArgumentParser:
-        parser = argparse.ArgumentParser(
-            description="Verify if model can be exported to ONNX without major "
+        parser = __class__.helpful_parser(
+            short_description="Verify if model can be exported to ONNX without major "
             "numerical discrepancies",
             add_help=add_help,
         )
@@ -220,7 +221,7 @@ class VerifyOnnxExporter(Tool):
             # The `torch.onnx.verification.find_mismatch()` takes input arguments to the
             # model as `input_args (Tuple[Any, ...])`
             export_verification = torch.onnx.verification.find_mismatch(
-                state.model,
+                state.results,
                 tuple(state.inputs.values()),
                 opset_version=state.onnx_opset,
                 options=fp32_tolerance,

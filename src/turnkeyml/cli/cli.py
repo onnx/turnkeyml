@@ -1,13 +1,11 @@
 import argparse
 import sys
 import os
-import textwrap as _textwrap
-import re
 from difflib import get_close_matches
 from typing import List
 import turnkeyml.common.filesystem as fs
 from turnkeyml.sequence import Sequence
-from turnkeyml.tools import Tool, FirstTool
+from turnkeyml.tools import Tool, FirstTool, NiceHelpFormatter
 from turnkeyml.sequence.tool_plugins import SUPPORTED_TOOLS
 from turnkeyml.cli.spawn import DEFAULT_TIMEOUT_SECONDS
 from turnkeyml.files_api import evaluate_files
@@ -23,29 +21,6 @@ class CustomArgumentParser(argparse.ArgumentParser):
         self.exit(2)
 
 
-class PreserveWhiteSpaceWrapRawTextHelpFormatter(argparse.RawDescriptionHelpFormatter):
-    def __add_whitespace(self, idx, amount, text):
-        if idx == 0:
-            return text
-        return (" " * amount) + text
-
-    def _split_lines(self, text, width):
-        textRows = text.splitlines()
-        for idx, line in enumerate(textRows):
-            search = re.search(r"\s*[0-9\-]{0,}\.?\s*", line)
-            if line.strip() == "":
-                textRows[idx] = " "
-            elif search:
-                whitespace_needed = search.end()
-                lines = [
-                    self.__add_whitespace(i, whitespace_needed, x)
-                    for i, x in enumerate(_textwrap.wrap(line, width))
-                ]
-                textRows[idx] = lines
-
-        return [item for sublist in textRows for item in sublist]
-
-
 def _tool_list_help(tools: List[Tool], subclass, exclude=None) -> str:
     help = ""
 
@@ -55,7 +30,7 @@ def _tool_list_help(tools: List[Tool], subclass, exclude=None) -> str:
         if issubclass(tool_class, subclass):
             help = (
                 help
-                + f" * {tool_class.unique_name}: {tool_class.parser().description}\n"
+                + f" * {tool_class.unique_name}: {tool_class.parser().short_description}\n"
             )
 
     return help
@@ -95,11 +70,12 @@ def main():
 
     # Define the argument parser
     parser = CustomArgumentParser(
-        description="Turnkey build of AI models. "
-        "This utility runs tools in a sequence. "
+        description="This utility runs tools in a sequence. "
         "To use it, provide a list of tools and "
-        "their arguments.",
-        formatter_class=PreserveWhiteSpaceWrapRawTextHelpFormatter,
+        "their arguments. See "
+        "https://github.com/onnx/turnkeyml/blob/main/docs/tools_user_guide.md "
+        "to learn the exact syntax.\n\nExample: turnkey -i my_model.py discover export-pytorch",
+        formatter_class=NiceHelpFormatter,
     )
 
     # Sort tools into categories and format for the help menu
@@ -142,7 +118,7 @@ Management tool choices:
     parser.add_argument(
         "-d",
         "--cache-dir",
-        help="Build cache directory where the resulting build directories will "
+        help="Build cache directory where results will "
         f"be stored (defaults to {fs.DEFAULT_CACHE_DIR})",
         required=False,
         default=fs.DEFAULT_CACHE_DIR,
@@ -151,14 +127,14 @@ Management tool choices:
     parser.add_argument(
         "--lean-cache",
         dest="lean_cache",
-        help="Delete all build artifacts except for log files when the command completes",
+        help="Delete all build artifacts (e.g., .onnx files) when the command completes",
         action="store_true",
     )
 
     parser.add_argument(
         "--labels",
         dest="labels",
-        help="Only benchmark the scripts that have the provided labels",
+        help="Filter the --input-files to only include files that have the provided labels",
         nargs="*",
         default=[],
     )

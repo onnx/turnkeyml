@@ -5,6 +5,7 @@ from typing import List
 import turnkeyml.common.filesystem as fs
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.printing as printing
+from turnkeyml.tools.tool import ToolParser
 from turnkeyml.version import __version__ as turnkey_version
 
 
@@ -15,6 +16,21 @@ class ManagementTool(abc.ABC):
     """
 
     unique_name: str
+
+    @classmethod
+    def helpful_parser(cls, short_description: str, **kwargs):
+        epilog = (
+            f"`{cls.unique_name}` is a Management Tool. It is intended to be invoked by itself "
+            "(i.e., not as part of a sequence), to accomplish a utility function. "
+        )
+
+        return ToolParser(
+            prog=f"turnkey {cls.unique_name}",
+            short_description=short_description,
+            description=cls.__doc__,
+            epilog=epilog,
+            **kwargs,
+        )
 
     @staticmethod
     @abc.abstractmethod
@@ -71,8 +87,8 @@ class Version(ManagementTool):
 
     @staticmethod
     def parser(add_help: bool = True) -> argparse.ArgumentParser:
-        parser = argparse.ArgumentParser(
-            description="Print the turnkeyml version number",
+        parser = __class__.helpful_parser(
+            short_description="Print the turnkeyml version number",
             add_help=add_help,
         )
 
@@ -83,8 +99,10 @@ class Version(ManagementTool):
 
 
 class Cache(ManagementTool):
-    """
-    Wraps a set of tools for managing the turnkey build cache.
+    f"""
+    A set of functions for managing the turnkey build cache. The default
+    cache location is {fs.DEFAULT_CACHE_DIR}, and can also be selected with
+    the global --cache-dir option or the TURNKEY_CACHE_DIR environment variable.
 
     Users must set either "--all" or "--build-names" to let the tool
     know what builds to operate on.
@@ -101,9 +119,8 @@ class Cache(ManagementTool):
         # NOTE: `--cache-dir` is set as a global input to the turnkey CLI and
         # passed directly to the `run()` method
 
-        parser = argparse.ArgumentParser(
-            description="Manage the turnkey build cache "
-            f"(default location {fs.DEFAULT_CACHE_DIR}, select with the --cache-dir option)",
+        parser = __class__.helpful_parser(
+            short_description="Manage the turnkey build cache " f"",
             add_help=add_help,
         )
 
@@ -216,15 +233,20 @@ class Cache(ManagementTool):
 
 class ModelsLocation(ManagementTool):
     """
-    Prints the location of the turnkeyml built in models corpus.
+    Prints the location of the turnkeyml built in models corpora.
+
+    This is especially useful for when turnkey was installed from PyPI
+    with `pip install turnkeyml`. Example usage in this context:
+        models=$(turnkey models-location --quiet)
+        turnkey -i $models/selftest/linear.py discover export-pytorch
     """
 
     unique_name = "models-location"
 
     @staticmethod
     def parser(add_help: bool = True) -> argparse.ArgumentParser:
-        parser = argparse.ArgumentParser(
-            description="Print the turnkeyml version number",
+        parser = __class__.helpful_parser(
+            short_description="Print the location of the built-in turnkeyml models",
             add_help=add_help,
         )
 
@@ -232,7 +254,7 @@ class ModelsLocation(ManagementTool):
             "-q",
             "--quiet",
             action="store_true",
-            help="Print the location of the turnkeyml models corpus",
+            help="Print only the file path, with no other text",
         )
 
         return parser

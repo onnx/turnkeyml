@@ -5,7 +5,15 @@ The TurnkeyML package provides a CLI, `turnkey`, and Python API for evaluating m
 # Table of Contents
 - [Learning the Tools](#learning-the-tools)
 - [Running the Tools](#running-the-tools)
-- 
+- [Important Concepts](#concepts)
+  - [Model Discovery](#model-discovery)
+  - [Providing Input Files](#providing-input-files)
+  - [File Labels](#file-labels)
+  - [Cache Directory](#cache-directory)
+  - [Process Isolation](#process-isolation)
+  - [Use Slurm](#use-slurm)
+- [Environment Variables](#environment-variables)
+
 
 ## Learning the Tools
 
@@ -15,7 +23,7 @@ Use `turnkey -h` to display the help page for the CLI. This page has two main se
 
 Most tools are called in a sequence, where the order of the tools in the sequence determines the order they run. State is passed from one tool to the next. 
 
-There is a special class of tools that can start a sequence (ie, **first tools**), and after that any tool can run in any order as long as it is compatible with the incoming state from the previous tool.
+There is a special class of tools that can start a sequence (i.e., **first tools**), and after that any tool can run in any order as long as it is compatible with the incoming state from the previous tool.
 
 There is another special kind of tool: **management tools**. These provide some management function, such as printing the package version number, and are not intended to run in a sequence with any other tool.
 
@@ -46,7 +54,7 @@ Let's break that down:
     - For example, `--cache-dir ~/my_turnkey_cache` would inform all `Tools` that their results should be placed under `~/my_turnkey_cache`
 1. `tool-one` is the first tool in the sequence, and it must match one of the tool names from the **first tools** list.
 1. `--arg1 value1` is an optional argument passed to `tool-one`.
-    - We know that it is passed to `tool-one`, not globally or to `tool-two`, because syntatically it comes after `tool-one` in the command.
+    - We know that it is passed to `tool-one`, not globally or to `tool-two`, because syntactically it comes after `tool-one` in the command.
     - For example, `--opset 18` is an argument that can be passed to `export-pytorch`.
     - You can learn what optional arguments are supported for each tool by running `turnkey <tool name> -h`.
 1. `tool-two` is the name of the second tool in the sequence.
@@ -134,7 +142,7 @@ For example: `turnkey -i models/*/*.py --labels task::Computer_Vision` will skip
 
 ### Cache Directory
 
-The results of all `Tools` are stored in a cache direcetory. The cache location defaults to `~/.cache/turnkey`, but it can also be set via the `--cache-dir` global argument or `TURNKEY_CACHE_DIR` environment variable (the former takes precedence over the latter).
+The results of all `Tools` are stored in a cache directory. The cache location defaults to `~/.cache/turnkey`, but it can also be set via the `--cache-dir` global argument or `TURNKEY_CACHE_DIR` environment variable (the former takes precedence over the latter).
 
 Each run of a sequence on an input stores all of its results under a single **build directory** within the cache directory. The build name is automatically selected based on the input name, `author` label (if available), and model hash (if manually provided).
 
@@ -170,7 +178,7 @@ Usage:
 - `turnkey -i INPUT_FILES --use-slurm --timeout TIMEOUT`
   - Use Slurm to run turnkey on INPUT_FILES.
 - `turnkey -i SEARCH_DIR/*.py --use-slurm --timeout TIMEOUT`
-  - Use Slurm to run turnkey on all scripts in the search directory. Each script is evaluated as its on Slurm job (ie, all scripts can be evaluated in parallel on a sufficiently large Slurm cluster).
+  - Use Slurm to run turnkey on all scripts in the search directory. Each script is evaluated as its on Slurm job (i.e., all scripts can be evaluated in parallel on a sufficiently large Slurm cluster).
 
 > _Note_: Requires setting up Slurm as shown [here](https://github.com/onnx/turnkeyml/blob/main/docs/install.md).
 

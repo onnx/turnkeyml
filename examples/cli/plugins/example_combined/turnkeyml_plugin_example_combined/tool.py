@@ -18,8 +18,8 @@ class CombinedExampleTool(Tool):
 
     @staticmethod
     def parser(add_help: bool = True) -> argparse.ArgumentParser:
-        parser = argparse.ArgumentParser(
-            description="This is an examples tool from the combined example",
+        parser = __class__.helpful_parser(
+            short_description="This is an examples tool from the combined example",
             add_help=add_help,
         )
 

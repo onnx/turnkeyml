@@ -59,8 +59,6 @@ class State:
     def __init__(
         self,
         cache_dir: str,
-        model: Optional[build.UnionValidModelInstanceTypes] = None,
-        inputs: Optional[Dict[str, Any]] = None,
         monitor: Optional[bool] = None,
         build_name: Optional[str] = None,
         sequence_info: Dict[str, Dict] = None,
@@ -84,8 +82,6 @@ class State:
         parsed_cache_dir = os.path.expanduser(cache_dir)
 
         # Save settings as State members
-        self.model = model
-        self.inputs = inputs
         self.monitor = monitor_setting
         self.cache_dir = parsed_cache_dir
         self.build_name = build_name
@@ -96,16 +92,6 @@ class State:
         self.uid = build.unique_id()
         self.results = None
 
-        if inputs is not None:
-            self.expected_input_shapes, self.expected_input_dtypes = (
-                build.get_shapes_and_dtypes(inputs)
-            )
-        else:
-            self.expected_input_shapes, self.expected_input_dtypes = None, None
-
-        if self.model is not None:
-            self.model_hash = build.hash_model(self.model)
-
         # Store any additional kwargs as members
         for key, value in kwargs.items():
             self.__dict__[key] = value
@@ -113,7 +99,7 @@ class State:
     def __setattr__(self, name: str, value: Any) -> None:
         """
         Tool developers can add a new member to State by simply
-        assigning it as an attribute, ie `state.new_member = value`.
+        assigning it as an attribute, i.e., `state.new_member = value`.
         """
         return super().__setattr__(name, value)
 

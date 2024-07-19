@@ -10,7 +10,7 @@ This project is tested using `ubuntu-latest` and `windows-latest`. `ubuntu-lates
 
 ### Step 1: Miniconda environment setup
 
-We hughly recommend the use of [miniconda](https://docs.conda.io/en/latest/miniconda.html) environments when:
+We highly recommend the use of [miniconda](https://docs.conda.io/en/latest/miniconda.html) environments when:
 
 If you are installing TurnkeyML on **Linux**, simply run the command below:
 ```

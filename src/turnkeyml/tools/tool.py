@@ -3,6 +3,8 @@ import sys
 import time
 import os
 import argparse
+import textwrap as _textwrap
+import re
 from typing import Tuple, Dict
 from multiprocessing import Process
 import psutil
@@ -56,7 +58,31 @@ def _name_is_file_safe(name: str):
             raise ValueError(msg)
 
 
+class NiceHelpFormatter(argparse.RawDescriptionHelpFormatter):
+    def __add_whitespace(self, idx, amount, text):
+        if idx == 0:
+            return text
+        return (" " * amount) + text
+
+    def _split_lines(self, text, width):
+        textRows = text.splitlines()
+        for idx, line in enumerate(textRows):
+            search = re.search(r"\s*[0-9\-]{0,}\.?\s*", line)
+            if line.strip() == "":
+                textRows[idx] = " "
+            elif search:
+                whitespace_needed = search.end()
+                lines = [
+                    self.__add_whitespace(i, whitespace_needed, x)
+                    for i, x in enumerate(_textwrap.wrap(line, width))
+                ]
+                textRows[idx] = lines
+
+        return [item for sublist in textRows for item in sublist]
+
+
 class ToolParser(argparse.ArgumentParser):
+
     def error(self, message):
         if message.startswith("unrecognized arguments"):
             unrecognized = message.split(": ")[1]
@@ -71,22 +97,38 @@ class ToolParser(argparse.ArgumentParser):
         printing.log_error(message)
         self.exit(2)
 
+    def __init__(
+        self, short_description: str, description: str, prog: str, epilog: str, **kwargs
+    ):
+        super().__init__(
+            description=description,
+            prog=prog,
+            epilog=epilog,
+            formatter_class=NiceHelpFormatter,
+            **kwargs,
+        )
+
+        self.short_description = short_description
+
 
 class Tool(abc.ABC):
 
     unique_name: str
 
     @classmethod
-    def helpful_parser(cls, description: str, **kwargs):
+    def helpful_parser(cls, short_description: str, **kwargs):
         epilog = (
             f"`{cls.unique_name}` is a Tool. It is intended to be invoked as "
             "part of a sequence of Tools, for example: `turnkey -i INPUTS tool-one "
-            "tool-two tool-three`"
+            "tool-two tool-three`. Tools communicate data to each other via State. "
+            "You can learn more at "
+            "https://github.com/onnx/turnkeyml/blob/main/docs/tools_user_guide.md#learning-the-tools"
         )
 
         return ToolParser(
             prog=f"turnkey {cls.unique_name}",
-            description=description,
+            short_description=short_description,
+            description=cls.__doc__,
             epilog=epilog,
             **kwargs,
         )
@@ -250,8 +292,8 @@ class FirstTool(Tool):
     """
 
     @classmethod
-    def helpful_parser(cls, description: str, **kwargs):
-        parser = super().helpful_parser(description, **kwargs)
+    def helpful_parser(cls, short_description: str, **kwargs):
+        parser = super().helpful_parser(short_description, **kwargs)
 
         # Argument required by TurnkeyML for any tool that starts a sequence
         parser.add_argument("--input", help=argparse.SUPPRESS)

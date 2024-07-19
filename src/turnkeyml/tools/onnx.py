@@ -49,11 +49,12 @@ class LoadOnnx(FirstTool):
     Tool that takes an ONNX model as input and passes it to the following
     tools.
 
-    Expected inputs: None
+    Expected inputs:
+     - Input: a .onnx file
 
     Outputs:
-     - state.result is an ONNX file
-     - state.inputs are valid inputs to that ONNX file
+     - state.result: a .onnx file that has been copied to the turnkey cache
+     - state.inputs: valid inputs to that .onnx file
     """
 
     unique_name = "load-onnx"
@@ -64,7 +65,7 @@ class LoadOnnx(FirstTool):
     @staticmethod
     def parser(add_help: bool = True) -> argparse.ArgumentParser:
         parser = __class__.helpful_parser(
-            description="Load an ONNX model",
+            short_description="Load an ONNX model",
             add_help=add_help,
         )
 
@@ -180,15 +181,15 @@ class LoadOnnx(FirstTool):
 
 class OptimizeOnnxModel(Tool):
     """
-    Tool that takes an ONNX file and uses ONNX Runtime to optimize it.
-    Important because this helps to perform constant folding, Redundant
-    node eliminations, Semantics-preserving node fusions
+    Tool that takes a .onnx file and uses ONNX Runtime to optimize it by
+    performing constant folding, redundant node eliminations,
+    semantics-preserving node fusions, etc.
 
     Expected inputs:
-     - state.results contains a single .onnx file
+     - state.results: a .onnx file
 
     Outputs:
-     - A *-opt.onnx file
+     - state.results: a *-opt.onnx file
     """
 
     unique_name = "optimize-ort"
@@ -199,7 +200,7 @@ class OptimizeOnnxModel(Tool):
     @staticmethod
     def parser(add_help: bool = True) -> argparse.ArgumentParser:
         parser = __class__.helpful_parser(
-            description="Use OnnxRuntime to optimize an ONNX model",
+            short_description="Use OnnxRuntime to optimize an ONNX model",
             add_help=add_help,
         )
 
@@ -255,10 +256,10 @@ class ConvertOnnxToFp16(Tool):
     to fp16.
 
     Expected inputs:
-     - state.results contains a single .onnx file
+     - state.results: a .onnx file
 
     Outputs:
-     - A *-f16.onnx file with FP16 trained parameters
+     - state.results: a *-f16.onnx file with FP16 trained parameters
     """
 
     unique_name = "convert-fp16"
@@ -271,7 +272,7 @@ class ConvertOnnxToFp16(Tool):
     @staticmethod
     def parser(add_help: bool = True) -> argparse.ArgumentParser:
         parser = __class__.helpful_parser(
-            description="Use OnnxMLTools to convert an ONNX model to fp16",
+            short_description="Use OnnxMLTools to convert an ONNX model to fp16",
             add_help=add_help,
         )
 
@@ -297,7 +298,7 @@ class ConvertOnnxToFp16(Tool):
         op_block_list = onnxmltools.utils.float16_converter.DEFAULT_OP_BLOCK_LIST.copy()
         for op in legalize_ops:
             # Check to see that they are not in the block list before we remove them
-            # Neccesary because the block list may be updated, and not in the state we expect
+            # Necessary because the block list may be updated, and not in the state we expect
             if op in op_block_list:
                 op_block_list.remove(op)
 
