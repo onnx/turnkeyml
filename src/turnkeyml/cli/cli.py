@@ -83,7 +83,7 @@ def main():
     eval_tool_choices = _tool_list_help(SUPPORTED_TOOLS, Tool, exclude=FirstTool)
     mgmt_tool_choices = _tool_list_help(SUPPORTED_TOOLS, ManagementTool)
 
-    parser.add_argument(
+    tools_action = parser.add_argument(
         "tools",
         metavar="tool --tool-args [tool --tool-args...]",
         nargs="?",
