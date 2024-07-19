@@ -20,14 +20,14 @@ Here's `turnkey` in action: BERT-Base is exported from PyTorch to ONNX using `to
 
 Breaking it down:
 
-1. `turnkey -i bert.py` feeds [`bert.py`](https://github.com/onnx/turnkeyml/blob/main/models/transformers/bert.py), a basic PyTorch script that instantiates BERT, into the tool sequence, starting with...
+1. `turnkey -i bert.py` feeds [`bert.py`](https://github.com/onnx/turnkeyml/blob/main/models/transformers/bert.py), a minimal PyTorch script that instantiates BERT, into the tool sequence, starting with...
 1. `discover` is a tool that finds the PyTorch model in a script and passes it to the next tool, which is...
 1. `export-pytorch`, which takes a PyTorch model and converts it to an ONNX model, then passes it to...
 1. `optimize-ort`, which uses `onnxruntime` to optimize the model's compute graph, then passes it to...
 1. `convert-fp16`, which uses `onnxmltools` to convert the ONNX file into fp16.
 1. Finally, the result is printed, and we can see that the requested `.onnx` files have been produced.
 
-All without writing a single line of code or learning how to use any of the underlying ecosystem modules 🚀
+All without writing a single line of code or learning how to use any of the underlying ONNX ecosystem tools 🚀
 
 ## How It Works
 
@@ -51,14 +51,17 @@ A full command with an arguments could look like:
 > turnkey -i bert.py discover export-pytorch --opset 18 optimize-ort conver-fp16
 ```
 
-Learn more by running `turnkey -h`. To learn about a specific tool, run `turnkey <tool> -h`, for example `turnkey export-pytorch -h`.
-
 ## Learn More
 
-- [Installation guide](https://github.com/onnx/turnkeyml/blob/main/docs/install.md)
-- [Tutorials](https://github.com/onnx/turnkeyml/tree/main/examples/cli)
-- [User guide](https://github.com/onnx/turnkeyml/blob/main/docs/tools_user_guide.md)
-- [Code organization guide](https://github.com/onnx/turnkeyml/blob/main/docs/code.md)
+The easiest way to learn more about `turnkey` is to explore the help menu with `turnkey -h`. To learn about a specific tool, run `turnkey <tool name> -h`, for example `turnkey export-pytorch -h`.
+
+We also provide the following resources:
+
+- [Installation guide](https://github.com/onnx/turnkeyml/blob/main/docs/install.md): how to install from source, set up Slurm, etc.
+- [User guide](https://github.com/onnx/turnkeyml/blob/main/docs/tools_user_guide.md): explains `turnkey's` concepts, including the syntax for making your own tool sequence.
+- [Examples](https://github.com/onnx/turnkeyml/tree/main/examples/cli): PyTorch scripts and ONNX files that can be used to try out `turnkey` concepts.
+- [Code organization guide](https://github.com/onnx/turnkeyml/blob/main/docs/code.md): learn how this repository is structured.
+- [Models](https://github.com/onnx/turnkeyml/blob/main/models/readme.md): PyTorch model scripts that work with `turnkey`.
 
 ## Mass Evaluation
 

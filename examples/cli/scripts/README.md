@@ -11,4 +11,5 @@ This will discover the model within `hello_world.py` and export it to ONNX.
 See the docstring in each script for more information.
 - `hello_world.py`: example with a single-layer PyTorch model.
 - `max_depth.py`: example with a multi-layer PyTorch model, to try out the `discover --max-depth DEPTH` option.
-- `multiple_invocations.py` and `two_models.py`: examples where more than one model invocation will be discovered.
+- `multiple_invocations.py`: example where a model is invoked multiple times with different input shapes. Discovery treats each unique invocation separately, since exporting them to ONNX will result in different ONNX files.
+`two_models.py`: example where two different models are discovered.
