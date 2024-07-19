@@ -217,11 +217,11 @@ Management tool choices:
 
     if len(management_tools) == 0 and len(evaluation_tools) == 0:
         parser.error(
-            "Calls to tunrkey are required to call at least "
+            "Calls to turnkey are required to call at least "
             "one tool or management tool."
         )
 
-    # Convert tool names into Tool instaces
+    # Convert tool names into Tool instances
     tool_instances = {tool_classes[cmd](): argv for cmd, argv in tools_invoked.items()}
 
     if len(evaluation_tools) > 0:
