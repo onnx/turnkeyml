@@ -12,7 +12,6 @@ from threading import Event, Lock, Thread
 from time import monotonic
 import getpass
 from typing import List, Optional, Dict, Union
-from enum import Enum
 import psutil
 import turnkeyml.common.filesystem as filesystem
 import turnkeyml.common.printing as printing
@@ -122,11 +121,6 @@ else:
     DEFAULT_TIMEOUT_SECONDS = 3600
 
 
-class Target(Enum):
-    SLURM = "slurm"
-    LOCAL_PROCESS = "local_process"
-
-
 def slurm_jobs_in_queue(job_name=None) -> List[str]:
     """Return the set of slurm jobs that are currently pending/running"""
     user = getpass.getuser()
@@ -197,13 +191,14 @@ def run_turnkey(
     build_name: str,
     sequence: Sequence,
     file_name: str,
-    target: Target,
+    process_isolation: bool,
+    use_slurm: bool,
     cache_dir: str,
+    lean_cache: bool,
     timeout: Optional[int] = DEFAULT_TIMEOUT_SECONDS,
     working_dir: str = os.getcwd(),
     ml_cache_dir: Optional[str] = os.environ.get("SLURM_ML_CACHE"),
     max_jobs: int = 50,
-    **kwargs,
 ):
     """
     Run turnkey on a single input file in a separate process (e.g., Slurm, subprocess).
@@ -212,6 +207,11 @@ def run_turnkey(
     kwargs must also match the following format:
       The key must be the snake_case version of the CLI argument (e.g, build_only for --build-only)
     """
+
+    if use_slurm and process_isolation:
+        raise ValueError(
+            "use_slurm and process_isolation are mutually exclusive, but both are True"
+        )
 
     type_to_formatter = {
         str: value_arg,
@@ -225,7 +225,7 @@ def run_turnkey(
 
     # Add cache_dir to kwargs so that it gets processed
     # with the other arguments
-    kwargs["cache_dir"] = cache_dir
+    kwargs = {"cache_dir": cache_dir, "lean_cache": lean_cache}
 
     for key, value in kwargs.items():
         if value is not None:
@@ -234,7 +234,7 @@ def run_turnkey(
 
     invocation_args = invocation_args + " " + sequence_arg(sequence)
 
-    if target == Target.SLURM:
+    if use_slurm:
         # Change args into the format expected by Slurm
         slurm_args = " ".join(shlex.split(invocation_args))
 
@@ -276,7 +276,7 @@ def run_turnkey(
 
         print(f"Submitting job {job_name} to Slurm")
         subprocess.check_call(slurm_command)
-    elif target == Target.LOCAL_PROCESS:
+    else:  # process isolation
         command = "turnkey " + invocation_args
         printing.log_info(f"Starting process with command: {command}")
 
@@ -373,6 +373,3 @@ def run_turnkey(
                         "Stats file found, but unable to perform cleanup due to "
                         f"exception: {stats_exception}"
                     )
-
-    else:
-        raise ValueError(f"Unsupported value for target: {target}.")

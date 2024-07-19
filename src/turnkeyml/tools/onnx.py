@@ -7,7 +7,7 @@ import numpy as np
 import onnxruntime
 import onnxmltools
 import onnx
-from turnkeyml.tools import Tool
+from turnkeyml.tools import Tool, FirstTool
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.build as build
 import turnkeyml.common.tensor_helpers as tensor_helpers
@@ -44,7 +44,7 @@ def converted_onnx_file(state: State):
     )
 
 
-class LoadOnnx(Tool):
+class LoadOnnx(FirstTool):
     """
     Tool that takes an ONNX model as input and passes it to the following
     tools.
@@ -67,9 +67,6 @@ class LoadOnnx(Tool):
             description="Load an ONNX model",
             add_help=add_help,
         )
-
-        # Hidden argument required by TurnkeyML for any tool that starts a sequence
-        parser.add_argument("--input", help=argparse.SUPPRESS)
 
         return parser
 

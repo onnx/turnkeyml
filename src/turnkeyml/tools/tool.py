@@ -235,3 +235,31 @@ class Tool(abc.ABC):
                 self.progress.terminate()
 
         return state
+
+
+class FirstTool(Tool):
+    """
+    Provides extra features for Tools that are meant to be the first Tool
+    in the sequence.
+
+    Specifically:
+        - FirstTools should not have any expectations of State.result, since
+            they populate State with an initial result.
+        - All FirstTools implicitly take an `input` argument that points to
+            the input to that Tool, for example an ONNX file or PyTorch script.
+    """
+
+    @classmethod
+    def helpful_parser(cls, description: str, **kwargs):
+        parser = super().helpful_parser(description, **kwargs)
+
+        # Argument required by TurnkeyML for any tool that starts a sequence
+        parser.add_argument("--input", help=argparse.SUPPRESS)
+
+        return parser
+
+    @abc.abstractmethod
+    def run(self, state: State, input=None) -> State:
+        """
+        The run() method of any FirstTool must accept the `input` argument
+        """

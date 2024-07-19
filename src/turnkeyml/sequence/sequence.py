@@ -1,7 +1,9 @@
 import sys
 import time
 import os
-from typing import List, Dict
+import copy
+from datetime import datetime
+from typing import List, Dict, Optional
 import turnkeyml.common.printing as printing
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.build as build
@@ -66,10 +68,31 @@ class Sequence:
 
             _rewind_stdout(len(self.tools))
 
-    def launch(self, state: State) -> State:
+    def _advance_cursor(self, current_tool_name: str):
+        # Advance the cursor below the monitor so
+        # we can print a message
+        tool_depth_in_sequence = len(self.tool_names) - self.tool_names.index(
+            current_tool_name
+        )
+        stdout_lines_to_advance = tool_depth_in_sequence - 2
+        cursor_down = "\n" * stdout_lines_to_advance
+
+        print(cursor_down)
+
+    def launch(
+        self,
+        state: State,
+        lean_cache: bool = False,
+        stats_to_save: Optional[Dict] = None,
+    ) -> State:
         """
         Executes the sequence of tools.
         """
+
+        # Create a build directory in the cache
+        fs.make_build_dir(state.cache_dir, state.build_name)
+
+        self.show_monitor(state, state.monitor)
 
         if state.build_status == build.FunctionStatus.SUCCESSFUL:
             msg = """
@@ -79,6 +102,29 @@ class Sequence:
             please file an issue at https://github.com/onnx/turnkeyml/issues
             """
             raise exp.Error(msg)
+
+        # Keep a copy of any stats we loaded from disk, in case we need to
+        # restore them later
+        saved_stats = copy.deepcopy(fs.Stats(state.cache_dir, state.build_name).stats)
+
+        # Indicate that the build is running. If the build fails for any reason,
+        # we will try to catch the exception and note it in the stats.
+        # If a concluded build still has a status of "running", this means
+        # there was an uncaught exception.
+        state.save_stat(fs.Keys.BUILD_STATUS, build.FunctionStatus.INCOMPLETE)
+
+        # Save a timestamp so that we know the order of builds within a cache
+        state.save_stat(
+            fs.Keys.TIMESTAMP,
+            datetime.now(),
+        )
+
+        # Save the system information used for this build
+        system_info = build.get_system_info()
+        state.save_stat(
+            fs.Keys.SYSTEM_INFO,
+            system_info,
+        )
 
         # Collect telemetry for the build
         state.save_stat(
@@ -90,6 +136,11 @@ class Sequence:
         for tool in self.tools:
             state.save_stat(tool.status_key, build.FunctionStatus.NOT_STARTED)
             state.save_stat(tool.duration_key, "-")
+
+        # Save any additional stats passed in via arguments
+        if stats_to_save:
+            for stat_key, stat_value in stats_to_save.items():
+                state.save_stat(stat_key, stat_value)
 
         # Run the build
         saved_exception = None
@@ -110,6 +161,24 @@ class Sequence:
                 # Save the state so that it can be assessed for a cache hit
                 state.save()
 
+            except exp.SkipBuild as e:
+                # SkipBuild is a special exception, which means that a build
+                # was loaded from disk, then we realized we want to skip it.
+                # In order to preserve the original stats and state of the build,
+                # we need to restore the stats file to what it was at the beginning
+                # of this function call. We also need to avoid calling state.save().
+
+                # Restore the prior stats
+                fs.save_yaml(
+                    saved_stats, fs.Stats(state.cache_dir, state.build_name).file
+                )
+
+                # Advance the cursor below the monitor so
+                # we can print a message
+                self._advance_cursor(tool.unique_name)
+                printing.log_warning(str(e))
+                return
+
             # Broad exception is desirable as we want to capture
             # all exceptions (including those we can't anticipate)
             except Exception as e:  # pylint: disable=broad-except
@@ -129,14 +198,8 @@ class Sequence:
                 stats.save_eval_error_log(tool.logfile_path)
 
                 # Advance the cursor below the monitor so
-                # we can print an error message
-                tool_depth_in_sequence = len(self.tool_names) - self.tool_names.index(
-                    tool.unique_name  # pylint: disable=undefined-loop-variable
-                )
-                stdout_lines_to_advance = tool_depth_in_sequence - 2
-                cursor_down = "\n" * stdout_lines_to_advance
-
-                print(cursor_down)
+                # we can print a message
+                self._advance_cursor(tool.unique_name)
 
                 if vars(state).get("invocation_info"):
                     state.invocation_info.status_message = f"Error: {e}."
@@ -188,7 +251,7 @@ class Sequence:
                 script_names_visited=[],
             )
 
-        if state.lean_cache:
+        if lean_cache:
             printing.log_info("Removing build artifacts...")
             fs.clean_output_dir(state.cache_dir, state.build_name)
 
@@ -196,6 +259,10 @@ class Sequence:
 
         if saved_exception:
             raise saved_exception
+
+        printing.log_success(
+            f"\n    Saved to **{build.output_dir(state.cache_dir, state.build_name)}**"
+        )
 
         return state
 

@@ -4,7 +4,7 @@ import os
 import inspect
 from typing import Optional, List
 import torch
-from turnkeyml.tools import Tool
+from turnkeyml.tools import FirstTool
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.filesystem as fs
 from turnkeyml.tools.discovery.script import (
@@ -18,7 +18,7 @@ from turnkeyml.state import State
 default_max_depth = 0
 
 
-class Discover(Tool):
+class Discover(FirstTool):
     """
     Discover the PyTorch models and their corresponding inputs in a python script (.py)
     and send one model/inputs pair onwards into the sequence.
@@ -57,9 +57,6 @@ class Discover(Tool):
             default=default_max_depth,
             help="Maximum depth to analyze within the model structure of the target script(s)",
         )
-
-        # Hidden argument required by TurnkeyML for any tool that starts a sequence
-        parser.add_argument("--input", help=argparse.SUPPRESS)
 
         return parser
 
