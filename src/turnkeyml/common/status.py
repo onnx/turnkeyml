@@ -213,6 +213,7 @@ class UniqueInvocationInfo(BasicInfo):
                     # "STATUS_STATS_KEY_units"
                     units_key = key + "_units"
                     units = stats.stats.get(units_key)
+                    units = units if units is not None else ""
                     printing.logn(f"{self.indent}\t\t\t{nice_key}:\t{value} {units}")
                 except KeyError:
                     # Ignore any keys that are missing because that means the
