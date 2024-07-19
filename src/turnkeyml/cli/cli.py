@@ -185,12 +185,18 @@ Management tool choices:
         else:
             tools_invoked[current_tool].append(cmd.pop(0))
 
+    # Trick argparse into thinking tools was not a positional argument
+    # this helps to avoid an error where an incorrect arg/value pair
+    # can be misinterpreted as the tools positional argument
+    tools_action.option_strings = "--tools"
+
     # Do one pass of parsing to figure out if -h was used
     global_args = vars(parser.parse_args(tools_invoked["globals"]))
+
     # Remove "tools" from global args because it was just there
     # as a placeholder
     global_args.pop("tools")
-    parser.parse_args(tools_invoked["globals"])
+
     # Remove globals from the list since its already been parsed
     tools_invoked.pop("globals")
     evaluation_tools = []
