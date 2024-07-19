@@ -99,7 +99,6 @@ def clean_file_name(script_path: str) -> str:
     """
     if script_path.endswith("_state.yaml"):
         return pathlib.Path(script_path).stem.replace("_state", "")
-        # return script_path.replace("_state.yaml", "")
     else:
         return pathlib.Path(script_path).stem
 
