@@ -33,10 +33,11 @@ class LoadBuild(FirstTool):
         that PyTorch model will not be available when the State file is loaded
         from disk.
 
-    Expected inputs: None
+    Expected inputs:
+    - Input file is a *_state.yaml file in a turnkey cache build directory
 
     Outputs:
-     - state has the contents of the state.yaml file of the target build.
+     - State has the contents of the state.yaml file of the target build.
     """
 
     unique_name = "load-build"
@@ -47,7 +48,7 @@ class LoadBuild(FirstTool):
     @staticmethod
     def parser(add_help: bool = True) -> argparse.ArgumentParser:
         parser = __class__.helpful_parser(
-            description="Load build state from the cache",
+            short_description="Load build state from the cache",
             add_help=add_help,
         )
 

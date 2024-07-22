@@ -4,7 +4,6 @@ from .tool import CombinedExampleTool
 implements = {
     "runtimes": {
         combined_rt_name: {
-            "build_required": True,
             "RuntimeClass": CombinedExampleRT,
             "supported_devices": {
                 "x86": {},

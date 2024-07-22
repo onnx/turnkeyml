@@ -36,7 +36,7 @@ class Benchmark(Tool):
     @staticmethod
     def parser(add_help: bool = True) -> argparse.ArgumentParser:
         parser = __class__.helpful_parser(
-            description="Benchmark a model",
+            short_description="Benchmark a model",
             add_help=add_help,
         )
 
@@ -151,20 +151,13 @@ class Benchmark(Tool):
         if runtime_info.get("status_stats"):
             self.status_stats += runtime_info.get("status_stats")
 
-        # FIXME: this wont be necessary once Discovery is a tool and
-        # it passes state.results
-        if state.results:
-            model_to_use = state.results
-        else:
-            model_to_use = state.model
-
         # Instantiate BaseRT for the selected runtime
         runtime_handle = runtime_info["RuntimeClass"](
             cache_dir=state.cache_dir,
             build_name=state.build_name,
             stats=fs.Stats(state.cache_dir, state.build_name),
             iterations=iterations,
-            model=model_to_use,
+            model=state.results,
             inputs=vars(state).get(fs.Keys.INPUTS),
             device_type=specific_device,
             runtime=selected_runtime,

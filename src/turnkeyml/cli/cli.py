@@ -1,13 +1,11 @@
 import argparse
 import sys
 import os
-import textwrap as _textwrap
-import re
 from difflib import get_close_matches
 from typing import List
 import turnkeyml.common.filesystem as fs
 from turnkeyml.sequence import Sequence
-from turnkeyml.tools import Tool, FirstTool
+from turnkeyml.tools import Tool, FirstTool, NiceHelpFormatter
 from turnkeyml.sequence.tool_plugins import SUPPORTED_TOOLS
 from turnkeyml.cli.spawn import DEFAULT_TIMEOUT_SECONDS
 from turnkeyml.files_api import evaluate_files
@@ -23,29 +21,6 @@ class CustomArgumentParser(argparse.ArgumentParser):
         self.exit(2)
 
 
-class PreserveWhiteSpaceWrapRawTextHelpFormatter(argparse.RawDescriptionHelpFormatter):
-    def __add_whitespace(self, idx, amount, text):
-        if idx == 0:
-            return text
-        return (" " * amount) + text
-
-    def _split_lines(self, text, width):
-        textRows = text.splitlines()
-        for idx, line in enumerate(textRows):
-            search = re.search(r"\s*[0-9\-]{0,}\.?\s*", line)
-            if line.strip() == "":
-                textRows[idx] = " "
-            elif search:
-                whitespace_needed = search.end()
-                lines = [
-                    self.__add_whitespace(i, whitespace_needed, x)
-                    for i, x in enumerate(_textwrap.wrap(line, width))
-                ]
-                textRows[idx] = lines
-
-        return [item for sublist in textRows for item in sublist]
-
-
 def _tool_list_help(tools: List[Tool], subclass, exclude=None) -> str:
     help = ""
 
@@ -55,7 +30,7 @@ def _tool_list_help(tools: List[Tool], subclass, exclude=None) -> str:
         if issubclass(tool_class, subclass):
             help = (
                 help
-                + f" * {tool_class.unique_name}: {tool_class.parser().description}\n"
+                + f" * {tool_class.unique_name}: {tool_class.parser().short_description}\n"
             )
 
     return help
@@ -68,7 +43,7 @@ def _check_extension(
     if not extension:
         close_matches = get_close_matches(file_name, tool_names)
         if close_matches:
-            # Mispelled tool names can be picked up as input files, so we check
+            # Misspelled tool names can be picked up as input files, so we check
             # for this case here and try to provide a better suggestion
             error_func(
                 f"unrecognized argument '{file_name}', did you mean '{close_matches[0]}'?"
@@ -95,11 +70,12 @@ def main():
 
     # Define the argument parser
     parser = CustomArgumentParser(
-        description="Turnkey build of AI models. "
-        "This utility runs tools in a sequence. "
+        description="This utility runs tools in a sequence. "
         "To use it, provide a list of tools and "
-        "their arguments.",
-        formatter_class=PreserveWhiteSpaceWrapRawTextHelpFormatter,
+        "their arguments. See "
+        "https://github.com/onnx/turnkeyml/blob/main/docs/tools_user_guide.md "
+        "to learn the exact syntax.\n\nExample: turnkey -i my_model.py discover export-pytorch",
+        formatter_class=NiceHelpFormatter,
     )
 
     # Sort tools into categories and format for the help menu
@@ -107,7 +83,7 @@ def main():
     eval_tool_choices = _tool_list_help(SUPPORTED_TOOLS, Tool, exclude=FirstTool)
     mgmt_tool_choices = _tool_list_help(SUPPORTED_TOOLS, ManagementTool)
 
-    parser.add_argument(
+    tools_action = parser.add_argument(
         "tools",
         metavar="tool --tool-args [tool --tool-args...]",
         nargs="?",
@@ -118,10 +94,8 @@ Call `turnkey TOOL -h` to learn more about each tool.
 
 Tools that can start a sequence:
 {first_tool_choices}
-
 Tools that go into a sequence:
 {eval_tool_choices}
-
 Management tool choices:
 {mgmt_tool_choices}""",
         choices=tool_parsers.keys(),
@@ -142,7 +116,7 @@ Management tool choices:
     parser.add_argument(
         "-d",
         "--cache-dir",
-        help="Build cache directory where the resulting build directories will "
+        help="Build cache directory where results will "
         f"be stored (defaults to {fs.DEFAULT_CACHE_DIR})",
         required=False,
         default=fs.DEFAULT_CACHE_DIR,
@@ -151,14 +125,14 @@ Management tool choices:
     parser.add_argument(
         "--lean-cache",
         dest="lean_cache",
-        help="Delete all build artifacts except for log files when the command completes",
+        help="Delete all build artifacts (e.g., .onnx files) when the command completes",
         action="store_true",
     )
 
     parser.add_argument(
         "--labels",
         dest="labels",
-        help="Only benchmark the scripts that have the provided labels",
+        help="Filter the --input-files to only include files that have the provided labels",
         nargs="*",
         default=[],
     )
@@ -211,12 +185,18 @@ Management tool choices:
         else:
             tools_invoked[current_tool].append(cmd.pop(0))
 
+    # Trick argparse into thinking tools was not a positional argument
+    # this helps to avoid an error where an incorrect arg/value pair
+    # can be misinterpreted as the tools positional argument
+    tools_action.option_strings = "--tools"
+
     # Do one pass of parsing to figure out if -h was used
     global_args = vars(parser.parse_args(tools_invoked["globals"]))
+
     # Remove "tools" from global args because it was just there
     # as a placeholder
     global_args.pop("tools")
-    parser.parse_args(tools_invoked["globals"])
+
     # Remove globals from the list since its already been parsed
     tools_invoked.pop("globals")
     evaluation_tools = []
@@ -243,11 +223,11 @@ Management tool choices:
 
     if len(management_tools) == 0 and len(evaluation_tools) == 0:
         parser.error(
-            "Calls to tunrkey are required to call at least "
+            "Calls to turnkey are required to call at least "
             "one tool or management tool."
         )
 
-    # Convert tool names into Tool instaces
+    # Convert tool names into Tool instances
     tool_instances = {tool_classes[cmd](): argv for cmd, argv in tools_invoked.items()}
 
     if len(evaluation_tools) > 0:
