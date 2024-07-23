@@ -10,15 +10,26 @@ We are on a mission to make it easy to use the most important tools in the ONNX 
 
 ## Getting Started
 
-Getting started is as simple as `pip install turnkeyml` for most users.
+The easiest way to get started is:
+1. `pip install turnkeyml`
+2. Copy a PyTorch example of a model, like the one on this [Huggingface BERT model card](https://huggingface.co/google-bert/bert-base-uncased), into a file named `bert.py`.
+```python
+from transformers import BertTokenizer, BertModel
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+model = BertModel.from_pretrained("bert-base-uncased")
+text = "Replace me by any text you'd like."
+encoded_input = tokenizer(text, return_tensors='pt')
+output = model(**encoded_input)
+```
+3. `turnkey -i bert.py discover export-pytorch`: make a BERT ONNX file from this `bert.py` example.
 
 ## Demo
 
-Here's `turnkey` in action: BERT-Base is exported from PyTorch to ONNX using `torch.onnx.export`, optimized for inference with `onnxruntime`, and converted to float16 with `onnxmltools`:
+Here's `turnkey` in action: BERT-Base is exported from PyTorch to ONNX using `torch.onnx.export`, optimized for inference with `onnxruntime`, and converted to fp16 with `onnxmltools`:
 
 ![Basic Demo Video](img/basic_demo.gif)
 
-Breaking it down:
+Breaking down the command `turnkey -i bert.py discover export-pytorch optimize-ort convert-fp16`:
 
 1. `turnkey -i bert.py` feeds [`bert.py`](https://github.com/onnx/turnkeyml/blob/main/models/transformers/bert.py), a minimal PyTorch script that instantiates BERT, into the tool sequence, starting with...
 1. `discover` is a tool that finds the PyTorch model in a script and passes it to the next tool, which is...
@@ -45,7 +56,7 @@ Which you can read like:
 
 You can configure each `Tool` by passing it arguments. For example, `export-pytorch --opset 18` would set the opset of the resulting ONNX model to 18.
 
-A full command with an arguments could look like:
+A full command with an argument looks like:
 
 ```
 > turnkey -i bert.py discover export-pytorch --opset 18 optimize-ort conver-fp16
@@ -58,7 +69,7 @@ The easiest way to learn more about `turnkey` is to explore the help menu with `
 We also provide the following resources:
 
 - [Installation guide](https://github.com/onnx/turnkeyml/blob/main/docs/install.md): how to install from source, set up Slurm, etc.
-- [User guide](https://github.com/onnx/turnkeyml/blob/main/docs/tools_user_guide.md): explains `turnkey's` concepts, including the syntax for making your own tool sequence.
+- [User guide](https://github.com/onnx/turnkeyml/blob/main/docs/tools_user_guide.md): explains the concepts of `turnkey's`, including the syntax for making your own tool sequence.
 - [Examples](https://github.com/onnx/turnkeyml/tree/main/examples/cli): PyTorch scripts and ONNX files that can be used to try out `turnkey` concepts.
 - [Code organization guide](https://github.com/onnx/turnkeyml/blob/main/docs/code.md): learn how this repository is structured.
 - [Models](https://github.com/onnx/turnkeyml/blob/main/models/readme.md): PyTorch model scripts that work with `turnkey`.

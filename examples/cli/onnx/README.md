@@ -7,4 +7,4 @@ cd turnkeyml/examples/cli/onnx
 turnkey -i hello_world.onnx load-onnx convert-fp16`
 ```
 
-This will convert the example ONNX file to the float16 data type.
+This will convert the example ONNX file to the fp16 data type.
