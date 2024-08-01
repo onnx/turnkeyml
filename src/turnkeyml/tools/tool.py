@@ -251,7 +251,13 @@ class Tool(abc.ABC):
 
         try:
             # Execute the build tool
-            with build.Logger(self.monitor_message, self.logfile_path):
+
+            # Allow developers to disable build.Logger by setting their Tool's
+            # logfile_path to None
+            if self.logfile_path:
+                with build.Logger(self.monitor_message, self.logfile_path):
+                    state = self.run(state, **kwargs)
+            else:
                 state = self.run(state, **kwargs)
 
         except Exception:  # pylint: disable=broad-except
