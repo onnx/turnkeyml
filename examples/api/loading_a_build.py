@@ -7,7 +7,6 @@ that you have a build ready for loading.
 """
 
 import os
-import torch
 import numpy as np
 import onnxruntime as ort
 from turnkeyml.common.filesystem import get_available_builds, DEFAULT_CACHE_DIR
