@@ -12,11 +12,16 @@ After you install the plugin, you can tell `turnkey` to use this sequence with:
 """
 
 import argparse
-from turnkeyml.tools import Tool
+from multiprocessing import Process
+from turnkeyml.tools.management_tools import ManagementTool
 from turnkeyml.state import State
 
 
-class ExamplePluginTool(Tool):
+def print_message(message):
+    print(message)
+
+
+class ExamplePluginTool(ManagementTool):
     """
     Example of a Tool installed by a plugin. Note that this docstring appears
     in the help menu when `turnkey example-plugin-tool -h` is called.
@@ -25,9 +30,7 @@ class ExamplePluginTool(Tool):
     unique_name = "example-plugin-tool"
 
     def __init__(self):
-        super().__init__(
-            monitor_message="Special step expected by ExamplePluginTool",
-        )
+        super().__init__()
 
     @staticmethod
     def parser(add_help: bool = True) -> argparse.ArgumentParser:
@@ -38,5 +41,10 @@ class ExamplePluginTool(Tool):
 
         return parser
 
-    def run(self, state: State):
-        return state
+    def run(self, cache_dir: str):
+
+        # Run using multiprocessing
+        message = f"Running using multiprocessing. Cache dir is {cache_dir}"
+        process = Process(target=print_message, args=(message,))
+        process.start()
+        process.join()
