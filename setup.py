@@ -8,7 +8,7 @@ setup(
     version=version,
     description="TurnkeyML Tools and Models",
     author="Jeremy Fowers, Daniel Holanda, Ramakrishnan Sivakumar, Victoria Godsoe",
-    author_email="jeremy.fowers@amd.com, daniel.holandanoronha@amd.com, krishna.sivakumar@amd.com, victoria.godsoe@amd.com",
+    author_email="turnkeyml@amd.com",
     package_dir={"": "src", "turnkeyml_models": "models"},
     packages=[
         "turnkeyml",
@@ -37,7 +37,6 @@ setup(
         "onnxmltools==1.10.0",
         "onnxruntime >=1.10.1",
         "torch>=1.12.1",
-        "protobuf>=3.17.3,<3.21",
         "pyyaml>=5.4",
         "typeguard>=2.3.13",
         "packaging>=20.9",
