@@ -1,7 +1,10 @@
 import os
 import shutil
-from typing import Dict
+from typing import List, Tuple, Any, Dict, Optional
+import onnx
 import turnkeyml.common.filesystem as fs
+import turnkeyml.common.build as build
+import turnkeyml.common.onnx_helpers as onnx_helpers
 from turnkeyml.state import load_state
 
 
@@ -216,3 +219,60 @@ def get_stats_and_state(
             return stats.stats, build_state
 
     raise Exception(f"Stats not found for {test_script}")
+
+
+def assert_success_of_builds(
+    test_script_files: List[str],
+    cache_dir: str,
+    info_property: Tuple[str, Any] = None,
+    check_perf: bool = False,
+    check_opset: Optional[int] = None,
+    check_iteration_count: Optional[int] = None,
+    check_onnx_file_count: Optional[int] = None,
+) -> int:
+    # Figure out the build name by surveying the build cache
+    # for a build that includes test_script_name in the name
+    builds = fs.get_all(cache_dir)
+    builds_found = 0
+
+    for test_script in test_script_files:
+        test_script_name = strip_dot_py(test_script)
+        script_build_found = False
+
+        for build_state_file in builds:
+            if test_script_name in build_state_file:
+                build_state = load_state(state_path=build_state_file)
+                stats = fs.Stats(
+                    build_state.cache_dir,
+                    build_state.build_name,
+                )
+                assert build_state.build_status == build.FunctionStatus.SUCCESSFUL
+                script_build_found = True
+                builds_found += 1
+
+                if info_property is not None:
+                    assert (
+                        build_state.info.__dict__[info_property[0]] == info_property[1]
+                    ), f"{build_state.info.__dict__[info_property[0]]} == {info_property[1]}"
+
+                if check_perf:
+                    assert stats.stats["mean_latency"] > 0
+                    assert stats.stats["throughput"] > 0
+
+                if check_iteration_count:
+                    iterations = stats.stats["iterations"]
+                    assert iterations == check_iteration_count
+
+                if check_opset:
+                    onnx_model = onnx.load(build_state.results)
+                    model_opset = getattr(onnx_model.opset_import[0], "version", None)
+                    assert model_opset == check_opset
+
+                if check_onnx_file_count:
+                    onnx_dir = onnx_helpers.onnx_dir(build_state)
+                    assert len(os.listdir(onnx_dir)) == check_onnx_file_count
+
+        assert script_build_found
+
+    # Returns the total number of builds found
+    return builds_found
