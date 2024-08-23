@@ -1,5 +1,5 @@
 """
-Tests focused on the benchmkarking functionality of turnkey CLI
+Tests focused on the benchmarking functionality of turnkey CLI
 """
 
 import os
