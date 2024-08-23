@@ -621,7 +621,7 @@ if __name__ == "__main__":
     extras_dir = os.path.join(corpus_dir, "extras")
     os.makedirs(extras_dir, exist_ok=True)
 
-    for key, value in common.extras_dot_py.items():
+    for key, value in common.extras_python(corpus_dir).items():
         file_path = os.path.join(extras_dir, key)
 
         with open(file_path, "w", encoding="utf") as f:

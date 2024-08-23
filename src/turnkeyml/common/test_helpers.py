@@ -100,8 +100,9 @@ output = model(**inputs)
 }
 
 
-extras_dot_py = {
-    "compiled.py": """
+def extras_python(corpus_dir: str):
+    return {
+        "compiled.py": """
 # labels: name::linear author::selftest test_group::selftest task::test
 import torch
 
@@ -132,11 +133,11 @@ model2 = LinearTestModel(input_features * 2, output_features)
 inputs2 = {"x": torch.rand(input_features * 2)}
 model2(**inputs2)
     """,
-    "selected_models.txt": f"""
+        "selected_models.txt": f"""
     {os.path.join(corpus_dir,"linear.py")}
     {os.path.join(corpus_dir,"linear2.py")}
     """,
-    "timeout.py": """
+        "timeout.py": """
 # labels: name::timeout author::turnkey license::mit test_group::a task::test
 import torch
 
@@ -163,7 +164,7 @@ inputs = {"x": torch.rand(input_features)}
 output = model(**inputs)
 
     """,
-}
+    }
 
 
 def create_test_dir(
