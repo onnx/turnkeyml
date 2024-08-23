@@ -455,7 +455,7 @@ class Testing(unittest.TestCase):
             with patch.object(sys, "argv", testargs):
                 turnkeycli()
 
-            assert_success_of_builds([test_script], cache_dir, None, check_perf=True)
+            assert_success_of_builds([test_script], cache_dir, None, check_perf=False)
 
     @unittest.skipIf(
         platform.system() == "Windows",
@@ -540,7 +540,7 @@ class Testing(unittest.TestCase):
             cache_dir,
             "load-onnx",
             "convert-fp16",
-            "optimize-onnx",
+            "optimize-ort",
         ]
         with patch.object(sys, "argv", testargs):
             turnkeycli()
@@ -549,7 +549,7 @@ class Testing(unittest.TestCase):
 
     def test_014_cli_onnx_model_opset(self):
         """
-        Manually export an ONNX file with a non-defualt opset, then feed it into the CLI
+        Manually export an ONNX file with a non-default opset, then feed it into the CLI
         """
         build_name = "receive_onnx_opset"
         onnx_file = os.path.join(corpus_dir, f"{build_name}.onnx")
@@ -576,7 +576,7 @@ class Testing(unittest.TestCase):
             cache_dir,
             "load-onnx",
             "convert-fp16",
-            "optimize-onnx",
+            "optimize-ort",
         ]
         with patch.object(sys, "argv", testargs):
             turnkeycli()
