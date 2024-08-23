@@ -70,6 +70,7 @@ jobs:
           cd test/
           python cli.py
           python analysis.py
+          python benchmark.py
       - name: Test example plugins
         shell: bash -el {0}
         run: |

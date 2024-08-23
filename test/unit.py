@@ -9,6 +9,7 @@ import turnkeyml.common.filesystem as filesystem
 import turnkeyml.common.build as build
 import turnkeyml.run.performance as performance
 import turnkeyml.run.plugin_helpers as plugin_helpers
+from turnkeyml.cli.parser_helpers import decode_args, encode_args
 
 
 class Testing(unittest.TestCase):
@@ -152,6 +153,18 @@ class Testing(unittest.TestCase):
             log_contents = file.read()
         assert outside_stdout_msg in log_contents
         assert outside_stderr_msg in log_contents
+
+    def test_021_args_encode_decode(self):
+        """
+        Test the encoding and decoding of arguments that follow the
+        ["arg1::[value1,value2]","arg2::value1","flag_arg"]' format
+        """
+        encoded_value = ["arg1::[value1,value2]", "arg2::value1", "flag_arg"]
+        decoded_value = decode_args(encoded_value)
+        reencoded_value = encode_args(decoded_value)
+        assert (
+            reencoded_value == encoded_value
+        ), f"input: {encoded_value}, decoded: {decoded_value}, reencoded_value: {reencoded_value}"
 
 
 if __name__ == "__main__":

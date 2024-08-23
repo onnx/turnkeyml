@@ -1,5 +1,5 @@
 """
-Tests focused on the command-level functionality of turnkey CLI
+Tests focused on the benchmkarking functionality of turnkey CLI
 """
 
 import os
@@ -12,7 +12,6 @@ from unittest.mock import patch
 import sys
 import io
 from contextlib import redirect_stdout
-import yaml
 import onnx
 import platform
 import torch
@@ -127,293 +126,11 @@ class Testing(unittest.TestCase):
 
         return super().setUp()
 
-    def test_001_cli_single(self):
-        # Test the first model in the corpus
-        test_script = list(common.test_scripts_dot_py.keys())[0]
-
-        testargs = [
-            "turnkey",
-            "-i",
-            os.path.join(corpus_dir, test_script),
-            "--cache-dir",
-            cache_dir,
-            "discover",
-            "export-pytorch",
-            "optimize-ort",
-        ]
-        with patch.object(sys, "argv", testargs):
-            turnkeycli()
-
-        assert_success_of_builds([test_script], cache_dir)
-
-    def test_002_search_multiple(self):
-        # Test the first model in the corpus
-        test_scripts = list(common.test_scripts_dot_py.keys())
-
-        testargs = [
-            "turnkey",
-            "-i",
-            os.path.join(corpus_dir, test_scripts[0]),
-            os.path.join(corpus_dir, test_scripts[1]),
-            "--cache-dir",
-            cache_dir,
-            "discover",
-            "export-pytorch",
-            "optimize-ort",
-        ]
-        with patch.object(sys, "argv", testargs):
-            turnkeycli()
-
-        assert_success_of_builds([test_scripts[0], test_scripts[1]], cache_dir)
-
-    def test_003_cli_build_dir(self):
-        # NOTE: this is not a unit test, it relies on other command
-        # If this test is failing, make sure the following tests are passing:
-        # - test_cli_single
-
-        test_scripts = common.test_scripts_dot_py.keys()
-
-        testargs = [
-            "turnkey",
-            "-i",
-            bash(f"{corpus_dir}/*.py"),
-            "--cache-dir",
-            cache_dir,
-            "discover",
-            "export-pytorch",
-            "optimize-ort",
-        ]
-        with patch.object(sys, "argv", flatten(testargs)):
-            turnkeycli()
-
-        assert_success_of_builds(test_scripts, cache_dir)
-
-    def test_004_cli_list(self):
-        # NOTE: this is not a unit test, it relies on other command
-        # If this test is failing, make sure the following tests are passing:
-        # - test_cli_corpus
-
-        # Build the test corpus so we have builds to list
-        testargs = [
-            "turnkey",
-            "-i",
-            bash(f"{corpus_dir}/*.py"),
-            "--cache-dir",
-            cache_dir,
-            "discover",
-            "export-pytorch",
-            "optimize-ort",
-        ]
-        with patch.object(sys, "argv", flatten(testargs)):
-            turnkeycli()
-
-        # Make sure we can list the builds in the cache
-        with redirect_stdout(io.StringIO()) as f:
-            testargs = [
-                "turnkey",
-                "--cache-dir",
-                cache_dir,
-                "cache",
-                "--list",
-                "--all",
-            ]
-            with patch.object(sys, "argv", testargs):
-                turnkeycli()
-
-        for test_script in common.test_scripts_dot_py.keys():
-            script_name = common.strip_dot_py(test_script)
-            assert script_name in f.getvalue(), f"{script_name} {f.getvalue()}"
-
-    def test_005_cli_delete(self):
-        # NOTE: this is not a unit test, it relies on other command
-        # If this test is failing, make sure the following tests are passing:
-        # - test_cli_corpus
-        # - test_cli_list
-
-        # Build the test corpus so we have builds to delete
-        testargs = [
-            "turnkey",
-            "-i",
-            bash(f"{corpus_dir}/*.py"),
-            "--cache-dir",
-            cache_dir,
-            "discover",
-            "export-pytorch",
-            "optimize-ort",
-        ]
-        with patch.object(sys, "argv", flatten(testargs)):
-            turnkeycli()
-
-        # Make sure we can list the builds in the cache
-        with redirect_stdout(io.StringIO()) as f:
-            testargs = [
-                "turnkey",
-                "--cache-dir",
-                cache_dir,
-                "cache",
-                "--list",
-                "--all",
-            ]
-            with patch.object(sys, "argv", testargs):
-                turnkeycli()
-
-        for test_script in common.test_scripts_dot_py.keys():
-            script_name = common.strip_dot_py(test_script)
-            assert script_name in f.getvalue()
-
-        # Delete the builds
-        testargs = [
-            "turnkey",
-            "--cache-dir",
-            cache_dir,
-            "cache",
-            "--delete",
-            "--all",
-        ]
-        with patch.object(sys, "argv", testargs):
-            turnkeycli()
-
-        # Make sure the builds are gone
-        with redirect_stdout(io.StringIO()) as f:
-            testargs = [
-                "turnkey",
-                "--cache-dir",
-                cache_dir,
-                "cache",
-                "--list",
-                "--all",
-            ]
-            with patch.object(sys, "argv", testargs):
-                turnkeycli()
-
-        for test_script in common.test_scripts_dot_py.keys():
-            script_name = common.strip_dot_py(test_script)
-            assert script_name not in f.getvalue()
-
-    def test_006_cli_stats(self):
-        # NOTE: this is not a unit test, it relies on other command
-        # If this test is failing, make sure the following tests are passing:
-        # - test_cli_corpus
-
-        # Build the test corpus so we have builds to print
-        testargs = [
-            "turnkey",
-            "-i",
-            bash(f"{corpus_dir}/*.py"),
-            "--cache-dir",
-            cache_dir,
-            "discover",
-            "export-pytorch",
-            "optimize-ort",
-        ]
-        with patch.object(sys, "argv", flatten(testargs)):
-            turnkeycli()
-
-        # Make sure we can print the builds in the cache
-        for test_script in common.test_scripts_dot_py.keys():
-            test_script_path = os.path.join(corpus_dir, test_script)
-            builds, script_name = fs.get_builds_from_file(cache_dir, test_script_path)
-
-            for build_name in builds:
-                # Make sure each build can be accessed with `turnkey cache stats`
-                with redirect_stdout(io.StringIO()) as f:
-                    testargs = [
-                        "turnkey",
-                        "--cache-dir",
-                        cache_dir,
-                        "cache",
-                        "--stats",
-                        "--build-names",
-                        build_name,
-                    ]
-                    with patch.object(sys, "argv", testargs):
-                        turnkeycli()
-
-                    assert script_name in f.getvalue()
-
-                # Make sure the stats YAML file contains the fields
-                # required for producing a report
-                stats_file = os.path.join(
-                    build.output_dir(cache_dir, build_name), "turnkey_stats.yaml"
-                )
-                with open(stats_file, "r", encoding="utf8") as stream:
-                    stats_dict = yaml.load(stream, Loader=yaml.FullLoader)
-
-                assert isinstance(stats_dict["hash"], str), stats_dict["hash"]
-                assert isinstance(stats_dict["parameters"], int), stats_dict[
-                    "parameters"
-                ]
-                assert isinstance(
-                    stats_dict["onnx_input_dimensions"], dict
-                ), stats_dict["onnx_input_dimensions"]
-                assert isinstance(
-                    stats_dict["onnx_model_information"], dict
-                ), stats_dict["onnx_model_information"]
-                assert isinstance(stats_dict["onnx_ops_counter"], dict), stats_dict[
-                    "onnx_ops_counter"
-                ]
-                assert isinstance(stats_dict["system_info"], dict), stats_dict[
-                    "system_info"
-                ]
-
-                # Make sure the turnkey_stats has the expected ONNX opset
-                assert (
-                    stats_dict["onnx_model_information"]["opset"]
-                    == build.DEFAULT_ONNX_OPSET
-                ), stats_dict["onnx_model_information"]["opset"]
-
-                # Make sure the turnkey_stats has the necessary fields used in the onnx model zoo
-                assert isinstance(stats_dict["author"], str), stats_dict["author"]
-                assert isinstance(stats_dict["model_name"], str), stats_dict[
-                    "model_name"
-                ]
-                assert isinstance(stats_dict["task"], str), stats_dict["task"]
-
-    def test_007_cli_version(self):
-        # Get the version number
-        with redirect_stdout(io.StringIO()) as f:
-            testargs = [
-                "turnkey",
-                "version",
-            ]
-            with patch.object(sys, "argv", testargs):
-                turnkeycli()
-
-        # Make sure we get back a 3-digit number
-        assert len(f.getvalue().split(".")) == 3
-
-    def test_008_cli_turnkey_args(self):
-        # NOTE: this is not a unit test, it relies on other command
-        # If this test is failing, make sure the following tests are passing:
-        # - test_cli_single
-
-        # Test the first model in the corpus
-        test_script = list(common.test_scripts_dot_py.keys())[0]
-
-        # Set as many turnkey args as possible
-        testargs = [
-            "turnkey",
-            "-i",
-            os.path.join(corpus_dir, test_script),
-            "--cache-dir",
-            cache_dir,
-            "discover",
-            "export-pytorch",
-            "optimize-ort",
-        ]
-        with patch.object(sys, "argv", testargs):
-            turnkeycli()
-
-        assert_success_of_builds([test_script], cache_dir)
-
-    # TODO: Investigate why this test is only failing on Windows CI
+    # TODO: Investigate why this test is failing only on Windows CI failing
     @unittest.skipIf(platform.system() == "Windows", "Windows CI only failure")
-    def test_08_cli_onnx_opset(self):
+    def test_001_cli_benchmark(self):
         # Test the first model in the corpus
         test_script = list(common.test_scripts_dot_py.keys())[0]
-
-        user_opset = 15
-        assert user_opset != build.DEFAULT_ONNX_OPSET
 
         testargs = [
             "turnkey",
@@ -423,18 +140,101 @@ class Testing(unittest.TestCase):
             cache_dir,
             "discover",
             "export-pytorch",
-            "--opset",
-            str(user_opset),
             "optimize-ort",
+            "benchmark",
+        ]
+        with patch.object(sys, "argv", testargs):
+            turnkeycli()
+
+        assert_success_of_builds([test_script], cache_dir, None, check_perf=True)
+
+    def test_002_runtimes(self):
+        # Attempt to benchmark using an invalid runtime
+        with self.assertRaises(exceptions.ArgError):
+            testargs = [
+                "turnkey",
+                "-i",
+                bash(f"{corpus_dir}/linear.py"),
+                "--cache-dir",
+                cache_dir,
+                "discover",
+                "export-pytorch",
+                "optimize-ort",
+                "benchmark",
+                "--device",
+                "x86",
+                "--runtime",
+                "trt",
+            ]
+            with patch.object(sys, "argv", flatten(testargs)):
+                turnkeycli()
+
+        # Benchmark with Pytorch
+        testargs = [
+            "turnkey",
+            "-i",
+            bash(f"{corpus_dir}/linear.py"),
+            "--cache-dir",
+            cache_dir,
+            "discover",
+            "benchmark",
+            "--device",
+            "x86",
+            "--runtime",
+            "torch-eager",
+        ]
+        with patch.object(sys, "argv", flatten(testargs)):
+            turnkeycli()
+
+        # Benchmark with Onnx Runtime
+        testargs = [
+            "turnkey",
+            "-i",
+            bash(f"{corpus_dir}/linear.py"),
+            "--cache-dir",
+            cache_dir,
+            "discover",
+            "export-pytorch",
+            "optimize-ort",
+            "benchmark",
+            "--device",
+            "x86",
+            "--runtime",
+            "ort",
+        ]
+        with patch.object(sys, "argv", flatten(testargs)):
+            turnkeycli()
+
+    def test_003_cli_iteration_count(self):
+        # Test the first model in the corpus
+        test_script = list(common.test_scripts_dot_py.keys())[0]
+
+        test_iterations = 123
+        testargs = [
+            "turnkey",
+            "-i",
+            os.path.join(corpus_dir, test_script),
+            "--cache-dir",
+            cache_dir,
+            "discover",
+            "export-pytorch",
+            "optimize-ort",
+            "benchmark",
+            "--iterations",
+            str(test_iterations),
         ]
         with patch.object(sys, "argv", testargs):
             turnkeycli()
 
         assert_success_of_builds(
-            [test_script], cache_dir, None, check_perf=False, check_opset=user_opset
+            [test_script],
+            cache_dir,
+            None,
+            check_perf=True,
+            check_iteration_count=test_iterations,
         )
 
-    def test_09_cli_process_isolation(self):
+    def test_004_cli_process_isolation(self):
         # Test the first model in the corpus
         test_script = list(common.test_scripts_dot_py.keys())[0]
 
@@ -451,53 +251,14 @@ class Testing(unittest.TestCase):
                 "--opset",
                 "17",
                 "optimize-ort",
+                "benchmark",
             ]
             with patch.object(sys, "argv", testargs):
                 turnkeycli()
 
             assert_success_of_builds([test_script], cache_dir, None, check_perf=True)
 
-    @unittest.skipIf(
-        platform.system() == "Windows",
-        "Skipping, as torch.compile is not supported on Windows"
-        "Revisit when torch.compile for Windows is supported",
-    )
-    def test_010_skip_compiled(self):
-        test_script = "compiled.py"
-        testargs = [
-            "turnkey",
-            "-i",
-            os.path.join(extras_dir, test_script),
-            "--cache-dir",
-            cache_dir,
-            "discover",
-            "export-pytorch",
-            "optimize-ort",
-        ]
-        with patch.object(sys, "argv", testargs):
-            turnkeycli()
-
-        builds_found = assert_success_of_builds([test_script], cache_dir)
-
-        # Compile.py contains two Pytorch models.
-        # One of those is compiled and should be skipped.
-        assert builds_found == 1
-
-    def test_011_invalid_file_type(self):
-        # Ensure that we get an error when running turnkey with invalid input_files
-        with self.assertRaises(SystemExit):
-            testargs = [
-                "turnkey",
-                "-i",
-                "gobbledegook",
-                "discover",
-                "export-pytorch",
-                "optimize-ort",
-            ]
-            with patch.object(sys, "argv", flatten(testargs)):
-                turnkeycli()
-
-    def test_012_cli_export_only(self):
+    def test_005_cli_export_only(self):
         # Test the first model in the corpus
         test_script = list(common.test_scripts_dot_py.keys())[0]
 
@@ -509,13 +270,14 @@ class Testing(unittest.TestCase):
             cache_dir,
             "discover",
             "export-pytorch",
+            "benchmark",
         ]
         with patch.object(sys, "argv", testargs):
             turnkeycli()
 
         assert_success_of_builds([test_script], cache_dir, check_onnx_file_count=1)
 
-    def test_013_cli_onnx_model(self):
+    def test_006_cli_onnx_model(self):
         """
         Manually export an ONNX file, then feed it into the CLI
         """
@@ -539,15 +301,14 @@ class Testing(unittest.TestCase):
             "--cache-dir",
             cache_dir,
             "load-onnx",
-            "convert-fp16",
-            "optimize-onnx",
+            "benchmark",
         ]
         with patch.object(sys, "argv", testargs):
             turnkeycli()
 
         assert_success_of_builds([build_name], cache_dir)
 
-    def test_014_cli_onnx_model_opset(self):
+    def test_007_cli_onnx_model_opset(self):
         """
         Manually export an ONNX file with a non-defualt opset, then feed it into the CLI
         """
@@ -575,70 +336,14 @@ class Testing(unittest.TestCase):
             "--cache-dir",
             cache_dir,
             "load-onnx",
-            "convert-fp16",
-            "optimize-onnx",
+            "benchmark",
         ]
         with patch.object(sys, "argv", testargs):
             turnkeycli()
 
         assert_success_of_builds([build_name], cache_dir)
 
-    def test_015_non_existent_file(self):
-        # Ensure we get an error when loading a non existent file
-        with self.assertRaises(exceptions.ArgError):
-            filename = "thou_shall_not_exist.py"
-            with redirect_stdout(io.StringIO()) as f:
-                testargs = [
-                    "turnkey",
-                    "-i",
-                    filename,
-                    "discover",
-                    "export-pytorch",
-                    "optimize-ort",
-                ]
-                with patch.object(sys, "argv", testargs):
-                    turnkeycli()
-
-    def test_016_non_existent_file_prefix(self):
-        # Ensure we get an error when loading a non existent file
-        with self.assertRaises(exceptions.ArgError):
-            file_prefix = "non_existent_prefix_*.py"
-            with redirect_stdout(io.StringIO()) as f:
-                testargs = [
-                    "turnkey",
-                    "-i",
-                    file_prefix,
-                    "discover",
-                    "export-pytorch",
-                    "optimize-ort",
-                ]
-                with patch.object(sys, "argv", testargs):
-                    turnkeycli()
-
-    def test_017_input_text_file(self):
-        """
-        Ensure that we can intake .txt files
-        """
-
-        testargs = [
-            "turnkey",
-            "-i",
-            os.path.join(extras_dir, "selected_models.txt"),
-            "--cache-dir",
-            cache_dir,
-            "discover",
-            "export-pytorch",
-            "optimize-ort",
-        ]
-        with patch.object(sys, "argv", testargs):
-            turnkeycli()
-
-        builds_found = assert_success_of_builds(["linear.py", "linear2.py"], cache_dir)
-        assert (
-            builds_found == 3
-        ), f"Expected 3 builds (1 for linear.py, 2 for linear2.py), but got {builds_found}."
-
-    def test_018_cli_timeout(self):
+    def test_008_cli_timeout(self):
         """
         Make sure that the --timeout option and its associated reporting features work.
 
@@ -662,6 +367,7 @@ class Testing(unittest.TestCase):
             "discover",
             "export-pytorch",
             "optimize-ort",
+            "benchmark",
         ]
         with patch.object(sys, "argv", flatten(testargs)):
             turnkeycli()
@@ -696,14 +402,14 @@ class Testing(unittest.TestCase):
             # Edge case where the CSV only contains a key for "error_log"
             assert "timeout" in timeout_summary["error_log"]
 
-    def test_019_cli_report(self):
+    def test_009_cli_report(self):
         # NOTE: this is not a unit test, it relies on other command
         # If this test is failing, make sure the following tests are passing:
         # - test_cli_corpus
 
         test_scripts = common.test_scripts_dot_py.keys()
 
-        # Build the test corpus so we have builds to report
+        # Benchmark the test corpus so we have builds to report
         testargs = [
             "turnkey",
             "-i",
@@ -713,6 +419,7 @@ class Testing(unittest.TestCase):
             "discover",
             "export-pytorch",
             "optimize-ort",
+            "benchmark",
         ]
         with patch.object(sys, "argv", flatten(testargs)):
             turnkeycli()
@@ -738,6 +445,11 @@ class Testing(unittest.TestCase):
             "class",
             "parameters",
             "hash",
+            "runtime",
+            "device_type",
+            "device",
+            "mean_latency",
+            "throughput",
             "selected_sequence_of_tools",
         ]
         linear_summary = summary[1]
@@ -760,6 +472,18 @@ class Testing(unittest.TestCase):
         assert (
             linear_summary["hash"] == "80b93950"
         ), f"Wrong hash found {linear_summary['hash']}"
+        assert (
+            linear_summary["runtime"] == "ort"
+        ), f"Wrong runtime found {linear_summary['runtime']}"
+        assert (
+            linear_summary["device_type"] == "x86"
+        ), f"Wrong device type found {linear_summary['device_type']}"
+        assert (
+            float(linear_summary["mean_latency"]) > 0
+        ), f"latency must be >0, got {linear_summary['x86_latency']}"
+        assert (
+            float(linear_summary["throughput"]) > 100
+        ), f"throughput must be >100, got {linear_summary['throughput']}"
 
         # Make sure the report.get_dict() API works
         result_dict = report.get_dict(
@@ -791,47 +515,63 @@ class Testing(unittest.TestCase):
                     # Catch the case where the value is not numeric
                     assert False, f"Tool {tool} has invalid duration {duration}"
 
-    def test_020_cli_onnx_verify(self):
-        # Test the first model in the corpus
-        test_script = list(common.test_scripts_dot_py.keys())[0]
+    def test_010_cli_cache_benchmark(self):
 
+        test_scripts = common.test_scripts_dot_py.keys()
+
+        # Build the test corpus so we have builds to benchmark
         testargs = [
             "turnkey",
             "-i",
-            os.path.join(corpus_dir, test_script),
-            "--cache-dir",
-            cache_dir,
-            "discover",
-            "verify-exporter",
-            "export-pytorch",
-            "optimize-ort",
-        ]
-        with patch.object(sys, "argv", testargs):
-            turnkeycli()
-
-        assert_success_of_builds([test_script], cache_dir)
-
-    def test_021_cli_fp16_convert(self):
-        # Test the first model in the corpus
-        test_script = list(common.test_scripts_dot_py.keys())[0]
-
-        testargs = [
-            "turnkey",
-            "-i",
-            os.path.join(corpus_dir, test_script),
+            bash(f"{corpus_dir}/*.py"),
             "--cache-dir",
             cache_dir,
             "discover",
             "export-pytorch",
             "optimize-ort",
-            "convert-fp16",
         ]
-        with patch.object(sys, "argv", testargs):
+        with patch.object(sys, "argv", flatten(testargs)):
             turnkeycli()
 
-        assert_success_of_builds([test_script], cache_dir)
+        # Benchmark the single model from cache directory
+        selected_build = fs.get_available_builds(cache_dir)[-1]
+        state_file_path = os.path.join(
+            cache_dir, selected_build, f"{selected_build}_state.yaml"
+        )
 
-    def test_022_cli_cache_move(self):
+        testargs = [
+            "turnkey",
+            "--cache-dir",
+            cache_dir,
+            "-i",
+            state_file_path,
+            "load-build",
+            "benchmark",
+        ]
+        with patch.object(sys, "argv", flatten(testargs)):
+            turnkeycli()
+
+        # Make sure the benchmark happened
+        test_script = selected_build + ".py"
+        assert_success_of_builds([test_script], cache_dir, check_perf=True)
+
+        # Benchmark the cache directory
+        testargs = [
+            "turnkey",
+            "--cache-dir",
+            cache_dir,
+            "-i",
+            os.path.join(cache_dir, "*", "*_state.yaml"),
+            "load-build",
+            "benchmark",
+        ]
+        with patch.object(sys, "argv", flatten(testargs)):
+            turnkeycli()
+
+        # Make sure the benchmarks happened
+        assert_success_of_builds(test_scripts, cache_dir, check_perf=True)
+
+    def test_011_cli_cache_move(self):
 
         test_script = list(common.test_scripts_dot_py.keys())[0]
 
@@ -857,24 +597,25 @@ class Testing(unittest.TestCase):
             new_cache_dir, selected_build, f"{selected_build}_state.yaml"
         )
 
-        # Build the cached build in its new location
+        # Benchmark the cached build in its new location
         testargs = [
             "turnkey",
             "-i",
             state_file_path,
             "load-build",
-            "optimize-ort",
+            "benchmark",
         ]
         with patch.object(sys, "argv", flatten(testargs)):
             turnkeycli()
 
+        # Make sure the benchmark happened
         test_script = selected_build + ".py"
-        assert_success_of_builds([test_script], new_cache_dir, check_perf=False)
+        assert_success_of_builds([test_script], new_cache_dir, check_perf=True)
 
 
 if __name__ == "__main__":
     # Create a cache directory a directory with test models
-    cache_dir, corpus_dir = common.create_test_dir("cli")
+    cache_dir, corpus_dir = common.create_test_dir("benchmark")
     new_cache_dir = f"{cache_dir}2"
 
     extras_dot_py = {
