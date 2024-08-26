@@ -3,12 +3,12 @@ import time
 from timeit import default_timer as timer
 import onnxruntime as ort
 import numpy as np
-from turnkeyml.run.basert import BaseRT
 from turnkeyml.state import load_state
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.filesystem as fs
-from turnkeyml.run.onnxrt.within_conda import dummy_inputs
-from turnkeyml.run.performance import MeasuredPerformance
+from turnkeyml_plugins_devices.common.run.basert import BaseRT
+from turnkeyml_plugins_devices.common.run.onnxrt.within_conda import dummy_inputs
+from turnkeyml_plugins_devices.common.run.performance import MeasuredPerformance
 
 
 combined_rt_name = "example-combined-rt"
