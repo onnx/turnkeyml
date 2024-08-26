@@ -372,7 +372,7 @@ class Testing(unittest.TestCase):
             turnkeycli()
 
         assert_success_of_builds(
-            [test_script], cache_dir, None, check_perf=False, check_opset=user_opset
+            [test_script], cache_dir, check_perf=False, check_opset=user_opset
         )
 
     def test_09_cli_process_isolation(self):
@@ -396,7 +396,7 @@ class Testing(unittest.TestCase):
             with patch.object(sys, "argv", testargs):
                 turnkeycli()
 
-            assert_success_of_builds([test_script], cache_dir, None, check_perf=False)
+            assert_success_of_builds([test_script], cache_dir, check_perf=False)
 
     @unittest.skipIf(
         platform.system() == "Windows",

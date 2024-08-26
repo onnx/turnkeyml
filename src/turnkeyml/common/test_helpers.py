@@ -1,6 +1,6 @@
 import os
 import shutil
-from typing import List, Tuple, Any, Dict, Optional
+from typing import List, Dict, Optional
 import onnx
 import turnkeyml.common.filesystem as fs
 import turnkeyml.common.build as build
@@ -224,7 +224,6 @@ def get_stats_and_state(
 def assert_success_of_builds(
     test_script_files: List[str],
     cache_dir: str,
-    info_property: Tuple[str, Any] = None,
     check_perf: bool = False,
     check_opset: Optional[int] = None,
     check_iteration_count: Optional[int] = None,
@@ -249,11 +248,6 @@ def assert_success_of_builds(
                 assert build_state.build_status == build.FunctionStatus.SUCCESSFUL
                 script_build_found = True
                 builds_found += 1
-
-                if info_property is not None:
-                    assert (
-                        build_state.info.__dict__[info_property[0]] == info_property[1]
-                    ), f"{build_state.info.__dict__[info_property[0]]} == {info_property[1]}"
 
                 if check_perf:
                     assert stats.stats["mean_latency"] > 0
