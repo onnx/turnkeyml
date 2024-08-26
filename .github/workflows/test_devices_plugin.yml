@@ -21,7 +21,7 @@ permissions:
   contents: read
 
 jobs:
-  build-turnkey:
+  build-devices-plugin:
     env:
       TURNKEY_TRACEBACK: True
     strategy:
@@ -49,7 +49,7 @@ jobs:
       - name: Lint with PyLint
         shell: bash -el {0}
         run: |
-          pylint plugins/devices/src/turnkeyml_plugin_devices/common --rcfile .pylintrc --disable E0401,E0203
+          pylint plugins/devices/src --rcfile .pylintrc --disable E0401,E0203
       - name: Test with unittest
         shell: bash -el {0}
         run: |

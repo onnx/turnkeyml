@@ -87,7 +87,7 @@ class Testing(unittest.TestCase):
         with patch.object(sys, "argv", testargs):
             turnkeycli()
 
-        assert_success_of_builds([test_script], cache_dir, None, check_perf=True)
+        assert_success_of_builds([test_script], cache_dir, check_perf=True)
 
     def test_002_runtimes(self):
         # Attempt to benchmark using an invalid runtime
@@ -170,7 +170,6 @@ class Testing(unittest.TestCase):
         assert_success_of_builds(
             [test_script],
             cache_dir,
-            None,
             check_perf=True,
             check_iteration_count=test_iterations,
         )
@@ -197,7 +196,7 @@ class Testing(unittest.TestCase):
             with patch.object(sys, "argv", testargs):
                 turnkeycli()
 
-            assert_success_of_builds([test_script], cache_dir, None, check_perf=True)
+            assert_success_of_builds([test_script], cache_dir, check_perf=True)
 
     def test_005_cli_export_only(self):
         # Test the first model in the corpus

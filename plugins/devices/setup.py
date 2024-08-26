@@ -31,7 +31,7 @@ setup(
         "turnkeyml_plugin_devices.tensorrt",
         "turnkeyml_plugin_devices.torchrt",
     ],
-    python_requires=">=3.8, <3.11",
+    python_requires=">=3.8, <3.12",
     install_requires=[
         "turnkeyml==3.0.8",
         "importlib_metadata",
