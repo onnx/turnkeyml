@@ -53,5 +53,6 @@ jobs:
       - name: Test with unittest
         shell: bash -el {0}
         run: |
+          python plugins/devices/test/unit.py
           python plugins/devices/test/benchmark.py
       
