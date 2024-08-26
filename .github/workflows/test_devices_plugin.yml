@@ -8,12 +8,18 @@ on:
     branches: ["main"]
     paths:
     - plugins/devices/src/turnkeyml_plugin_devices/common/**
+    - plugins/devices/src/turnkeyml_plugin_devices/onnxrt/**
+    - plugins/devices/src/turnkeyml_plugin_devices/torchrt/**
+    - plugins/devices/src/turnkeyml_plugin_devices/tensorrt/**
     - plugins/devices/setup.py
     - .github/workflows/test_devices_plugin.yml
   pull_request:
     branches: ["main"]
     paths:
     - plugins/devices/src/turnkeyml_plugin_devices/common/**
+    - plugins/devices/src/turnkeyml_plugin_devices/onnxrt/**
+    - plugins/devices/src/turnkeyml_plugin_devices/torchrt/**
+    - plugins/devices/src/turnkeyml_plugin_devices/tensorrt/**
     - plugins/devices/setup.py
     - .github/workflows/test_devices_plugin.yml
 
