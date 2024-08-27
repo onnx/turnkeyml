@@ -33,7 +33,7 @@ setup(
     ],
     python_requires=">=3.8, <3.12",
     install_requires=[
-        "turnkeyml==3.0.8",
+        "turnkeyml==4.0.0",
         "importlib_metadata",
         "onnx_tool",
         "numpy<2",
