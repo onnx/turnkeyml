@@ -21,7 +21,7 @@ def get_specific_version(plugin_name: str, version_key: str) -> str:
 
 setup(
     name="turnkeyml_plugin_devices",
-    version="0.0.2",
+    version="1.0.0",
     package_dir={"": "src"},
     packages=[
         "turnkeyml_plugin_devices",
