@@ -44,6 +44,7 @@ setup(
         "GitPython>=3.1.40",
         "psutil",
     ],
+    extras_require={"llm": {}, "llm-oga-igpu": {}, "llm-oga-npu": {}},
     classifiers=[],
     entry_points={
         "console_scripts": [
