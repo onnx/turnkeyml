@@ -149,7 +149,7 @@ def lfs_pull(plugin_name: str):
     deps_size_bytes_post_pull = get_directory_size(dependencies_dir)
     if deps_size_bytes_post_pull < deps_folder_too_small_size_bytes:
         raise exp.EnvError(
-            "The vitisep dependencies have not been pulled from LFS "
+            "The plugin dependencies have not been pulled from LFS "
             "If you are building from source you can try running this command: "
             f"`{lfs_command}`"
         )
