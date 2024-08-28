@@ -187,18 +187,34 @@ class RyzenAINPULoad(FirstTool):
         else:
             raise Exception(f"Use a supported device instead of {device}")
 
-        transform_config = TransformConfig(
-            flash_attention_plus=flash_attention_plus,
-            fast_attention=fast_attention,
-            fast_mlp=device != "phx",
-            fast_norm=device != "phx",
-            precision="w4abf16",
-            model_name=model_name,
-            target="aie",
-            w_bit=w_bit,
-            group_size=group_size,
-            profilegemm=False,
-        )
+        # Different library versions support different flags
+        # We maintain a safe set of flags and a cutting-edge set of flags,
+        # and attempt each
+        try:
+            transform_config = TransformConfig(
+                flash_attention_plus=flash_attention_plus,
+                fast_attention=fast_attention,
+                fast_mlp=device != "phx",
+                fast_norm=device != "phx",
+                precision="w4abf16",
+                model_name=model_name,
+                target="aie",
+                w_bit=w_bit,
+                group_size=group_size,
+                profilegemm=False,
+            )
+        except TypeError:
+            transform_config = TransformConfig(
+                flash_attention_plus=False,
+                fast_attention=False,
+                fast_mlp=False,
+                precision="w4abf16",
+                model_name=model_name,
+                target="aie",
+                w_bit=w_bit,
+                group_size=group_size,
+                profilegemm=False,
+            )
 
         model = RyzenAILLMEngine.transform(model, transform_config)
         model = model.to(torch.bfloat16)
