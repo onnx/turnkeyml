@@ -190,14 +190,14 @@ class OgaLoad(FirstTool):
         parser.add_argument(
             "-d",
             "--device",
-            choices=["cpu", "igpu", "npu"],
+            choices=["igpu", "npu"],
             default="igpu",
             help="Which device to load the model on to (default: igpu)",
         )
 
         parser.add_argument(
             "--dtype",
-            choices=["int4", "float16"],
+            choices=["int4"],
             required=True,
             help="Data type to load the model in",
         )
@@ -209,26 +209,17 @@ class OgaLoad(FirstTool):
         state: State,
         input: str = phi_3_mini_128k,
         device: str = "igpu",
-        dtype: str = "float16",
+        dtype: str = "int4",
     ) -> State:
 
         checkpoint = input
 
         # Map of models[device][dtype][checkpoint] to the name of the model folder on disk
         supported_models = {
-            "cpu": {
-                "int4": {phi_3_mini_128k: "Phi-3-mini-128k-instruct-onnx_int4_cpu"}
-            },
             "igpu": {
                 "int4": {
-                    llama_2: "llama2-7b-instruct-dml-int4-awq-block-128",
-                    llama_3: "llama3-8b-instruct-dml-int4-awq-block-128",
-                    phi_3_mini_128k: "Phi-3-mini-128k-instruct-onnx_int4_awq_block-128",
-                    phi_3_mini_4k: "Phi-3-mini-4k-instruct-onnx_int4_awq_block-128",
-                },
-                "float16": {
-                    phi_3_mini_128k: "microsoft_Phi-3-mini-128k-instruct",
-                    phi_3_mini_4k: "microsoft_Phi-3-mini-4k-instruct",
+                    phi_3_mini_128k: os.path.join("phi-3-mini-128k-instruct", "directml", "directml-int4-awq-block-128"),
+                    phi_3_mini_4k: os.path.join("phi-3-mini-4k-instruct", "directml", "directml-int4-awq-block-128"),
                 },
             },
             "npu": {

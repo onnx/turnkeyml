@@ -16,12 +16,16 @@ Contents:
 
 1. Clone: `git clone https://github.com/onnx/turnkeyml.git`
 1. Create and activate a conda environment:
-    1. `conda create -n lemon python=3.10`
-    1. `conda activate lemon`
-1. `cd turnkeyml`
+    1. `conda create -n tk-llm python=3.10`
+    1. `conda activate tk-llm`
+1. `cd turnkeyml` (where `turnkeyml` is the repo root of your TurnkeyML clone)
 1. Install lemonade: `pip install -e .[llm]`
-    - or `pip install -e .[llm-og]` if you want to use `onnxruntime-genai`
+    - or `pip install -e .[llm-oga-dml]` if you want to use `onnxruntime-genai` (see [OGA](#install-onnxruntime-genai))
 1. `lemonade -h` to explore the LLM tools
+
+## Syntax
+
+The `lemonade` CLI uses the same style of syntax as `turnkey`, but with a new set of LLM-specific tools. You can read abhout that syntax [here](https://github.com/onnx/turnkeyml#how-it-works).
 
 ## Chatting
 
@@ -29,19 +33,23 @@ To chat with your LLM try:
 
 `lemonade -i facebook/opt-125m huggingface-load llm-prompt -p "Hello, my thoughts are"`
 
-The LLM's response to your prompt will be printed to the screen. You can replace the `"Hello, my thoughts are"` with any prompt you like.
+The LLM will run on CPU with your provided prompt, and the LLM's response to your prompt will be printed to the screen. You can replace the `"Hello, my thoughts are"` with any prompt you like.
 
 You can also replace the `facebook/opt-125m` with any Huggingface checkpoint you like, including LLaMA-2, Phi-2, Qwen, Mamba, etc.
 
+You can also set the `--device` argument in `huggingface-load` to load your LLM on a different device.
+
+Run `lemonade huggingface-load -h` and `lemonade llm-prompt -h` to learn more about those tools.
+
 ## Accuracy
 
-To measure the accuracy of an LLM in Torch eager mode, try this:
+To measure the accuracy of an LLM using MMLU, try this:
 
 `lemonade -i facebook/opt-125m huggingface-load mmlu-accuracy --tests management`
 
-That command will run the management test from MMLU on your LLM and save the score to the lemonade cache at `~/.cache/lemonade`. 
+That command will run just the management test from MMLU on your LLM and save the score to the lemonade cache at `~/.cache/lemonade`.
 
-Learn more about the options provided by a tool by calling `lemonade TOOL -h`, for example `lemonade accuracy-mmlu -h`.
+You can run the full suite of MMLU subjects by ommitting the `--test` argument. You can learn more about this with `lemonade accuracy-mmlu -h.
 
 ## Serving
 
@@ -74,13 +82,34 @@ print("Response:", state.response)
 
 Lemonade supports specialized tools that each require their own setup steps. **Note:** These tools will only appear in `lemonade -h` if you run in an environment that has completed setup.
 
-## Install OnnxRuntime-GenAI-DirectML
+## Install OnnxRuntime-GenAI
 
-To install support for onnxruntime-genai (e.g., the `oga-load` Tool), use `pip install -e .[llm-og]` to install `lemonade`.
+To install support for [onnxruntime-genai](https://github.com/microsoft/onnxruntime-genai) (e.g., the `oga-load` Tool), use `pip install -e .[llm-oga-dml]` instead of the default installation command.
+
+Next, you need to get an OGA model. Per the OGA instructions, we suggest Phi-3-Mini. Use the following command to download it from Hugging Face, and make sure to set your `--local-dir` to the `REPO_ROOT/src/turnkeyml/llm/ort_genai/models` directory.
+
+`huggingface-cli download microsoft/Phi-3-mini-4k-instruct-onnx --include directml/directml-int4-awq-block-128* --local-dir REPO_ROOT/src/turnkeyml/llm/tools/ort_genai/models/phi-3-mini-4k-instruct`
+
+You can try it out with: `lemonade -i microsoft/Phi-3-mini-4k-instruct oga-load --device igpu --dtype int4 llm-prompt -p "Hello, my thoughts are"`
+
+You can also try Phi-3-Mini-128k-Instruct with the following commands:
+
+`huggingface-cli download microsoft/Phi-3-mini-128k-instruct-onnx --include directml/directml-int4-awq-block-128* --local-dir REPO_ROOT/src/turnkeyml/llm/tools/ort_genai/models/phi-3-mini-128k-instruct`
+
+`lemonade -i microsoft/Phi-3-mini-128k-instruct oga-load --device igpu --dtype int4 llm-prompt -p "Hello, my thoughts are"`
+
+
+> Note: no other models or devices are officially supported by `lemonade` on OGA at this time. Contributions appreciated!
 
 ## Install Ryzen AI NPU
 
-To run your LLMs on Ryzen AI NPU, first install and set up the `ryzenai-transformers` conda environment. Then, install `lemonade` into `ryzenai-transformers`. The `ryzenai-npu-load` Tool will become available in that environment.
+To run your LLMs on Ryzen AI NPU, first install and set up the `ryzenai-transformers` conda environment (see instructions [here](https://github.com/amd/RyzenAI-SW/tree/main/example/transformers)). Then, install `lemonade` into `ryzenai-transformers`. The `ryzenai-npu-load` Tool will become available in that environment.
+
+You can try it out with: `lemonade -i meta-llama/Llama-2-7b-chat-hf ryzenai-npu-load --device DEVICE llm-prompt -p "Hello, my thoughts are"`
+
+Where `DEVICE` is either "phx" or "stx" if you have a RyzenAI 7xxx/8xxx or 3xx/9xxx processor, respectively.
+
+> Note: only `meta-llama/Llama-2-7b-chat-hf` and `microsoft/Phi-3-mini-4k-instruct` are supported by `lemonade` at this time. Contributions appreciated!
 
 # Contributing
 

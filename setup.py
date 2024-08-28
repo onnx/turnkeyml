@@ -44,11 +44,43 @@ setup(
         "GitPython>=3.1.40",
         "psutil",
     ],
-    extras_require={"llm": {}, "llm-oga-igpu": {}, "llm-oga-npu": {}},
+    extras_require={
+        "llm": [
+            "tqdm",
+            "torch>=2.0.0",
+            "transformers",
+            "accelerate",
+            "py-cpuinfo",
+            "sentencepiece",
+            "datasets",
+            "fastapi",
+        ],
+        "llm-oga-dml": [
+            "onnxruntime-directml==1.18.0",
+            "onnxruntime-genai-directml==0.2.0",
+            "tqdm",
+            "torch>=2.0.0",
+            "transformers",
+            "accelerate",
+            "py-cpuinfo",
+            "sentencepiece",
+            "datasets",
+            "fastapi",
+        ],
+        "llm-oga-npu": [
+            "transformers",
+            "torch",
+            "onnx==1.16.0",
+            "onnxruntime==1.18.0",
+            "numpy==1.26.4",
+        ]
+    },
     classifiers=[],
     entry_points={
         "console_scripts": [
             "turnkey=turnkeyml:turnkeycli",
+            "turnkey-llm=turnkeyml.llm:lemonadecli",
+            "lemonade=turnkeyml.llm:lemonadecli",
         ]
     },
     python_requires=">=3.8, <3.12",
