@@ -156,7 +156,7 @@ class RyzenAINPULoad(FirstTool):
             LMTokenizer = PreTrainedTokenizerFast
             quantized_model_path = os.path.join(
                 quantized_models_path,
-                f"quantized_llama-2-7b-chat_w{w_bit}_g{group_size}_{algorithm}.pth",
+                f"quantized_{model_name}_w{w_bit}_g{group_size}_{algorithm}.pth",
             )
 
         elif checkpoint == "microsoft/Phi-3-mini-4k-instruct":
