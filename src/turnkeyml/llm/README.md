@@ -15,17 +15,18 @@ Contents:
 ## Install
 
 1. Clone: `git clone https://github.com/onnx/turnkeyml.git`
+1. `cd turnkeyml` (where `turnkeyml` is the repo root of your TurnkeyML clone)
+    - Note: be sure to run these installation instructions from the repo root.
 1. Create and activate a conda environment:
     1. `conda create -n tk-llm python=3.10`
     1. `conda activate tk-llm`
-1. `cd turnkeyml` (where `turnkeyml` is the repo root of your TurnkeyML clone)
 1. Install lemonade: `pip install -e .[llm]`
     - or `pip install -e .[llm-oga-dml]` if you want to use `onnxruntime-genai` (see [OGA](#install-onnxruntime-genai))
 1. `lemonade -h` to explore the LLM tools
 
 ## Syntax
 
-The `lemonade` CLI uses the same style of syntax as `turnkey`, but with a new set of LLM-specific tools. You can read abhout that syntax [here](https://github.com/onnx/turnkeyml#how-it-works).
+The `lemonade` CLI uses the same style of syntax as `turnkey`, but with a new set of LLM-specific tools. You can read about that syntax [here](https://github.com/onnx/turnkeyml#how-it-works).
 
 ## Chatting
 
@@ -45,11 +46,11 @@ Run `lemonade huggingface-load -h` and `lemonade llm-prompt -h` to learn more ab
 
 To measure the accuracy of an LLM using MMLU, try this:
 
-`lemonade -i facebook/opt-125m huggingface-load mmlu-accuracy --tests management`
+`lemonade -i facebook/opt-125m huggingface-load accuracy-mmlu --tests management`
 
 That command will run just the management test from MMLU on your LLM and save the score to the lemonade cache at `~/.cache/lemonade`.
 
-You can run the full suite of MMLU subjects by ommitting the `--test` argument. You can learn more about this with `lemonade accuracy-mmlu -h.
+You can run the full suite of MMLU subjects by omitting the `--test` argument. You can learn more about this with `lemonade accuracy-mmlu -h.
 
 ## Serving
 
