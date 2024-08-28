@@ -26,8 +26,8 @@ jobs:
       - name: Build a binary wheel and a source tarball
         run: |
           python -m build --sdist --wheel --outdir dist/ .
-          $version = python setup.py --version
-          echo "VERSION=$version" >> $env:GITHUB_ENV
+          version=$(python setup.py --version)
+          echo "VERSION=$version" >> $GITHUB_ENV
       - name: Test wheel
         shell: bash -el {0}
         run: |
