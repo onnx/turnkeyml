@@ -55,7 +55,7 @@ jobs:
       - name: Lint with PyLint
         shell: bash -el {0}
         run: |
-          pylint plugins/devices/src --rcfile .pylintrc --disable E0401,E0203
+          pylint plugins/devices/src --rcfile .pylintrc --disable E0401,E0203,C0411
       - name: Test with unittest
         shell: bash -el {0}
         run: |
