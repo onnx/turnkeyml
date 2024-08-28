@@ -31,7 +31,7 @@ jobs:
           python -m pip install --upgrade pip
           conda install pylint
           python -m pip check
-          pip install -e .
+          pip install -e .[llm]
       - name: Lint with PyLint
         shell: bash -el {0}
         run: |
