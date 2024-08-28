@@ -144,7 +144,7 @@ class RyzenAINPULoad(FirstTool):
                 f"quantized_llama-2-7b-chat_w{w_bit}_g{group_size}_{algorithm}.pth",
             )
 
-        if (
+        elif (
             checkpoint == "meta-llama/Meta-Llama-3-8B-Instruct"
             or checkpoint == "meta-llama/Meta-Llama-3-8B"
         ):
