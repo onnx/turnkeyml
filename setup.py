@@ -57,8 +57,8 @@ setup(
             "uvicorn[standard]",
         ],
         "llm-oga-dml": [
-            "onnxruntime-directml==1.18.0",
-            "onnxruntime-genai-directml==0.2.0",
+            "onnxruntime-directml==1.19.0",
+            "onnxruntime-genai-directml==0.4.0",
             "tqdm",
             "torch>=2.0.0",
             "transformers",
