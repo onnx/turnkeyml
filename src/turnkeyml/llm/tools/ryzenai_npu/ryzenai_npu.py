@@ -1,7 +1,12 @@
 import os
 import argparse
 import torch
-from transformers import LlamaForCausalLM, LlamaTokenizer, AutoTokenizer
+from transformers import (
+    LlamaForCausalLM,
+    LlamaTokenizer,
+    AutoTokenizer,
+    PreTrainedTokenizerFast,
+)
 from ryzenai_llm_engine import RyzenAILLMEngine, TransformConfig
 from ryzenai_llm_quantizer import QuantConfig, RyzenAILLMQuantizer
 from modeling_phi3 import Phi3ForCausalLM
@@ -85,6 +90,8 @@ class RyzenAINPULoad(FirstTool):
         "TheBloke/Llama-2-7b-Chat-fp16"
         "meta-llama/Llama-2-7b-chat-hf"
         "microsoft/Phi-3-mini-4k-instruct"
+        "meta-llama/Meta-Llama-3-8B-Instruct"
+        "meta-llama/Meta-Llama-3-8B"
 
     Output:
         state.model: handle to a Huggingface-style LLM loaded on NPU
@@ -132,6 +139,21 @@ class RyzenAINPULoad(FirstTool):
             trust_remote_code = False
             CausalLMModel = LlamaModelEval
             LMTokenizer = LlamaTokenizer
+            quantized_model_path = os.path.join(
+                quantized_models_path,
+                f"quantized_llama-2-7b-chat_w{w_bit}_g{group_size}_{algorithm}.pth",
+            )
+
+        if (
+            checkpoint == "meta-llama/Meta-Llama-3-8B-Instruct"
+            or checkpoint == "meta-llama/Meta-Llama-3-8B"
+        ):
+            model_name = checkpoint.replace("meta-llama/", "")
+            algorithm = "awqplus"
+            flash_attention_plus = False
+            trust_remote_code = False
+            CausalLMModel = LlamaModelEval
+            LMTokenizer = PreTrainedTokenizerFast
             quantized_model_path = os.path.join(
                 quantized_models_path,
                 f"quantized_llama-2-7b-chat_w{w_bit}_g{group_size}_{algorithm}.pth",
