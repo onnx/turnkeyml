@@ -218,8 +218,16 @@ class OgaLoad(FirstTool):
         supported_models = {
             "igpu": {
                 "int4": {
-                    phi_3_mini_128k: os.path.join("phi-3-mini-128k-instruct", "directml", "directml-int4-awq-block-128"),
-                    phi_3_mini_4k: os.path.join("phi-3-mini-4k-instruct", "directml", "directml-int4-awq-block-128"),
+                    phi_3_mini_128k: os.path.join(
+                        "phi-3-mini-128k-instruct",
+                        "directml",
+                        "directml-int4-awq-block-128",
+                    ),
+                    phi_3_mini_4k: os.path.join(
+                        "phi-3-mini-4k-instruct",
+                        "directml",
+                        "directml-int4-awq-block-128",
+                    ),
                 },
             },
             "npu": {

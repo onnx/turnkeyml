@@ -5,6 +5,7 @@ from fastapi import FastAPI, WebSocket
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from transformers import TextIteratorStreamer
+import uvicorn
 from turnkeyml.state import State
 from turnkeyml.tools import Tool
 from turnkeyml.llm.tools.adapter import ModelAdapter, TokenizerAdapter
@@ -250,8 +251,6 @@ class Serve(Tool):
                 thread.join()
 
             await websocket.close()
-
-        import uvicorn
 
         uvicorn.run(app, host="localhost", port=8000)
 

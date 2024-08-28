@@ -54,6 +54,7 @@ setup(
             "sentencepiece",
             "datasets",
             "fastapi",
+            "uvicorn[standard]",
         ],
         "llm-oga-dml": [
             "onnxruntime-directml==1.18.0",
@@ -66,6 +67,7 @@ setup(
             "sentencepiece",
             "datasets",
             "fastapi",
+            "uvicorn[standard]",
         ],
         "llm-oga-npu": [
             "transformers",
@@ -73,7 +75,8 @@ setup(
             "onnx==1.16.0",
             "onnxruntime==1.18.0",
             "numpy==1.26.4",
-        ]
+            "uvicorn[standard]",
+        ],
     },
     classifiers=[],
     entry_points={

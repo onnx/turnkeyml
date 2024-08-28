@@ -63,6 +63,7 @@ class RyzenAiModel(ModelAdapter):
         super().__init__()
         self.model = model
 
+    # pylint: disable=arguments-differ
     def generate(self, input_ids, **kwargs):
         attention_mask = torch.ones(input_ids.shape)
         return self.model.generate(
