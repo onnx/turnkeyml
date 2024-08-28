@@ -17,6 +17,7 @@ setup(
         "turnkeyml.sequence",
         "turnkeyml.cli",
         "turnkeyml.common",
+        "turnkeyml.llm",
         "turnkeyml_models",
         "turnkeyml_models.graph_convolutions",
         "turnkeyml_models.selftest",
