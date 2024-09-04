@@ -190,7 +190,7 @@ class OgaLoad(FirstTool):
         parser.add_argument(
             "-d",
             "--device",
-            choices=["igpu", "npu"],
+            choices=["igpu", "npu", "cpu"],
             default="igpu",
             help="Which device to load the model on to (default: igpu)",
         )
@@ -235,6 +235,15 @@ class OgaLoad(FirstTool):
                     llama_2: "llama2-7b-int4",
                     llama_3: "llama3-8b-int4",
                     qwen_1dot5: "qwen1.5-7b-int4",
+                }
+            },
+            "cpu": {
+                "int4": {
+                    phi_3_mini_4k: os.path.join(
+                        "phi-3-mini-4k-instruct",
+                        "cpu_and_mobile",
+                        "cpu-int4-rtn-block-32-acc-level-4",
+                    ),
                 }
             },
         }
