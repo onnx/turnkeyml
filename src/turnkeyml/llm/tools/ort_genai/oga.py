@@ -190,7 +190,7 @@ class OgaLoad(FirstTool):
         parser.add_argument(
             "-d",
             "--device",
-            choices=["igpu", "npu"],
+            choices=["cpu", "igpu", "npu"],
             default="igpu",
             help="Which device to load the model on to (default: igpu)",
         )
@@ -216,6 +216,11 @@ class OgaLoad(FirstTool):
 
         # Map of models[device][dtype][checkpoint] to the name of the model folder on disk
         supported_models = {
+            "cpu": {
+                "int4": {
+                    llama_3: "llama3-8b-int4-cpu",
+                },
+            },
             "igpu": {
                 "int4": {
                     phi_3_mini_128k: os.path.join(
