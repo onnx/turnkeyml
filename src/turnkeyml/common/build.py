@@ -277,9 +277,8 @@ def get_system_info():
         info_dict["OS Version"] = platform.platform()
     except Exception as e:  # pylint: disable=broad-except
         info_dict["Error OS Version"] = str(e)
-    
 
-    def get_wmic_info(command, error_key):
+    def get_wmic_info(command):
         try:
             output = subprocess.check_output(command, shell=True).decode()
             return output.split("\n")[1].strip()
@@ -288,9 +287,9 @@ def get_system_info():
 
     if os_type == "Windows":
         if shutil.which("wmic") is not None:
-            info_dict["Processor"] = get_wmic_info("wmic cpu get name", "Error Processor")
-            info_dict["OEM System"] = get_wmic_info("wmic computersystem get model", "Error OEM System")
-            mem_info_bytes = get_wmic_info("wmic computersystem get TotalPhysicalMemory", "Error Physical Memory")
+            info_dict["Processor"] = get_wmic_info("wmic cpu get name")
+            info_dict["OEM System"] = get_wmic_info("wmic computersystem get model")
+            mem_info_bytes = get_wmic_info("wmic computersystem get TotalPhysicalMemory")
             try:
                 mem_info_gb = round(int(mem_info_bytes) / (1024**3), 2)
                 info_dict["Physical Memory"] = f"{mem_info_gb} GB"
