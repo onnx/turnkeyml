@@ -278,7 +278,7 @@ def get_system_info():
     except Exception as e:  # pylint: disable=broad-except
         info_dict["Error OS Version"] = str(e)
     
-    
+
     def get_wmic_info(command, error_key):
         try:
             output = subprocess.check_output(command, shell=True).decode()
