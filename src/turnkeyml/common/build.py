@@ -282,7 +282,7 @@ def get_system_info():
         try:
             output = subprocess.check_output(command, shell=True).decode()
             return output.split("\n")[1].strip()
-        except Exception as e:
+        except Exception as e: # pylint: disable=broad-except
             return str(e)
 
     if os_type == "Windows":
