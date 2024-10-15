@@ -42,8 +42,8 @@ jobs:
       - name: Lint with PyLint
         shell: bash -el {0}
         run: |
-          pylint src/turnkeyml --rcfile .pylintrc --ignore-paths src/turnkeyml/llm
-          pylint examples --rcfile .pylintrc --disable E0401,E0611
+          pylint src/turnkeyml --rcfile .pylintrc --ignore-paths src/turnkeyml/llm --jobs=1
+          pylint examples --rcfile .pylintrc --disable E0401,E0611 --jobs=1
       - name: Test with unittest
         shell: bash -el {0}
         run: |
