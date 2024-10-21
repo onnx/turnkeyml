@@ -37,7 +37,7 @@ jobs:
           pip install pytest
           pip install -e plugins/devices
           pip install transformers timm
-          pip uninstall turnkeyml
+          pip uninstall -y turnkeyml
           pip install -e .
           python -m pip check
       - name: Lint with PyLint
