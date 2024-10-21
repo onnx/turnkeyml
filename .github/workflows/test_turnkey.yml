@@ -37,7 +37,7 @@ jobs:
           pip install pytest
           pip install -e plugins/devices
           pip install transformers timm
-          pip install -e . --force-reinstall
+          pip install -e . # Required to test current tkml package instead of pypi version
           python -m pip check
       - name: Lint with PyLint
         shell: bash -el {0}
