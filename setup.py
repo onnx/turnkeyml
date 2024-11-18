@@ -35,7 +35,7 @@ setup(
         #   ImportError: DLL load failed while importing onnx_cpp2py_export
         "onnx>=1.11.0,<1.16.2",
         "onnxmltools==1.10.0",
-        "onnxruntime-directml >=1.10.1",
+        "onnxruntime-directml>=1.10.1",
         "torch>=1.12.1",
         "pyyaml>=5.4",
         "typeguard>=2.3.13",
