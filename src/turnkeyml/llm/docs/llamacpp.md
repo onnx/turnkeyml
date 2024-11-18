@@ -6,13 +6,18 @@ Run transformer models using a Llama.cpp binary and checkpoint. This model can t
 
 This flow has been verified with a generic Llama.cpp model.
 
+These instructions are only for linux or Windows with wsl. It may be necessary to be running WSL in an Administrator command prompt.
+
+These instructions also assume that TurnkeyML's llm extensions have been installed (for example with "pip install -e .[llm]")
+
+
 ### Set up Environment (Assumes TurnkeyML is already installed)
 
 Build or obtain the Llama.cpp model and desired checkpoint.
 For example (see the [llama.cpp](https://github.com/ggerganov/llama.cpp/blob/master/docs/build.md
 ) source for more details):
 1. cd ~
-1. git clone git clone https://github.com/ggerganov/llama.cpp
+1. git clone https://github.com/ggerganov/llama.cpp
 1. cd llama.cpp
 1. make
 1. cd models
