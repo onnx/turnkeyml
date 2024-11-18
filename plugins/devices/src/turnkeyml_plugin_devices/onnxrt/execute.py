@@ -9,7 +9,6 @@ import subprocess
 import json
 from statistics import mean
 import platform
-import onnxruntime
 import turnkeyml_plugin_devices.common.run.plugin_helpers as plugin_helpers
 
 # Use the last ORT release to support Python 3.8
