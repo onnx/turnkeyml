@@ -12,8 +12,8 @@ import platform
 import onnxruntime
 import turnkeyml_plugin_devices.common.run.plugin_helpers as plugin_helpers
 
-# Use the same ORT version of the base environment in the new conda env
-ORT_VERSION = onnxruntime.__version__
+# Use the last ORT release to support Python 3.8
+ORT_VERSION = "1.19.2"
 
 BATCHSIZE = 1
 
