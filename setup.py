@@ -34,8 +34,8 @@ setup(
         # 1.16.2 causes a crash:
         #   ImportError: DLL load failed while importing onnx_cpp2py_export
         "onnx>=1.11.0,<1.16.2",
-        "onnxmltools==1.10.0",
-        "onnxruntime-directml==1.19.0",
+        "onnxmltools",  # ==1.10.0",
+        "onnxruntime-directml",
         "torch>=1.12.1",
         "pyyaml>=5.4",
         "typeguard>=2.3.13",
