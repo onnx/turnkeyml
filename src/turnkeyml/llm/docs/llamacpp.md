@@ -41,3 +41,8 @@ The Llama.cpp tool currently supports the following parameters
 ```bash
 lemonade --input ~/llama.cpp/models/dolphin-llama2-7b.Q5_K_M.gguf load-llama-cpp --executable ~/llama.cpp/llama-cli accuracy-mmlu --ntrain 5
 ```
+
+On windows, the llama.cpp binary might be in a different location (such as llama.cpp\build\bin\Release\), in which case the command mgiht be something like:
+```bash
+lemonade --input ~\llama.cpp\models\dolphin-llama2-7b.Q5_K_M.gguf load-llama-cpp --executable ~\llama.cpp\build\bin\Release\llama-cli accuracy-mmlu --ntrain 5
+```
