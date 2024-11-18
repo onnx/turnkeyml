@@ -6,15 +6,18 @@ Run transformer models using a Llama.cpp binary and checkpoint. This model can t
 
 This flow has been verified with a generic Llama.cpp model.
 
-## Installation
+### Set up Environment (Assumes TurnkeyML is already installed)
 
-### 1. Set up Environment
+Build or obtain the Llama.cpp model and desired checkpoint.
+For example (see the [llama.cpp](https://github.com/ggerganov/llama.cpp/blob/master/docs/build.md
+) source for more details):
+1. cd ~
+1. git clone git clone https://github.com/ggerganov/llama.cpp
+1. cd llama.cpp
+1. make
+1. cd models
+1. wget https://huggingface.co/TheBloke/Dolphin-Llama2-7B-GGUF/resolve/main/dolphin-llama2-7b.Q5_K_M.gguf
 
-Build or obtain the Llama.cpp model and desired checkpoint
-
-### 2. Install genai
-
-Following the genai [README](../README.md), install lemonade by running `pip install -e genai`
 
 ## Usage
 
@@ -28,8 +31,8 @@ The Llama.cpp tool currently supports the following parameters
 | context-size | Maximum context length                                                      | 512     |
 | temp         | Temperature to use for inference (leave out to use the application default) | None    |
 
-### Example
+### Example (assuming Llama.cpp built and a checkpoint loaded as above)
 
 ```bash
-lemonade --input checkpoint.gguf load-llama-cpp --executable /app/main accuracy-mmlu --ntrain 5
+lemonade --input ~/llama.cpp/models/dolphin-llama2-7b.Q5_K_M.gguf load-llama-cpp --executable ~/llama.cpp/llama-cli accuracy-mmlu --ntrain 5
 ```
