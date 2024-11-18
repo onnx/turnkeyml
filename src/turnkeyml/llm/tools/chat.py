@@ -397,7 +397,7 @@ class Serve(Tool):
         @app.get("/health")
         async def health():
             """
-            Allow the client to halt an in-progress generation.
+            Report server health information to the client.
             """
 
             self.stop_event.set()
