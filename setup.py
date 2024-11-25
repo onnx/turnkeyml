@@ -31,7 +31,7 @@ setup(
     ],
     install_requires=[
         "invoke>=2.0.0",
-        "onnx>=1.17.0",
+        "onnx>=1.11.0",
         "onnxmltools==1.10.0",
         "onnxruntime >=1.10.1;platform_system=='Linux'",
         "onnxruntime-directml>=1.19.0;platform_system=='Windows'",
