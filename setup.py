@@ -34,7 +34,7 @@ setup(
         "onnx>=1.17.0",
         "onnxmltools==1.10.0",
         "onnxruntime >=1.10.1;platform_system=='Linux'",
-        "onnxruntime-directml==1.19.2;platform_system=='Windows'",
+        "onnxruntime-directml>=1.19.0;platform_system=='Windows'",
         "torch>=1.12.1",
         "pyyaml>=5.4",
         "typeguard>=2.3.13",
