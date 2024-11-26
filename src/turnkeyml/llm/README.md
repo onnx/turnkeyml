@@ -93,6 +93,10 @@ You can then load supported OGA models on to CPU or iGPU with the `oga-load` too
 
 `lemonade -i microsoft/Phi-3-mini-4k-instruct oga-load --device igpu --dtype int4 llm-prompt -p "Hello, my thoughts are"`
 
+You can also launch a server process with:
+
+`lemonade -i microsoft/Phi-3-mini-4k-instruct oga-load --device igpu --dtype int4 serve`
+
 You can learn more about the CPU and iGPU support in our [OGA documentation](https://github.com/onnx/turnkeyml/blob/main/docs/ort_genai_igpu.md).
 
 > Note: early access to AMD's RyzenAI NPU is also available. See the [RyzenAI NPU OGA documentation](https://github.com/onnx/turnkeyml/blob/main/docs/ort_genai_npu.md) for more information.
