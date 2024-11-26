@@ -54,6 +54,10 @@ def main():
     except ModuleNotFoundError:
         pass
 
+
+
+
+
     # Define the argument parser
     parser = cli.CustomArgumentParser(
         description="Turnkey analysis and benchmarking of GenAI models. "
@@ -103,7 +107,7 @@ def main():
         first_tool_args.append(global_args["input"])
 
         state = State(
-            cache_dir=global_args["cache_dir"],
+            cache_dir=os.path.abspath(global_args["cache_dir"]),
             build_name=global_args["input"].replace("/", "_"),
             sequence_info=sequence.info,
         )
