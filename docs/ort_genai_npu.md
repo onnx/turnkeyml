@@ -17,7 +17,7 @@ onnxruntime-genai (aka OGA) is a new framework created by Microsoft for running 
     1. `cd REPO_ROOT`
     1. `pip install -e .[oga-npu]`
 1. Download required OGA packages
-    1. Access the [AMD RyzenAI EA Lounge](https://account.amd.com/en/member/ryzenai-sw-ea.html#tabs-a5e122f973-item-4757898120-tab) and  download `amd_oga_Oct4_2024.zip` from `Ryzen AI 1.3 Preview Release`.
+    1. Access the [AMD RyzenAI EA Lounge](https://account.amd.com/en/member/ryzenai-sw-ea.html#tabs-a5e122f973-item-4757898120-tab) and  download `amd_oga_Oct4_2024.zip` from `Ryzen AI 1.3 EA Release`.
     1. Unzip `amd_oga_Oct4_2024.zip`
 1. Setup your folder structure:
     1. Copy the `amd_oga` folder from the above zip file, if desired
@@ -35,7 +35,7 @@ onnxruntime-genai (aka OGA) is a new framework created by Microsoft for running 
 
 ### Runtime
 
-To test basic functionality, point lemonade to any of the models under [quark-quantized-onnx-llms-for-ryzen-ai-13-ea](https://huggingface.co/collections/amd/quark-quantized-onnx-llms-for-ryzen-ai-13-ea-66fc8e24927ec45504381902):
+To test basic functionality, point lemonade to any of the models under [quark-quantized-onnx-llms-for-ryzen-ai-1.3-ea](https://huggingface.co/collections/amd/quark-quantized-onnx-llms-for-ryzen-ai-13-ea-66fc8e24927ec45504381902):
 
 ```
 lemonade -i amd/Llama-2-7b-hf-awq-g128-int4-asym-fp32-onnx-ryzen-strix oga-load --device npu --dtype int4 llm-prompt -p "hello whats your name?" --max-new-tokens 15

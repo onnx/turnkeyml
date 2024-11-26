@@ -8,8 +8,8 @@ To install:
 
 1. `conda create -n oga-igpu python=3.9`
 1. `conda activate oga-igpu`
-1. `pip install -e path/to/genai[oga-igpu]`
-   - Note: don't forget the `[oga-igpu]` at the end, this is what installs ort-genai
+1. `pip install -e .[llm-oga-igpu]`
+   - Note: don't forget the `[llm-oga-igpu]` at the end, this is what installs ort-genai
 1. Get models:
     - The oga-load tool can download models from Hugging Face and build ONNX files using oga model_builder.  Models can be quantized and optimized for both igpu and cpu.
     - Download and build ONNX model files:
