@@ -159,8 +159,8 @@ def get_shapes_and_dtypes(inputs: dict):
     for key in sorted(inputs):
         value = inputs[key]
         if isinstance(
-                value,
-                (list, tuple),
+            value,
+            (list, tuple),
         ):
             for v, i in zip(value, range(len(value))):
                 if isinstance(v, (list, tuple)):
@@ -201,9 +201,9 @@ class Logger:
     """
 
     def __init__(
-            self,
-            initial_message: str,
-            log_path: str = None,
+        self,
+        initial_message: str,
+        log_path: str = None,
     ):
         self.debug = os.environ.get("TURNKEY_BUILD_DEBUG") == "True"
         self.terminal = sys.stdout
@@ -283,13 +283,15 @@ def get_windows_driver_version(device_name: str) -> str:
     """
 
     cmd = (
-            "Get-WmiObject Win32_PnPSignedDriver | select DeviceName, DriverVersion | "
-            + "where-object {$_.DeviceName -eq '"
-            + device_name
-            + "'}"
+        "Get-WmiObject Win32_PnPSignedDriver | select DeviceName, DriverVersion | "
+        + "where-object {$_.DeviceName -eq '"
+        + device_name
+        + "'}"
     )
-    result = subprocess.run("powershell " + cmd, capture_output=True, text=True)
-    if result.returncode == 0:
+    result = subprocess.run(
+        "powershell " + cmd, capture_output=True, text=True, check=False
+    )
+    if result.returncode == 0 and len(result.stdout):
         driver_version = result.stdout.split("\n")[3].split()[-1]
     else:
         driver_version = None
@@ -322,13 +324,13 @@ def get_system_info():
                 "wmic computersystem get TotalPhysicalMemory"
             )
             try:
-                mem_info_gb = round(int(mem_info_bytes) / (1024 ** 3), 2)
+                mem_info_gb = round(int(mem_info_bytes) / (1024**3), 2)
                 info_dict["Physical Memory"] = f"{mem_info_gb} GB"
             except ValueError:
                 info_dict["Physical Memory"] = mem_info_bytes
             info_dict["BIOS Version"] = get_wmic_info("wmic bios get smbiosbiosversion")
             info_dict["CPU Max Clock"] = (
-                    get_wmic_info("wmic cpu get MaxClockSpeed") + "MHz"
+                get_wmic_info("wmic cpu get MaxClockSpeed") + "MHz"
             )
         else:
             info_dict["Processor"] = "Install WMIC to get system info"
@@ -338,11 +340,16 @@ def get_system_info():
             info_dict["CPU Max Clock"] = "Install WMIC to get system info"
 
         # Get driver versions
-        device_names = ["NPU Compute Accelerator Device", "AMD-OpenCL User Mode Driver"]
+        device_names = [
+            "NPU Compute Accelerator Device",
+            "AMD-OpenCL User Mode Driver",
+        ]
         driver_versions = {}
         for device_name in device_names:
             driver_version = get_windows_driver_version(device_name)
-            driver_versions[device_name] = driver_version if driver_version is not None else "DRIVER NOT FOUND"
+            driver_versions[device_name] = (
+                driver_version if driver_version is not None else "DRIVER NOT FOUND"
+            )
         info_dict["Driver Versions"] = driver_versions
 
         # Get NPU power mode
@@ -439,8 +446,7 @@ def get_system_info():
     # Get Python Packages
     distributions = importlib.metadata.distributions()
     info_dict["Python Packages"] = [
-        f"{dist.metadata['name']}=={dist.metadata['version']}"
-        for dist in distributions
+        f"{dist.metadata['name']}=={dist.metadata['version']}" for dist in distributions
     ]
 
     return info_dict
