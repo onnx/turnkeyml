@@ -7,13 +7,13 @@ import platform
 import subprocess
 from typing import Dict, Union
 import hashlib
-import pkg_resources
+import re
+import importlib.metadata
 import psutil
 import yaml
 import torch
 import numpy as np
 import turnkeyml.common.exceptions as exp
-
 
 UnionValidModelInstanceTypes = Union[
     None,
@@ -159,8 +159,8 @@ def get_shapes_and_dtypes(inputs: dict):
     for key in sorted(inputs):
         value = inputs[key]
         if isinstance(
-            value,
-            (list, tuple),
+                value,
+                (list, tuple),
         ):
             for v, i in zip(value, range(len(value))):
                 if isinstance(v, (list, tuple)):
@@ -201,9 +201,9 @@ class Logger:
     """
 
     def __init__(
-        self,
-        initial_message: str,
-        log_path: str = None,
+            self,
+            initial_message: str,
+            log_path: str = None,
     ):
         self.debug = os.environ.get("TURNKEY_BUILD_DEBUG") == "True"
         self.terminal = sys.stdout
@@ -268,6 +268,35 @@ class Logger:
         pass
 
 
+def get_windows_driver_version(device_name: str) -> str:
+    """
+    Returns the driver version for a given device name.  If not found, returns None.
+
+    This information is extracted from parsing the output of the powershell Get-WmiObject command.
+
+    All drivers and versions can be viewed with the PowerShell command:
+        > Get-WmiObject Win32_PnPSignedDriver | select DeviceName, Manufacturer, DriverVersion
+
+    To find a specific driver version by name:
+        > Get-WmiObject Win32_PnPSignedDriver | select DeviceName, DriverVersion |
+             where-object {$_.DeviceName -eq 'NPU Compute Accelerator Device'}
+    """
+
+    cmd = (
+            "Get-WmiObject Win32_PnPSignedDriver | select DeviceName, DriverVersion | "
+            + "where-object {$_.DeviceName -eq '"
+            + device_name
+            + "'}"
+    )
+    result = subprocess.run("powershell " + cmd, capture_output=True, text=True)
+    if result.returncode == 0:
+        driver_version = result.stdout.split("\n")[3].split()[-1]
+    else:
+        driver_version = None
+
+    return driver_version
+
+
 def get_system_info():
     os_type = platform.system()
     info_dict = {}
@@ -293,14 +322,51 @@ def get_system_info():
                 "wmic computersystem get TotalPhysicalMemory"
             )
             try:
-                mem_info_gb = round(int(mem_info_bytes) / (1024**3), 2)
+                mem_info_gb = round(int(mem_info_bytes) / (1024 ** 3), 2)
                 info_dict["Physical Memory"] = f"{mem_info_gb} GB"
             except ValueError:
                 info_dict["Physical Memory"] = mem_info_bytes
+            info_dict["BIOS Version"] = get_wmic_info("wmic bios get smbiosbiosversion")
+            info_dict["CPU Max Clock"] = (
+                    get_wmic_info("wmic cpu get MaxClockSpeed") + "MHz"
+            )
         else:
             info_dict["Processor"] = "Install WMIC to get system info"
             info_dict["OEM System"] = "Install WMIC to get system info"
             info_dict["Physical Memory"] = "Install WMIC to get system info"
+            info_dict["BIOS Version"] = "Install WMIC to get system info"
+            info_dict["CPU Max Clock"] = "Install WMIC to get system info"
+
+        # Get driver versions
+        device_names = ["NPU Compute Accelerator Device", "AMD-OpenCL User Mode Driver"]
+        driver_versions = {}
+        for device_name in device_names:
+            driver_version = get_windows_driver_version(device_name)
+            driver_versions[device_name] = driver_version if driver_version is not None else "DRIVER NOT FOUND"
+        info_dict["Driver Versions"] = driver_versions
+
+        # Get NPU power mode
+        try:
+            out = subprocess.check_output(
+                [r"C:\Windows\System32\AMD\xrt-smi.exe", "examine", "-r", "platform"],
+                stderr=subprocess.STDOUT,
+            ).decode()
+            lines = out.splitlines()
+            modes = [line.split()[-1] for line in lines if "Mode" in line]
+            if len(modes) > 0:
+                info_dict["NPU Power Mode"] = modes[0]
+        except FileNotFoundError:
+            # xrt-smi not present
+            pass
+        except subprocess.CalledProcessError as e:
+            info_dict["NPU Power Mode ERROR"] = e.output.decode()
+
+        # Get windows power setting
+        try:
+            out = subprocess.check_output(["powercfg", "/getactivescheme"]).decode()
+            info_dict["Windows Power Setting"] = re.search(r"\((.*?)\)", out).group(1)
+        except subprocess.CalledProcessError as e:
+            info_dict["Windows Power Setting ERROR"] = e.output.decode()
 
     elif os_type == "Linux":
         # WSL has to be handled differently compared to native Linux
@@ -371,13 +437,10 @@ def get_system_info():
         info_dict["Error"] = "Unsupported OS"
 
     # Get Python Packages
-    try:
-        installed_packages = pkg_resources.working_set
-        info_dict["Python Packages"] = [
-            f"{i.key}=={i.version}"
-            for i in installed_packages  # pylint: disable=not-an-iterable
-        ]
-    except Exception as e:  # pylint: disable=broad-except
-        info_dict["Error Python Packages"] = str(e)
+    distributions = importlib.metadata.distributions()
+    info_dict["Python Packages"] = [
+        f"{dist.metadata['name']}=={dist.metadata['version']}"
+        for dist in distributions
+    ]
 
     return info_dict
