@@ -1,7 +1,6 @@
 import os
 import logging
 import sys
-import shutil
 import traceback
 import platform
 import subprocess
@@ -293,8 +292,8 @@ def get_windows_driver_version(device_name: str) -> str:
             "powershell " + cmd, capture_output=True, text=True, check=True
         ).stdout
         return output.split("\n")[3].split()[-1]
-    except Exception as e:  # pylint: disable=broad-except
-        return None
+    except Exception:  # pylint: disable=broad-except
+        return ""
 
 
 def get_system_info():
@@ -319,7 +318,8 @@ def get_system_info():
     if os_type == "Windows":
 
         processor = get_cim_info(
-            "Get-CimInstance -ClassName Win32_Processor | %{ '{0}###({1} cores, {2} logical processors)' "
+            "Get-CimInstance -ClassName Win32_Processor | "
+            "%{ '{0}###({1} cores, {2} logical processors)' "
             "-f $_.Name,$_.NumberOfCores,$_.NumberOfLogicalProcessors }"
         )
         info_dict["Processor"] = " ".join(
@@ -327,20 +327,24 @@ def get_system_info():
         )
 
         info_dict["OEM System"] = get_cim_info(
-            "Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object -ExpandProperty Model"
+            "Get-CimInstance -ClassName Win32_ComputerSystem | "
+            "Select-Object -ExpandProperty Model"
         )
 
         memory = get_cim_info(
-            "Get-CimInstance -ClassName Win32_PhysicalMemory | %{ '{0} {1} GB {2} ns' -f $_.Manufacturer,($_.Capacity/1gb),$_.Speed }"
+            "Get-CimInstance -ClassName Win32_PhysicalMemory | "
+            "%{ '{0} {1} GB {2} ns' -f $_.Manufacturer,($_.Capacity/1gb),$_.Speed }"
         )
         info_dict["Physical Memory"] = " + ".join(memory.split("\n"))
 
         info_dict["BIOS Version"] = get_cim_info(
-            "Get-CimInstance -ClassName Win32_BIOS | Select-Object -ExpandProperty SMBIOSBIOSVersion"
+            "Get-CimInstance -ClassName Win32_BIOS | "
+            "Select-Object -ExpandProperty SMBIOSBIOSVersion"
         )
 
         info_dict["CPU Max Clock"] = get_cim_info(
-            "Get-CimInstance -ClassName Win32_Processor | Select-Object -ExpandProperty MaxClockSpeed"
+            "Get-CimInstance -ClassName Win32_Processor | "
+            "Select-Object -ExpandProperty MaxClockSpeed"
         )
         info_dict["CPU Max Clock"] += " MHz"
 
@@ -353,7 +357,7 @@ def get_system_info():
         for device_name in device_names:
             driver_version = get_windows_driver_version(device_name)
             driver_versions[device_name] = (
-                driver_version if driver_version is not None else "DRIVER NOT FOUND"
+                driver_version if len(driver_version) else "DRIVER NOT FOUND"
             )
         info_dict["Driver Versions"] = driver_versions
 
