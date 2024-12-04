@@ -288,15 +288,13 @@ def get_windows_driver_version(device_name: str) -> str:
         + device_name
         + "'}"
     )
-    result = subprocess.run(
-        "powershell " + cmd, capture_output=True, text=True, check=False
-    )
-    if result.returncode == 0 and len(result.stdout):
-        driver_version = result.stdout.split("\n")[3].split()[-1]
-    else:
-        driver_version = None
-
-    return driver_version
+    try:
+        output = subprocess.run(
+            "powershell " + cmd, capture_output=True, text=True, check=True
+        ).stdout
+        return output.split("\n")[3].split()[-1]
+    except Exception as e:  # pylint: disable=broad-except
+        return None
 
 
 def get_system_info():
@@ -309,35 +307,42 @@ def get_system_info():
     except Exception as e:  # pylint: disable=broad-except
         info_dict["Error OS Version"] = str(e)
 
-    def get_wmic_info(command):
+    def get_cim_info(command):
         try:
-            output = subprocess.check_output(command, shell=True).decode()
-            return output.split("\n")[1].strip()
+            output = subprocess.run(
+                "powershell " + command, capture_output=True, text=True, check=True
+            ).stdout
+            return output.strip()
         except Exception as e:  # pylint: disable=broad-except
             return str(e)
 
     if os_type == "Windows":
-        if shutil.which("wmic") is not None:
-            info_dict["Processor"] = get_wmic_info("wmic cpu get name")
-            info_dict["OEM System"] = get_wmic_info("wmic computersystem get model")
-            mem_info_bytes = get_wmic_info(
-                "wmic computersystem get TotalPhysicalMemory"
-            )
-            try:
-                mem_info_gb = round(int(mem_info_bytes) / (1024**3), 2)
-                info_dict["Physical Memory"] = f"{mem_info_gb} GB"
-            except ValueError:
-                info_dict["Physical Memory"] = mem_info_bytes
-            info_dict["BIOS Version"] = get_wmic_info("wmic bios get smbiosbiosversion")
-            info_dict["CPU Max Clock"] = (
-                get_wmic_info("wmic cpu get MaxClockSpeed") + "MHz"
-            )
-        else:
-            info_dict["Processor"] = "Install WMIC to get system info"
-            info_dict["OEM System"] = "Install WMIC to get system info"
-            info_dict["Physical Memory"] = "Install WMIC to get system info"
-            info_dict["BIOS Version"] = "Install WMIC to get system info"
-            info_dict["CPU Max Clock"] = "Install WMIC to get system info"
+
+        processor = get_cim_info(
+            "Get-CimInstance -ClassName Win32_Processor | %{ '{0}###({1} cores, {2} logical processors)' "
+            "-f $_.Name,$_.NumberOfCores,$_.NumberOfLogicalProcessors }"
+        )
+        info_dict["Processor"] = " ".join(
+            [str.strip() for str in processor.split("###")]
+        )
+
+        info_dict["OEM System"] = get_cim_info(
+            "Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object -ExpandProperty Model"
+        )
+
+        memory = get_cim_info(
+            "Get-CimInstance -ClassName Win32_PhysicalMemory | %{ '{0} {1} GB {2} ns' -f $_.Manufacturer,($_.Capacity/1gb),$_.Speed }"
+        )
+        info_dict["Physical Memory"] = " + ".join(memory.split("\n"))
+
+        info_dict["BIOS Version"] = get_cim_info(
+            "Get-CimInstance -ClassName Win32_BIOS | Select-Object -ExpandProperty SMBIOSBIOSVersion"
+        )
+
+        info_dict["CPU Max Clock"] = get_cim_info(
+            "Get-CimInstance -ClassName Win32_Processor | Select-Object -ExpandProperty MaxClockSpeed"
+        )
+        info_dict["CPU Max Clock"] += " MHz"
 
         # Get driver versions
         device_names = [
@@ -353,20 +358,26 @@ def get_system_info():
         info_dict["Driver Versions"] = driver_versions
 
         # Get NPU power mode
-        try:
-            out = subprocess.check_output(
-                [r"C:\Windows\System32\AMD\xrt-smi.exe", "examine", "-r", "platform"],
-                stderr=subprocess.STDOUT,
-            ).decode()
-            lines = out.splitlines()
-            modes = [line.split()[-1] for line in lines if "Mode" in line]
-            if len(modes) > 0:
-                info_dict["NPU Power Mode"] = modes[0]
-        except FileNotFoundError:
-            # xrt-smi not present
-            pass
-        except subprocess.CalledProcessError as e:
-            info_dict["NPU Power Mode ERROR"] = e.output.decode()
+        if "AMD" in info_dict["Processor"]:
+            try:
+                out = subprocess.check_output(
+                    [
+                        r"C:\Windows\System32\AMD\xrt-smi.exe",
+                        "examine",
+                        "-r",
+                        "platform",
+                    ],
+                    stderr=subprocess.STDOUT,
+                ).decode()
+                lines = out.splitlines()
+                modes = [line.split()[-1] for line in lines if "Mode" in line]
+                if len(modes) > 0:
+                    info_dict["NPU Power Mode"] = modes[0]
+            except FileNotFoundError:
+                # xrt-smi not present
+                pass
+            except subprocess.CalledProcessError as e:
+                info_dict["NPU Power Mode ERROR"] = e.output.decode()
 
         # Get windows power setting
         try:
