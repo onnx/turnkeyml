@@ -1,9 +1,8 @@
-import platform
-import subprocess
-import re
-import importlib.metadata
-import wmi
 from abc import ABC
+import importlib.metadata
+import platform
+import re
+import subprocess
 
 
 class SystemInfo(ABC):
@@ -59,6 +58,8 @@ class WindowsSystemInfo(SystemInfo):
 
     def __init__(self):
         super().__init__()
+        import wmi
+
         self.connection = wmi.WMI()
 
     def get_processor_name(self) -> str:
@@ -70,7 +71,11 @@ class WindowsSystemInfo(SystemInfo):
         """
         processors = self.connection.Win32_Processor()
         if processors:
-            return f"{processors[0].Name.strip()} ({processors[0].NumberOfCores} cores, {processors[0].NumberOfLogicalProcessors} logical processors)"
+            return (
+                f"{processors[0].Name.strip()} "
+                f"({processors[0].NumberOfCores} cores, "
+                f"{processors[0].NumberOfLogicalProcessors} logical processors)"
+            )
         return "Processor information not found."
 
     def get_system_model(self) -> str:
@@ -166,7 +171,7 @@ class WindowsSystemInfo(SystemInfo):
         except FileNotFoundError:
             # xrt-smi not present
             pass
-        except subprocess.CalledProcessError as e:
+        except subprocess.CalledProcessError:
             pass
         return "NPU power mode not found."
 
@@ -181,7 +186,7 @@ class WindowsSystemInfo(SystemInfo):
         try:
             out = subprocess.check_output(["powercfg", "/getactivescheme"]).decode()
             return re.search(r"\((.*?)\)", out).group(1)
-        except subprocess.CalledProcessError as e:
+        except subprocess.CalledProcessError:
             pass
         return "Windows power setting not found"
 
@@ -218,9 +223,6 @@ class WindowsSystemInfo(SystemInfo):
 
 class WSLSystemInfo(SystemInfo):
     """Class used to access system information in WSL"""
-
-    def __init__(self):
-        super().__init__()
 
     @staticmethod
     def get_system_model() -> str:
@@ -260,9 +262,6 @@ class WSLSystemInfo(SystemInfo):
 
 class LinuxSystemInfo(SystemInfo):
     """Class used to access system information in Linux"""
-
-    def __init__(self):
-        super().__init__()
 
     @staticmethod
     def get_processor_name() -> str:
@@ -344,9 +343,6 @@ class LinuxSystemInfo(SystemInfo):
 
 class UnsupportedOSSystemInfo(SystemInfo):
     """Class used to access system information in unsupported operating systems"""
-
-    def __init__(self):
-        super().__init__()
 
     def get_dict(self):
         """
