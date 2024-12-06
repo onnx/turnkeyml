@@ -46,6 +46,7 @@ setup(
         "fasteners",
         "GitPython>=3.1.40",
         "psutil",
+        "wmi",
     ],
     extras_require={
         "llm": [
