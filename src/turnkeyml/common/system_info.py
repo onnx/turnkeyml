@@ -395,11 +395,5 @@ def main():
         print(f"{k}: {v}")
 
 
-# def temp(self):
-#     c = wmi.WMI(moniker="//./root/cimv2/power")
-#     pp = c.Win32_PowerPlan()
-#     pass
-
-
 if __name__ == "__main__":
     main()
