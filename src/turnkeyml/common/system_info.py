@@ -384,16 +384,3 @@ def get_system_info_dict() -> dict:
         dict: Dictionary containing the system information.
     """
     return get_system_info().get_dict()
-
-
-def main():
-    """
-    Prints the system information dictionary.
-    """
-    info_dict = get_system_info_dict()
-    for k, v in info_dict.items():
-        print(f"{k}: {v}")
-
-
-if __name__ == "__main__":
-    main()
