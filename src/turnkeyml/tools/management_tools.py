@@ -290,10 +290,10 @@ class SystemInfo(ManagementTool):
             if isinstance(v, dict):
                 print("    " * level + f"{k}:")
                 SystemInfo.pretty_print(v, level + 1)
-            elif isinstance(v,list):
+            elif isinstance(v, list):
                 print("    " * level + f"{k}:")
                 for item in v:
-                    print("    " * (level+1) + f"{item}")
+                    print("    " * (level + 1) + f"{item}")
             else:
                 print("    " * level + f"{k}: {v}")
 
