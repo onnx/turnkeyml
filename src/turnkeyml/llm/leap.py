@@ -111,6 +111,7 @@ def from_pretrained(
         return state.model, tokenizer
 
     elif recipe == "oga-dml-igpu":
+        print("In dml recipe")
         import turnkeyml.llm.tools.ort_genai.oga as oga
 
         state = _make_state(recipe, checkpoint)
@@ -119,6 +120,21 @@ def from_pretrained(
             state,
             input=checkpoint,
             device="igpu",
+            dtype="int4",
+        )
+
+        return state.model, state.tokenizer
+    
+    elif recipe == "oga-cuda":
+        print("In cuda recipe")
+        import turnkeyml.llm.tools.ort_genai.oga as oga
+
+        state = _make_state(recipe, checkpoint)
+
+        state = oga.OgaLoad().run(
+            state,
+            input=checkpoint,
+            device="cuda",
             dtype="int4",
         )
 
