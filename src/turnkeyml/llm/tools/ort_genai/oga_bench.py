@@ -146,11 +146,15 @@ class OgaBench(Tool):
 
         mean_time_to_first_token = statistics.mean(per_iteration_time_to_first_token)
         prefill_tokens_per_second = input_ids_len / mean_time_to_first_token
-        token_generation_tokens_per_second = statistics.mean(per_iteration_tokens_per_second)
+        token_generation_tokens_per_second = statistics.mean(
+            per_iteration_tokens_per_second
+        )
 
         state.save_stat(Keys.SECONDS_TO_FIRST_TOKEN, mean_time_to_first_token)
         state.save_stat(Keys.PREFILL_TOKENS_PER_SECOND, prefill_tokens_per_second)
-        state.save_stat(Keys.TOKEN_GENERATION_TOKENS_PER_SECOND, token_generation_tokens_per_second)
+        state.save_stat(
+            Keys.TOKEN_GENERATION_TOKENS_PER_SECOND, token_generation_tokens_per_second
+        )
         state.save_stat(Keys.PROMPT_TOKENS, input_ids_len)
 
         return state
