@@ -11,6 +11,7 @@ from statistics import mean
 import platform
 import onnxruntime
 import turnkeyml_plugin_devices.common.run.plugin_helpers as plugin_helpers
+import wmi
 
 # Use the same ORT version of the base environment in the new conda env
 ORT_VERSION = onnxruntime.__version__
@@ -130,41 +131,42 @@ def get_cpu_specs() -> dict:
 
     # Check the operating system and define the command accordingly
     if platform.system() == "Windows":
-        cpu_info_command = (
-            "wmic CPU get Architecture,Manufacturer,MaxClockSpeed,"
-            "Name,NumberOfCores /format:list"
-        )
-
-        cpu_info = subprocess.Popen(
-            cpu_info_command, stdout=subprocess.PIPE, shell=True
-        )
-        separator = "="
+        # Use WMI to get CPU information
+        c = wmi.WMI()
+        cpu_info = c.Win32_Processor()[0]
+        cpu_spec = {
+            "CPU Architecture": cpu_info.Architecture,
+            "CPU Vendor": cpu_info.Manufacturer,
+            "CPU Max Frequency (MHz)": cpu_info.MaxClockSpeed,
+            "CPU Name": cpu_info.Name,
+            "CPU Core Count": cpu_info.NumberOfCores,
+        }
     else:
         cpu_info_command = "lscpu"
         cpu_info = subprocess.Popen(cpu_info_command.split(), stdout=subprocess.PIPE)
         separator = ":"
 
-    cpu_info_output, _ = cpu_info.communicate()
-    if not cpu_info_output:
-        raise EnvironmentError(
-            f"Could not get CPU info using '{cpu_info_command.split()[0]}'. "
-            "Please make sure this tool is correctly installed on your system before continuing."
+        cpu_info_output, _ = cpu_info.communicate()
+        if not cpu_info_output:
+            raise EnvironmentError(
+                f"Could not get CPU info using '{cpu_info_command.split()[0]}'. "
+                "Please make sure this tool is correctly installed on your system before continuing."
+            )
+
+        decoded_info = (
+            cpu_info_output.decode()
+            .strip()
+            .split("\r\n" if platform.system() == "Windows" else "\n")
         )
 
-    decoded_info = (
-        cpu_info_output.decode()
-        .strip()
-        .split("\r\n" if platform.system() == "Windows" else "\n")
-    )
-
-    # Initialize an empty dictionary to hold the CPU specifications
-    cpu_spec = {}
-    for line in decoded_info:
-        key, value = line.split(separator, 1)
-        # Get the corresponding key from the field mapping
-        key = field_mapping.get(key.strip())
-        if key:
-            # Add the key and value to the CPU specifications dictionary
-            cpu_spec[key] = value.strip()
+        # Initialize an empty dictionary to hold the CPU specifications
+        cpu_spec = {}
+        for line in decoded_info:
+            key, value = line.split(separator, 1)
+            # Get the corresponding key from the field mapping
+            key = field_mapping.get(key.strip())
+            if key:
+                # Add the key and value to the CPU specifications dictionary
+                cpu_spec[key] = value.strip()
 
     return cpu_spec
