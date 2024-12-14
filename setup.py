@@ -46,6 +46,13 @@ setup(
         "fasteners",
         "GitPython>=3.1.40",
         "psutil",
+        "transformers<4.45.0",
+        "accelerate",
+        "py-cpuinfo",
+        "sentencepiece",
+        "datasets",
+        "fastapi",
+        "uvicorn[standard]",
     ],
     extras_require={
         "llm": [
