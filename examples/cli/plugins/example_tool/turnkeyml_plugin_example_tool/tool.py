@@ -5,7 +5,7 @@ and build_model() to have any custom behavior.
 
 In this the tool simply passes the build state to the next
 tool in the sequence (i.e., this example is a no-op). It also
-spends one minute updating the monitor's percent progress indicator.
+spends a few seconds updating the monitor's percent progress indicator.
 
 After you install the plugin, you can tell `turnkey` to use this sequence with:
 
