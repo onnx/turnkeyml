@@ -3,8 +3,8 @@ import time
 import os
 import copy
 from datetime import datetime
-import pytz
 from typing import List, Dict, Optional
+import pytz
 import turnkeyml.common.printing as printing
 import turnkeyml.common.exceptions as exp
 import turnkeyml.common.build as build
