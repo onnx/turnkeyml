@@ -11,12 +11,29 @@ We are on a mission to make it easy to use the most important tools in the ONNX 
 |:----------------------------------------------:	|:-----------------------------------------------------------------:	|
 | Serve and benchmark LLMs on CPU, GPU, and NPU. <br/>	[Click here to get started with turnkey-llm.](https://github.com/onnx/turnkeyml/tree/main/src/turnkeyml/llm) | Export and optimize ONNX models for CNNs, Transformers, and GNNs. <br/>	[Click here to get started with turnkey classic.](https://github.com/onnx/turnkeyml/blob/main/docs/classic_getting_started.md)	|
 | <img src="img/llm_demo.png" width="100%"/> | <img src="img/basic_demo.gif" width="80%"/> |
-<!-- | ![alt text](img/llm_demo.png) | ![alt text](img/basic_demo.gif) | -->
 
 
+## How It Works
 
+The `turnkey` and `turnkey-llm` CLIs provide a set of `Tools` that users can invoke in a `Sequence`. The first `Tool` takes the input (`-i`), performs some action, and passes its state to the next `Tool` in the `Sequence`.
 
+You can read the `Sequence` out like a sentence. For example, the demo command above was:
 
+```
+> turnkey -i bert.py discover export-pytorch optimize-ort convert-fp16
+```
+
+Which you can read like:
+
+> Use `turnkey` on `bert.py` to `discover` the model, `export` the `pytorch` to ONNX, `optimize` the ONNX with `ort`, and `convert` the ONNX to `fp16`.
+
+You can configure each `Tool` by passing it arguments. For example, `export-pytorch --opset 18` would set the opset of the resulting ONNX model to 18.
+
+A full command with an argument looks like:
+
+```
+> turnkey -i bert.py discover export-pytorch --opset 18 optimize-ort convert-fp16
+```
 
 
 ## Contributing

@@ -28,7 +28,7 @@ Contents:
 
 ## Syntax
 
-The `lemonade` CLI uses the same style of syntax as `turnkey`, but with a new set of LLM-specific tools. You can read about that syntax [here](https://github.com/onnx/turnkeyml/blob/main/docs/classic_getting_started.md#how-it-works).
+The `lemonade` CLI uses the same style of syntax as `turnkey`, but with a new set of LLM-specific tools. You can read about that syntax [here](https://github.com/onnx/turnkeyml#how-it-works).
 
 ## Chatting
 

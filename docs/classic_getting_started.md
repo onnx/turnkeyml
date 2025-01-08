@@ -34,28 +34,6 @@ Breaking down the command `turnkey -i bert.py discover export-pytorch optimize-o
 
 All without writing a single line of code or learning how to use any of the underlying ONNX ecosystem tools 🚀
 
-## How It Works
-
-The `turnkey` CLI provides a set of `Tools` that users can invoke in a `Sequence`. The first `Tool` takes the input (`-i`), performs some action, and passes its state to the next `Tool` in the `Sequence`.
-
-You can read the `Sequence` out like a sentence. For example, the demo command above was:
-
-```
-> turnkey -i bert.py discover export-pytorch optimize-ort convert-fp16
-```
-
-Which you can read like:
-
-> Use `turnkey` on `bert.py` to `discover` the model, `export` the `pytorch` to ONNX, `optimize` the ONNX with `ort`, and `convert` the ONNX to `fp16`.
-
-You can configure each `Tool` by passing it arguments. For example, `export-pytorch --opset 18` would set the opset of the resulting ONNX model to 18.
-
-A full command with an argument looks like:
-
-```
-> turnkey -i bert.py discover export-pytorch --opset 18 optimize-ort conver-fp16
-```
-
 ## Learn More
 
 The easiest way to learn more about `turnkey` is to explore the help menu with `turnkey -h`. To learn about a specific tool, run `turnkey <tool name> -h`, for example `turnkey export-pytorch -h`.
