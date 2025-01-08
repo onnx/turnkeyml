@@ -7,7 +7,7 @@
 
 We are on a mission to make it easy to use the most important tools in the ONNX ecosystem. TurnkeyML accomplishes this by providing no-code CLIs and low-code APIs for both general ONNX workflows as well as LLMs.
 
-|                     [**LLM**](https://github.com/onnx/turnkeyml/tree/main/src/turnkeyml/llm)                    	|                            [**Classic**](https://github.com/onnx/turnkeyml/blob/main/docs/classic_getting_started.md)                                	|
+|                     [**Turnkey LLM**](https://github.com/onnx/turnkeyml/tree/main/src/turnkeyml/llm)                    	|                            [**Turnkey Classic**](https://github.com/onnx/turnkeyml/blob/main/docs/classic_getting_started.md)                                	|
 |:----------------------------------------------:	|:-----------------------------------------------------------------:	|
 | Serve and benchmark LLMs on CPU, GPU, and NPU. <br/>	[Click here to get started with turnkey-llm.](https://github.com/onnx/turnkeyml/tree/main/src/turnkeyml/llm) | Export and optimize ONNX models for CNNs, Transformers, and GNNs. <br/>	[Click here to get started with turnkey classic.](https://github.com/onnx/turnkeyml/blob/main/docs/classic_getting_started.md)	|
 | <img src="img/llm_demo.png" width="100%"/> | <img src="img/basic_demo.gif" width="80%"/> |
