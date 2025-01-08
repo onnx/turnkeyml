@@ -329,7 +329,7 @@ class OgaLoad(FirstTool):
                 else ""
             )
         oga_models_subfolder = os.path.join(
-            checkpoint.replace("/", "_").lower(), subfolder
+            "onnx", subfolder
         )
         full_model_path = os.path.join(
             state.cache_dir, oga_models_path, oga_models_subfolder
