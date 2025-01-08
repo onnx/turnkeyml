@@ -10,12 +10,12 @@ We are on a mission to make it easy to use the most important tools in the ONNX 
 |                     [**Turnkey LLM**](https://github.com/onnx/turnkeyml/tree/main/src/turnkeyml/llm)                    	|                            [**Turnkey Classic**](https://github.com/onnx/turnkeyml/blob/main/docs/classic_getting_started.md)                                	|
 |:----------------------------------------------:	|:-----------------------------------------------------------------:	|
 | Serve and benchmark LLMs on CPU, GPU, and NPU. <br/>	[Click here to get started with turnkey-llm.](https://github.com/onnx/turnkeyml/tree/main/src/turnkeyml/llm) | Export and optimize ONNX models for CNNs, Transformers, and GNNs. <br/>	[Click here to get started with turnkey classic.](https://github.com/onnx/turnkeyml/blob/main/docs/classic_getting_started.md)	|
-| <img src="img/llm_demo.png" width="100%"/> | <img src="img/basic_demo.gif" width="80%"/> |
+| <img src="img/llm_demo.png"/> | <img src="img/classic_demo.png"/> |
 
 
 ## How It Works
 
-The `turnkey` and `turnkey-llm` CLIs provide a set of `Tools` that users can invoke in a `Sequence`. The first `Tool` takes the input (`-i`), performs some action, and passes its state to the next `Tool` in the `Sequence`.
+The `turnkey` (classic) and `turnkey-llm` CLIs provide a set of `Tools` that users can invoke in a `Sequence`. The first `Tool` takes the input (`-i`), performs some action, and passes its state to the next `Tool` in the `Sequence`.
 
 You can read the `Sequence` out like a sentence. For example, the demo command above was:
 
