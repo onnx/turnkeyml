@@ -63,6 +63,7 @@ setup(
             # PR (https://github.com/openai/human-eval/pull/53) is merged
             "human-eval @ git+https://github.com/ramkrishna2910/human-eval.git",
             "fastapi",
+            "uvicorn[standard]",
         ],
         "llm-oga-igpu": [
             "onnxruntime-genai-directml==0.4.0",
