@@ -18,7 +18,7 @@ The HumanEval dataset is automatically downloaded from [OpenAI's human-eval repo
 ## Running the Benchmark
 
 ```bash
-lemonade -i meta-llama/Llama-3.2-1B oga-load --device igpu --dtype int4 accuracy-humaneval --k-samples 1 --first-n-samples 10 --timeout 30.0
+lemonade -i meta-llama/Llama-3.2-1B oga-load --device igpu --dtype int4 accuracy-humaneval --k-samples 1 --first-n-samples 5 --timeout 30.0
 ```
 
 ### Optional arguments:
