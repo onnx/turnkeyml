@@ -253,6 +253,12 @@ class OgaLoad(FirstTool):
         )
 
         parser.add_argument(
+            "-ip",
+            "--input_path",
+            help= "the local huggingface model in your disk",
+        )
+
+        parser.add_argument(
             "-d",
             "--device",
             choices=["igpu", "npu", "cpu", "hybrid", "cuda"],
@@ -303,6 +309,7 @@ class OgaLoad(FirstTool):
         self,
         state: State,
         input: str,
+        input_path: str,
         device: str = "igpu",
         dtype: str = "int4",
         int4_block_size: int = None,
@@ -312,6 +319,7 @@ class OgaLoad(FirstTool):
     ) -> State:
 
         checkpoint = input
+        input_path = input_path
         state.checkpoint = checkpoint
 
         # See whether the device;dtype;checkpoint combination is supported for download from HF
@@ -448,7 +456,7 @@ class OgaLoad(FirstTool):
                 try:
                     model_builder.create_model(
                         checkpoint,  # model_name
-                        "",  # input_path
+                        input_path,  # input_path
                         full_model_path,  # output_path
                         dtype,  # precision
                         execution_providers[device],  # execution_provider
