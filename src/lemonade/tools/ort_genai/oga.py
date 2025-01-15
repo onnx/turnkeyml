@@ -343,7 +343,7 @@ class OgaLoad(FirstTool):
                 else ""
             )
         oga_models_subfolder = os.path.join(
-            "onnx", subfolder
+            checkpoint.replace("/", "_").lower(), subfolder
         )
         full_model_path = os.path.join(
             state.cache_dir, oga_models_path, oga_models_subfolder
@@ -506,8 +506,6 @@ class OgaLoad(FirstTool):
                     os.environ["USE_AIE_RoPE"] = "0"
                 else:
                     os.environ["USE_AIE_RoPE"] = "1"
-
-            print("Input folder = ", full_model_path)
 
             state.model = OrtGenaiModel(full_model_path)
             state.tokenizer = OrtGenaiTokenizer(state.model.model)
