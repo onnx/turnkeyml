@@ -118,6 +118,7 @@ class AccuracyHumaneval(Tool):
             k_samples,
             timeout,
             model_results_dir,
+            state.device,
             first_n_samples,
         )
 
@@ -153,6 +154,7 @@ class AccuracyHumaneval(Tool):
         k_samples: int,
         timeout: float,
         results_dir: str,
+        device: str,
         first_n_samples: Optional[int] = TOTAL_PROBLEMS,
     ) -> Dict[str, float]:
         """
@@ -198,7 +200,9 @@ class AccuracyHumaneval(Tool):
                         expected = dataset[task_id]["canonical_solution"]
 
                         # Generate completion
-                        input_ids = tokenizer(prompt, return_tensors="pt").input_ids
+                        input_ids = tokenizer(prompt, return_tensors="pt").input_ids.to(
+                            device
+                        )
                         completion = model.generate(
                             input_ids,
                             max_new_tokens=512,
