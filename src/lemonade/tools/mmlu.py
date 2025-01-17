@@ -150,7 +150,9 @@ class AccuracyMMLU(Tool):
                 prompt = _gen_prompt(dev_df, subject, ntrain) + _format_example(
                     test_df, i, include_answer=False
                 )
-                input_ids = tokenizer(prompt, return_tensors="pt").input_ids
+                input_ids = tokenizer(prompt, return_tensors="pt").input_ids.to(
+                    state.device
+                )
 
                 response_text = _generate_response(tokenizer, model, input_ids)
                 try:
