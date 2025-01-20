@@ -67,7 +67,7 @@ setup(
             "uvicorn[standard]",
         ],
         "llm-oga-cpu": [
-            "onnxruntime-genai==0.5.2",
+            "onnxruntime-genai>=0.5.2",
             "torch>=2.0.0,<2.4",
             "transformers<4.45.0",
             "turnkeyml[llm]",
