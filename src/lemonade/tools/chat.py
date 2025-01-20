@@ -26,6 +26,10 @@ DEFAULT_SERVER_PORT = 8000
 END_OF_STREAM = "</s>"
 
 
+def sanitize_string(input_string):
+    return input_string.encode("utf-8", "ignore").decode("utf-8")
+
+
 class LLMPrompt(Tool):
     """
     Send a prompt to an LLM instance and print the response to the screen.
@@ -105,7 +109,7 @@ class LLMPrompt(Tool):
         state.save_stat(Keys.PROMPT_TOKENS, len_tokens_in)
         state.save_stat(Keys.PROMPT, prompt)
         state.save_stat(Keys.RESPONSE_TOKENS, len_tokens_out)
-        state.save_stat(Keys.RESPONSE, response_text)
+        state.save_stat(Keys.RESPONSE, sanitize_string(response_text))
 
         return state
 
