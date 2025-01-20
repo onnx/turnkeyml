@@ -125,6 +125,7 @@ class OrtGenaiModel(ModelAdapter):
 
         max_length = len(input_ids) + max_new_tokens
 
+        params.input_ids = input_ids
         if self.config and "search" in self.config:
             search_config = self.config["search"]
             params.set_search_options(
@@ -157,18 +158,11 @@ class OrtGenaiModel(ModelAdapter):
             )
         params.try_graph_capture_with_max_batch_size(1)
 
-        if streamer:
-            # This LoC may cause trouble during the OGA <0.6 to 0.6 transition.
-            # However, streaming mode does not work without it.
-            # We are seeking help from Microsoft to understand what the
-            # correct API call would be to enable streaming mode.
-            params.input_ids = input_ids
-
         generator = og.Generator(self.model, params)
 
         if streamer is None:
             prompt_start_time = time.perf_counter()
-            generator.append_tokens(input_ids)
+            generator.compute_logits()
             generator.generate_next_token()
             prompt_end_time = time.perf_counter()
 
@@ -179,6 +173,7 @@ class OrtGenaiModel(ModelAdapter):
                 token_gen_times = []
                 while not generator.is_done():
                     token_gen_start_time = time.perf_counter()
+                    generator.compute_logits()
                     generator.generate_next_token()
                     token_gen_end_time = time.perf_counter()
 
@@ -199,10 +194,6 @@ class OrtGenaiModel(ModelAdapter):
             stop_early = False
 
             while not generator.is_done() and not stop_early:
-                # This LoC may cause trouble during the OGA <0.6 to 0.6 transition.
-                # However, streaming mode does not work without it.
-                # We are seeking help from Microsoft to understand what the
-                # correct API call would be to enable streaming mode.
                 generator.compute_logits()
                 generator.generate_next_token()
 
