@@ -48,13 +48,13 @@ jobs:
         uses: ./.github/actions/server-testing
         with:
           conda_env: -n lemon
-          load_command: -i Qwen/Qwen2.5-0.5B-Instruct oga-load --device cpu --dtype int4
+          load_command: -i TinyPixel/small-llama2 oga-load --device cpu --dtype int4
           hf_token: "${{ secrets.HUGGINGFACE_ACCESS_TOKEN }}" # Required by OGA model_builder in OGA 0.4.0 but not future versions
       - name: Run lemonade tests
         shell: bash -el {0}
         env:
           HF_TOKEN: "${{ secrets.HUGGINGFACE_ACCESS_TOKEN }}" # Required by OGA model_builder in OGA 0.4.0 but not future versions
         run: |
-          lemonade -i Qwen/Qwen2.5-0.5B-Instruct oga-load --device cpu --dtype int4 llm-prompt -p "hi what is your name" --max-new-tokens 10
+          lemonade -i TinyPixel/small-llama2 oga-load --device cpu --dtype int4 llm-prompt -p "tell me a story" --max-new-tokens 5
           python test/oga_cpu_api.py
 
