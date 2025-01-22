@@ -44,6 +44,13 @@ class HuggingfaceTokenizerAdapter(TokenizerAdapter):
     def decode(self, response, **kwargs):
         return self.tokenizer.decode(response, **kwargs)
 
+    def batch_decode(self, tokens, **kwargs):
+        return self.tokenizer.batch_decode(tokens, **kwargs)
+
+    @property
+    def eos_token_id(self):
+        return self.tokenizer.eos_token_id
+
 
 class HuggingfaceLoad(FirstTool):
     """
