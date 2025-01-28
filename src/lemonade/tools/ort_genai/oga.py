@@ -29,6 +29,8 @@ from lemonade.tools.adapter import (
     PassthroughTokenizerResult,
 )
 from lemonade.cache import Keys
+from lemonade_install.install import DEFAULT_AMD_OGA_NPU_DIR, DEFAULT_AMD_OGA_HYBRID_DIR
+
 
 # ONNX Runtime GenAI models will be cached in this subfolder of the lemonade cache folder
 oga_models_path = "oga_models"
@@ -232,8 +234,8 @@ class OgaLoad(FirstTool):
     Input: path to a checkpoint.
         Supported choices for cpu and igpu from HF model repository:
             LLM models on Huggingface supported by model_builder.  See documentation
-            (https://github.com/onnx/turnkeyml/blob/main/docs/ort_genai_igpu.md) for supported
-            models.
+            (https://github.com/onnx/turnkeyml/blob/main/docs/lemonade/ort_genai_igpu.md)
+            for supported models.
         Supported choices for npu from HF model repository:
             Models on Hugging Face that follow the "amd/**-onnx-ryzen-strix" pattern
         Local models for cpu, igpu, or npu:
@@ -402,15 +404,19 @@ class OgaLoad(FirstTool):
                 oga_models_subfolder = None
 
                 if device == "hybrid":
-                    # Locate the directory containing hybrid-llm-artifacts_1.3.0 in the system PATH
-                    hybrid_artifacts_path = None
-                    hybrid_artifacts_path = os.environ.get("AMD_OGA_HYBRID")
-
-                    if hybrid_artifacts_path is None:
-                        raise RuntimeError(
-                            "Could not find hybrid-llm-artifacts_1.3.0 in system PATH. "
-                            "Please ensure it is added to your PATH environment variable."
+                    # Locate the directory containing hybrid-llm-artifacts_1.3.0
+                    if os.path.exists(DEFAULT_AMD_OGA_HYBRID_DIR):
+                        hybrid_artifacts_path = os.path.join(
+                            DEFAULT_AMD_OGA_HYBRID_DIR, "hybrid-llm-artifacts_1.3.0"
                         )
+                    else:
+                        if "AMD_OGA_HYBRID" not in os.environ:
+                            raise RuntimeError(
+                                "Could not find hybrid-llm-artifacts_1.3.0 in system PATH. "
+                                "Please ensure it is added to your PATH environment variable."
+                            )
+
+                        hybrid_artifacts_path = os.environ.get("AMD_OGA_HYBRID")
 
                     if hybrid_artifacts_path:
                         # Construct the path to onnx_custom_ops.dll
@@ -492,13 +498,17 @@ class OgaLoad(FirstTool):
         if not download:
             # The download only flag is not set, so load model
             if device == "npu":
-                if "AMD_OGA" not in os.environ:
-                    raise RuntimeError(
-                        "Please set environment variable AMD_OGA to the path of the amd_oga files"
-                    )
+                if os.path.exists(DEFAULT_AMD_OGA_NPU_DIR):
+                    oga_path = os.path.join(DEFAULT_AMD_OGA_NPU_DIR, "amd_oga")
+                else:
+                    if "AMD_OGA" not in os.environ:
+                        raise RuntimeError(
+                            "Please set environment variable AMD_OGA "
+                            "to the path of the amd_oga files"
+                        )
 
-                # Check AMD_OGA points to oga library files
-                oga_path = os.environ["AMD_OGA"]
+                    # Check AMD_OGA points to oga library files
+                    oga_path = os.environ["AMD_OGA"]
                 if not os.path.exists(
                     os.path.join(oga_path, "libs", "onnxruntime.dll")
                 ):
@@ -512,9 +522,7 @@ class OgaLoad(FirstTool):
 
                 # Change to the AMD_OGA distribution directory
                 os.chdir(oga_path)
-                os.environ["PATH"] += os.pathsep + os.path.join(
-                    os.environ["AMD_OGA"], "libs"
-                )
+                os.environ["PATH"] += os.pathsep + os.path.join(oga_path, "libs")
 
                 # Common environment variables for all NPU models
                 os.environ["DD_ROOT"] = ".\\bins"
