@@ -113,6 +113,7 @@ class OrtGenaiModel(ModelAdapter):
         self,
         input_ids,
         max_new_tokens=512,
+        min_new_tokens=0,
         do_sample=True,
         top_k=50,
         top_p=1.0,
@@ -135,6 +136,7 @@ class OrtGenaiModel(ModelAdapter):
             params.pad_token_id = pad_token_id
 
         max_length = len(input_ids) + max_new_tokens
+        min_length = len(input_ids) + min_new_tokens
 
         if use_oga_pre_6_api:
             params.input_ids = input_ids
@@ -147,7 +149,7 @@ class OrtGenaiModel(ModelAdapter):
                 top_p=search_config.get("top_p", top_p),
                 temperature=search_config.get("temperature", temperature),
                 max_length=max_length,
-                min_length=0,
+                min_length=min_length,
                 early_stopping=search_config.get("early_stopping", False),
                 length_penalty=search_config.get("length_penalty", 1.0),
                 num_beams=search_config.get("num_beams", 1),
@@ -167,7 +169,7 @@ class OrtGenaiModel(ModelAdapter):
                 top_p=top_p,
                 temperature=temperature,
                 max_length=max_length,
-                min_length=max_length,
+                min_length=min_length,
             )
         params.try_graph_capture_with_max_batch_size(1)
 

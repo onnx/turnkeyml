@@ -1,11 +1,10 @@
 import sys
 from threading import Thread, Event
+from queue import Queue
+from time import sleep
 from transformers import StoppingCriteriaList
 from lemonade.tools.chat import StopOnEvent
 
-# These imports are not needed when we add the LLM
-from queue import Queue
-from time import sleep
 
 employee_handbook = """
 1. You will work very hard every day.\n

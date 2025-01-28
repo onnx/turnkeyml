@@ -1,6 +1,6 @@
 import sys
 from threading import Thread, Event
-from transformers import StoppingCriteria, StoppingCriteriaList
+from transformers import StoppingCriteriaList
 from lemonade.tools.chat import StopOnEvent
 from lemonade import leap
 from lemonade.tools.ort_genai.oga import OrtGenaiStreamer

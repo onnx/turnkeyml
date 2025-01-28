@@ -1,9 +1,9 @@
 import sys
 from threading import Thread, Event
-from transformers import StoppingCriteriaList
-from lemonade.tools.chat import StopOnEvent
 from queue import Queue
 from time import sleep
+from transformers import StoppingCriteriaList
+from lemonade.tools.chat import StopOnEvent
 
 
 class TextStreamer:
@@ -43,6 +43,7 @@ def generate_placeholder(
     Not needed once we integrate with LEAP.
     """
 
+    # pylint: disable=line-too-long
     response = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
 
     for word in response.split(" "):

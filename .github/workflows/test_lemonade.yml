@@ -45,6 +45,7 @@ jobs:
         shell: bash -el {0}
         run: |
           pylint src/lemonade --rcfile .pylintrc --disable E0401
+          pylint examples --rcfile .pylintrc --disable E0401,E0611 --jobs=1
       - name: Test HF+CPU server
         if: runner.os == 'Windows'
         timeout-minutes: 10
