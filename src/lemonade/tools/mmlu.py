@@ -211,6 +211,11 @@ class AccuracyMMLU(Tool):
             self.status_stats.append(stat_name)
 
         # Save accuracy results to CSV file
+        acc_avg = np.mean([accuracy_data["Accuracy"] for accuracy_data in summary_data])
+        avg_stat_name = "avg_accuracy"
+        state.save_stat(avg_stat_name, float(acc_avg) * 100)
+        state.save_stat("accuracy_units", "%")
+        self.status_stats.append(avg_stat_name)
         summary_df = pd.DataFrame(summary_data)
         summary_df.to_csv(
             os.path.join(model_results_dir, "summary_results.csv"), index=False
