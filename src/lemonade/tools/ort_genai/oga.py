@@ -135,7 +135,11 @@ class OrtGenaiModel(ModelAdapter):
         if hasattr(self.model, "type"):
             model_type = self.model.type
         else:
-            with open(os.path.join(self.model_path, "genai_config.json"), "r") as f:
+            with open(
+                os.path.join(self.model_path, "genai_config.json"),
+                "r",
+                encoding="utf-8",
+            ) as f:
                 genai_config = json.load(f)
                 model_type = genai_config["model"]["type"]
 
@@ -150,7 +154,8 @@ class OrtGenaiModel(ModelAdapter):
             if model_type.startswith("phi2") or model_type.startswith("phi3"):
                 chat_template = "<|user|>\n{input} <|end|>\n<|assistant|>"
             elif model_type.startswith("phi4"):
-                chat_template = "<|im_start|>user<|im_sep|>\n{input}<|im_end|>\n<|im_start|>assistant<|im_sep|>"
+                chat_template = "<|im_start|>user<|im_sep|>\n{input} \
+                <|im_end|>\n<|im_start|>assistant<|im_sep|>"
             elif model_type.startswith("llama3"):
                 chat_template = "<|start_header_id|>user<|end_header_id|>\n{input}<|eot_id|> \
                 <|start_header_id|>assistant<|end_header_id|>"
