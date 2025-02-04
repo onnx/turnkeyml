@@ -28,6 +28,7 @@ from lemonade.tools.serve import ServerPreview
 def main():
 
     # List the available tools
+    # This is a test
     tools = [
         HuggingfaceLoad,
         LoadLlamaCpp,
