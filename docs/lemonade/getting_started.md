@@ -165,7 +165,7 @@ Lemonade is also available via API.
 
 The lemonade enablement platform (LEAP) API abstracts loading models from any supported framework (e.g., Hugging Face, OGA) or backend (e.g., CPU, iGPU, Hybrid):
 
-```
+```python
 from lemonade import leap
 
 model, tokenizer = leap.from_pretrained("Qwen/Qwen2.5-0.5B-Instruct", recipe="oga-igpu")
