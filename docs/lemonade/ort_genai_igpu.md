@@ -1,6 +1,6 @@
 # OnnxRuntime GenAI (OGA) for iGPU and CPU
 
-[onnxruntime-genai (aka OGA)](https://github.com/microsoft/onnxruntime-genai/tree/main?tab=readme-ov-file) is a new framework created by Microsoft for running ONNX LLMs
+[onnxruntime-genai (aka OGA)](https://github.com/microsoft/onnxruntime-genai/tree/main?tab=readme-ov-file) is a new framework created by Microsoft for running ONNX LLMs.
 
 ## Installation
 
@@ -32,9 +32,9 @@ See [lemonade installation](https://github.com/onnx/turnkeyml/blob/main/docs/lem
 ## Directory structure:
 - The model_builder tool caches Hugging Face files and temporary ONNX external data files in `<LEMONADE CACHE>\model_builder`
 - The output from model_builder is stored in `<LEMONADE_CACHE>\oga_models\<MODELNAME>\<SUBFOLDER>`
-  - `MODELNAME` is the Hugging Face checkpoint name where any '/' is mapped to an '_' and everything is lower case
-  - `SUBFOLDER` is `<EP>-<DTYPE>`, where `EP` is the execution provider (`dml` for igpu, `cpu` for cpu, and `npu` for npu) and `DTYPE` is the datatype
-  - If the --int4-block-size flag is used then `SUBFOLDER` is` <EP>-<DTYPE>-block-<SIZE>` where `SIZE` is the specified block size
+  - `MODELNAME` is the Hugging Face checkpoint name where any '/' is mapped to an '_' and everything is lower case.
+  - `SUBFOLDER` is `<EP>-<DTYPE>`, where `EP` is the execution provider (`dml` for igpu, `cpu` for cpu, and `npu` for npu) and `DTYPE` is the datatype.
+  - If the --int4-block-size flag is used then `SUBFOLDER` is` <EP>-<DTYPE>-block-<SIZE>` where `SIZE` is the specified block size.
 - Other ONNX models in the format required by onnxruntime-genai can be loaded in lemonade if placed in the `<LEMONADE_CACHE>\oga_models` folder.
   - Use the -i and --subfolder flags to specify the folder and subfolder:
     - `lemonade -i my_model_name --subfolder my_subfolder --device igpu --dtype int4 oga-load`

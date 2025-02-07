@@ -69,7 +69,7 @@ The `lemonade` CLI uses the same style of syntax as `turnkey`, but with a new se
 
 To chat with your LLM try:
 
-OGA:
+OGA iGPU:
 ```bash
     lemonade -i microsoft/Phi-3-mini-4k-instruct oga-load --device igpu --dtype int4 llm-prompt -p "Hello, my thoughts are"
 ```
@@ -79,11 +79,11 @@ Hugging Face:
     lemonade -i facebook/opt-125m huggingface-load llm-prompt -p "Hello, my thoughts are"
 ```
 
-The LLM will run on CPU with your provided prompt, and the LLM's response to your prompt will be printed to the screen. You can replace the `"Hello, my thoughts are"` with any prompt you like.
+The LLM will run with your provided prompt, and the LLM's response to your prompt will be printed to the screen. You can replace the `"Hello, my thoughts are"` with any prompt you like.
 
 You can also replace the `facebook/opt-125m` with any Hugging Face checkpoint you like, including LLaMA-2, Phi-2, Qwen, Mamba, etc.
 
-You can also set the `--device` argument in `huggingface-load` to load your LLM on a different device.
+You can also set the `--device` argument in `oga-load` and `huggingface-load` to load your LLM on a different device.
 
 Run `lemonade huggingface-load -h` and `lemonade llm-prompt -h` to learn more about those tools.
 
@@ -91,7 +91,7 @@ Run `lemonade huggingface-load -h` and `lemonade llm-prompt -h` to learn more ab
 
 To measure the accuracy of an LLM using MMLU, try this:
 
-OGA:
+OGA iGPU:
 ```bash
     lemonade -i microsoft/Phi-3-mini-4k-instruct oga-load --device igpu --dtype int4 accuracy-mmlu --tests management
 ```
@@ -109,7 +109,7 @@ You can run the full suite of MMLU subjects by omitting the `--test` argument. Y
 
 To measure the time-to-first-token and tokens/second of an LLM, try this:
 
-OGA:
+OGA iGPU:
 ```bash
     lemonade -i microsoft/Phi-3-mini-4k-instruct oga-load --device igpu --dtype int4 oga-bench
 ```
@@ -121,14 +121,14 @@ Hugging Face:
 
 That command will run a few warmup iterations, then a few generation iterations where performance data is collected.
 
-The prompt size, number of output tokens, and number iterations are all parameters. Learn more by running `lemonade huggingface-bench -h`.
+The prompt size, number of output tokens, and number iterations are all parameters. Learn more by running `lemonade oga-bench -h` `lemonade huggingface-bench -h`.
 
 ## Memory Usage
 
-The peak memory used by the lemonade build is captured in the build output.  To capture more granular
+The peak memory used by the `lemonade` build is captured in the build output. To capture more granular
 memory usage information, use the `--memory` flag.  For example:
 
-OGA:
+OGA iGPU:
 ```bash
     lemonade --memory -i microsoft/Phi-3-mini-4k-instruct oga-load --device igpu --dtype int4 oga-bench
 ```
@@ -145,7 +145,7 @@ contains a figure plotting the memory usage over the build time.  Learn more by 
 
 You can launch a WebSocket server for your LLM with:
 
-OGA:
+OGA iGPU:
 ```bash
     lemonade -i microsoft/Phi-3-mini-4k-instruct oga-load --device igpu --dtype int4 serve
 ```
@@ -163,8 +163,9 @@ Lemonade is also available via API.
 
 ## LEAP APIs
 
-The lemonade enablement platform (LEAP) API abstracts loading models from any supported framework (e.g., Hugging Face, OGA) or backend (e.g., CPU, iGPU, Hybrid):
+The lemonade enablement platform (LEAP) API abstracts loading models from any supported framework (e.g., Hugging Face, OGA) and backend (e.g., CPU, iGPU, Hybrid). This makes it easy to integrate lemonade LLMs into Python applications.
 
+OGA iGPU:
 ```python
 from lemonade import leap
 
@@ -180,7 +181,9 @@ You can learn more about the LEAP APIs [here](https://github.com/onnx/turnkeyml/
 
 ## Low-Level API
 
-Here's a quick example of how to benchmark an LLM using the low-level API, which calls tools one by one:
+The low-level API is useful for designing custom experiments, for example to sweep over many checkpoints, devices, and/or tools.
+
+Here's a quick example of how to prompt a Hugging Face LLM using the low-level API, which calls the load and prompt tools one by one:
 
 ```python
 import lemonade.tools.torch_llm as tl
