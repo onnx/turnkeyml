@@ -20,7 +20,7 @@ setup(
         "lemonade",
         "lemonade.tools",
         "lemonade.tools.ort_genai",
-        "lemonade.tools.ryzenai_npu",
+        "lemonade.tools.quark",
         "turnkeyml_models",
         "turnkeyml_models.graph_convolutions",
         "turnkeyml_models.selftest",
