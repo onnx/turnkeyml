@@ -54,7 +54,7 @@ To install lemonade from PyPI:
 ## From Source Code
 
 1. Clone: `git clone https://github.com/onnx/turnkeyml.git`
-1. `cd turnkeyml` (where `turnkeyml` is the repo root of your TurnkeyML clone)
+1. `cd turnkeyml` (where `turnkeyml` is the repo root of your clone)
     - Note: be sure to run these installation instructions from the repo root.
 1. Follow the same instructions as in the [quick start](#quick-start), except replace the `turnkeyml` with a `.`.
     - For example: `pip install -e .[llm]`
