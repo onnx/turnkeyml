@@ -48,6 +48,7 @@ setup(
         "wmi",
         "pytz",
         "tqdm",
+        "zstandard",
         "matplotlib",
         "tabulate",
         # Conditional dependencies for ONNXRuntime backends
