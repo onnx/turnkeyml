@@ -8,7 +8,7 @@ See [lemonade installation](https://github.com/onnx/turnkeyml/blob/main/docs/lem
 
 ## Get models
 
-- The oga-load tool can download models from Hugging Face and build ONNX files using OGA model_builder.  Models can be quantized and optimized for both igpu and cpu.
+- The oga-load tool can download models from Hugging Face and build ONNX files using OGA's `model_builder`, which can quantized and optimize models for both igpu and cpu.
 - Download and build ONNX model files:
   - `lemonade -i microsoft/Phi-3-mini-4k-instruct oga-load --device igpu --dtype int4`
   - `lemonade -i microsoft/Phi-3-mini-4k-instruct oga-load --device cpu --dtype int4`

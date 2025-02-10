@@ -1,7 +1,6 @@
 # Lemonade
 
 Welcome to the project page for `lemonade` the Turnkey LLM Aide!
-Contents:
 
 1. [Install](#install)
 1. [CLI Commands](#cli-commands)
@@ -18,9 +17,11 @@ Contents:
 
 # Install
 
-## Quick Start
+You can quickly get started with `lemonade` by installing the `turnkeyml` [PyPI package](#from-pypi) with the appropriate extras for your backend, or you can [install from source](#from-source-code) by cloning and installing this repository.
 
-To install lemonade from PyPI:
+## From PyPI
+
+To install `lemonade` from PyPI:
 
 1. Create and activate a [miniconda](https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe) environment.
     ```bash
@@ -28,17 +29,20 @@ To install lemonade from PyPI:
     cond activate lemon
     ```
 
-3. Install lemonade: 
+3. Install lemonade for you backend of choice: 
     - [OnnxRuntime GenAI with CPU backend](https://github.com/onnx/turnkeyml/blob/main/docs/lemonade/ort_genai_igpu.md): 
         ```bash
             pip install -e turnkeyml[llm-oga-cpu]
         ```
     - [OnnxRuntime GenAI with Integrated GPU (iGPU, DirectML) backend](https://github.com/onnx/turnkeyml/blob/main/docs/lemonade/ort_genai_igpu.md):
+        > Note: Requires Windows and a DirectML-compatible iGPU.
         ```bash
             pip install -e turnkeyml[llm-oga-igpu]
         ```
     - OnnxRuntime GenAI with Ryzen AI Hybrid (NPU + iGPU) backend:
-        > Note: Ryzen AI Hybrid requires a Windows 11 PC with a AMD Ryzen™ AI 9 HX375, Ryzen AI 9 HX370, or Ryzen AI 9 365 processor, with the [Ryzen AI 1.3 driver](https://ryzenai.docs.amd.com/en/latest/inst.html#install-npu-drivers) installed. Visit the [AMD Hugging Face page](https://huggingface.co/collections/amd/quark-awq-g128-int4-asym-fp16-onnx-hybrid-13-674b307d2ffa21dd68fa41d5) for supported checkpoints.
+        > Note: Ryzen AI Hybrid requires a Windows 11 PC with a AMD Ryzen™ AI 9 HX375, Ryzen AI 9 HX370, or Ryzen AI 9 365 processor.
+        > - Install the [Ryzen AI driver >= 32.0.203.237](https://ryzenai.docs.amd.com/en/latest/inst.html#install-npu-drivers) (you can check your driver version under Device Manager > Neural Processors).
+        > - Visit the [AMD Hugging Face page](https://huggingface.co/collections/amd/quark-awq-g128-int4-asym-fp16-onnx-hybrid-13-674b307d2ffa21dd68fa41d5) for supported checkpoints.
         ```bash
             pip install -e turnkeyml[llm-oga-hybrid]
             lemonade-install --ryzenai hybrid
@@ -49,21 +53,37 @@ To install lemonade from PyPI:
         ```
     - llama.cpp: see [instructions](https://github.com/onnx/turnkeyml/blob/main/docs/lemonade/llamacpp.md).
 
-4. Use `lemonade -h` to explore the LLM tools, and see the command examples below.
+4. Use `lemonade -h` to explore the LLM tools, and see the [command](#cli-commands) and [API](#api) examples below.
+
 
 ## From Source Code
+
+To install `lemonade` from source code:
 
 1. Clone: `git clone https://github.com/onnx/turnkeyml.git`
 1. `cd turnkeyml` (where `turnkeyml` is the repo root of your clone)
     - Note: be sure to run these installation instructions from the repo root.
-1. Follow the same instructions as in the [quick start](#quick-start), except replace the `turnkeyml` with a `.`.
-    - For example: `pip install -e .[llm]`
+1. Follow the same instructions as in the [PyPI installation](#from-pypi), except replace the `turnkeyml` with a `.`.
+    - For example: `pip install -e .[llm-oga-igpu]`
 
 # CLI Commands
 
-## Syntax
+The `lemonade` CLI uses a unique command syntax that enables convenient interoperability between models, frameworks, devices, accuracy tests, and deployment options.  
 
-The `lemonade` CLI uses the same style of syntax as `turnkey`, but with a new set of LLM-specific tools. You can read about that syntax [here](https://github.com/onnx/turnkeyml#how-it-works).
+Each unit of functionality (e.g., loading a model, running a test, deploying a server, etc.) is called a `Tool`, and a single call to `lemonade` can invoke any number of `Tools`. Each `Tool` will perform its functionality, then pass its state to the next `Tool` in the command.
+
+You can read each command out loud to understand what it is doing. For example, a command like this:
+
+```bash
+lemonade -i microsoft/Phi-3-mini-4k-instruct oga-load --device igpu --dtype int4 llm-prompt -p "Hello, my thoughts are"
+```
+
+Can be read like this:
+
+> Run `lemonade` on the input `(-i)` checkpoint `microsoft/Phi-3-mini-4k-instruct`. First, load it in the OnnxRuntime GenAI framework (`oga-load`), on to the integrated GPU device (`--device igpu`) in the int4 data type (`--dtype int4`). Then, pass the OGA model to the prompting tool (`llm-prompt`) with the prompt (`-p`) "Hello, my thoughts are" and print the response.
+
+The `lemonade -h` command will show you which options and Tools are available, and `lemonade TOOL -h` will tell you more about that specific Tool.
+
 
 ## Chatting
 
@@ -121,7 +141,7 @@ Hugging Face:
 
 That command will run a few warmup iterations, then a few generation iterations where performance data is collected.
 
-The prompt size, number of output tokens, and number iterations are all parameters. Learn more by running `lemonade oga-bench -h` `lemonade huggingface-bench -h`.
+The prompt size, number of output tokens, and number iterations are all parameters. Learn more by running `lemonade oga-bench -h` or `lemonade huggingface-bench -h`.
 
 ## Memory Usage
 
@@ -181,7 +201,7 @@ You can learn more about the LEAP APIs [here](https://github.com/onnx/turnkeyml/
 
 ## Low-Level API
 
-The low-level API is useful for designing custom experiments, for example to sweep over many checkpoints, devices, and/or tools.
+The low-level API is useful for designing custom experiments. For example, sweeping over specific checkpoints, devices, and/or tools.
 
 Here's a quick example of how to prompt a Hugging Face LLM using the low-level API, which calls the load and prompt tools one by one:
 
