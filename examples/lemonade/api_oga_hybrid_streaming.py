@@ -1,5 +1,5 @@
 """
-This example demonstrates how to use the LEAP API to load a model for
+This example demonstrates how to use the lemonade API to load a model for
 inference on Ryzen AI hybrid mode (NPU and iGPU together) via OnnxRuntime-GenAI 
 using the oga-cpu recipe, and then use a thread to generate a streaming the
 response to a prompt.
@@ -13,10 +13,10 @@ https://github.com/onnx/turnkeyml/blob/main/docs/lemonade/getting_started.md#ins
 """
 
 from threading import Thread
-from lemonade import leap
+from lemonade.api import from_pretrained
 from lemonade.tools.ort_genai.oga import OrtGenaiStreamer
 
-model, tokenizer = leap.from_pretrained(
+model, tokenizer = from_pretrained(
     "amd/Llama-3.2-1B-Instruct-awq-g128-int4-asym-fp16-onnx-hybrid", recipe="oga-hybrid"
 )
 
