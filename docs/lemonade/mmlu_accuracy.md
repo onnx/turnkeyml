@@ -39,7 +39,7 @@ The model is expected to generate an answer to the test question based on the co
 
 ## Detailed list of subjects/ categories tested
 
-| Test Subject                        | Category          | Command                             |
+| Test Subject                        | Category          | `--tests` syntax                             |
 |-------------------------------------|-------------------|-------------------------------------|
 | Abstract Algebra                    | Math              | abstract_algebra                    |
 | Anatomy                             | Health            | anatomy                             |
