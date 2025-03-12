@@ -39,6 +39,8 @@ The model is expected to generate an answer to the test question based on the co
 
 ## Detailed list of subjects/ categories tested
 
+Use the syntax provided in the table to run that test subject with the `accuracy-mmlu` tool. For example, To run the "Abstract Algebra" subject, use `accuracy-mmlu --tests abstract_algebra`.
+
 | Test Subject                        | Category          | `--tests` syntax                             |
 |-------------------------------------|-------------------|-------------------------------------|
 | Abstract Algebra                    | Math              | abstract_algebra                    |
