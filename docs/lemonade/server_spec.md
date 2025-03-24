@@ -41,7 +41,7 @@ See the [Lemonade_Server_Installer.exe instructions](lemonade_server_exe.md) to 
 
 ### Python Environment
 
-If you have `lemonade` [installed in a Python environment](getting_started.md#from-pypi), simply activate it and run the following command to start the server:
+If you have Lemonade [installed in a Python environment](README.md#install), simply activate it and run the following command to start the server:
 
 ```bash
 lemonade serve

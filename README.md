@@ -5,11 +5,11 @@
 [![OS - Windows | Linux](https://img.shields.io/badge/OS-windows%20%7C%20linux-blue)](https://github.com/onnx/turnkeyml/blob/main/docs/install.md "Check out our instructions")
 [![Made with Python](https://img.shields.io/badge/Python-3.8,3.10-blue?logo=python&logoColor=white)](https://github.com/onnx/turnkeyml/blob/main/docs/install.md "Check out our instructions")
 
-We are on a mission to make it easy to use the most important tools in the ONNX ecosystem. TurnkeyML accomplishes this by providing no-code CLIs and low-code APIs for both general ONNX workflows with `turnkey` as well as LLMs with `lemonade`.
+We are on a mission to make it easy to use the most important tools in the ONNX ecosystem. TurnkeyML accomplishes this by providing a full SDK for LLMs with the Lemonade SDK, as well as a no-code CLIs for general ONNX workflows with `turnkey`.
 
-|                     [**Lemonade SDK**](https://github.com/onnx/turnkeyml/blob/main/docs/lemonade/getting_started.md)                    	|                            [**Turnkey**](https://github.com/onnx/turnkeyml/blob/main/docs/turnkey/getting_started.md)                                	|
+|                     [**Lemonade SDK**](https://github.com/onnx/turnkeyml/blob/main/docs/lemonade/README.md)                    	|                            [**Turnkey**](https://github.com/onnx/turnkeyml/blob/main/docs/turnkey/getting_started.md)                                	|
 |:----------------------------------------------:	|:-----------------------------------------------------------------:	|
-| Serve and benchmark LLMs on CPU, GPU, and NPU. <br/>	[Click here to get started with `lemonade`.](https://github.com/onnx/turnkeyml/blob/main/docs/lemonade/getting_started.md) | Export and optimize ONNX models for CNNs and Transformers. <br/>	[Click here to get started with `turnkey`.](https://github.com/onnx/turnkeyml/blob/main/docs/turnkey/getting_started.md)	|
+| Serve and benchmark LLMs on CPU, GPU, and NPU. <br/>	[Click here to get started with Lemonade.](https://github.com/onnx/turnkeyml/blob/main/docs/lemonade/README.md) | Export and optimize ONNX models for CNNs and Transformers. <br/>	[Click here to get started with `turnkey`.](https://github.com/onnx/turnkeyml/blob/main/docs/turnkey/getting_started.md)	|
 | <img src="https://github.com/onnx/turnkeyml/blob/main/img/llm_demo.png?raw=true"/> | <img src="https://github.com/onnx/turnkeyml/blob/main/img/classic_demo.png?raw=true"/> |
 
 
