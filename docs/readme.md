@@ -16,7 +16,7 @@ The `docs/lemonade` directory has documentation for the LLM-focused `lemonade` t
 
 The `docs/turnkey` directory contains documentation for the CNN/Transformer-focused `turnkey` tooling:
 
-- [getting_started.md](https://github.com/onnx/turnkeyml/blob/main/docs/turnkey/getting_started.md)
+- [README.md](https://github.com/onnx/turnkeyml/blob/main/docs/turnkey/README.md)
 - [tools_user_guide.md](https://github.com/onnx/turnkeyml/blob/main/docs/turnkey/tools_user_guide.md): User guide for the tools: the `turnkey` CLI and the APIs.
 
 

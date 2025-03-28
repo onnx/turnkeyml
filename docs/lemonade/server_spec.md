@@ -67,27 +67,48 @@ Chat Completions API. You provide a list of messages and receive a completion. T
 
 #### Example request
 
-```bash
-curl -X POST http://localhost:8000/api/v0/chat/completions ^
-  -H "Content-Type: application/json" ^
-  -d "{ 
-        \"model\": \"Llama-3.2-1B-Instruct-Hybrid\", 
-        \"messages\": [ 
-          {\"role\": \"user\", \"content\": \"What is the population of Paris?\"} 
-        ], 
-        \"stream\": false
-      }"
+PowerShell:
+
+```powershell
+Invoke-WebRequest `
+  -Uri "http://localhost:8000/api/v0/chat/completions" `
+  -Method POST `
+  -Headers @{ "Content-Type" = "application/json" } `
+  -Body '{
+    "model": "Llama-3.2-1B-Instruct-Hybrid",
+    "messages": [
+      {
+        "role": "user",
+        "content": "What is the population of Paris?"
+      }
+    ],
+    "stream": false
+  }'
 ```
-*Hint: To try, "Paste as One Line" in Windows `cmd`.*
+
+Bash:
+
+```bash
+curl -X POST http://localhost:8000/api/v0/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{ 
+        "model": "Llama-3.2-1B-Instruct-Hybrid", 
+        "messages": [ 
+          {"role": "user", "content": "What is the population of Paris?"} 
+        ], 
+        "stream": false
+      }'
+```
 
 #### Response format
 
 For non-streaming responses:
+
 ```json
 {
   "id": "0",
   "object": "chat.completion",
-  "created": <UNIX_TIMESTAMP>,
+  "created": 1742927481,
   "model": "Llama-3.2-1B-Instruct-Hybrid",
   "choices": [{
     "index": 0,
@@ -100,12 +121,12 @@ For non-streaming responses:
 }
 ```
 
-For streaming responses, the API returns a stream of server-sent events:
+For streaming responses, the API returns a stream of server-sent events (however, Open AI recommends using their streaming libraries for parsing streaming responses):
 ```json
 {
   "id": "0",
   "object": "chat.completion.chunk",
-  "created": <UNIX_TIMESTAMP>,
+  "created": 1742927481,
   "model": "Llama-3.2-1B-Instruct-Hybrid",
   "choices": [{
     "index": 0,
@@ -136,14 +157,29 @@ Text Completions API. You provide a prompt and receive a completion. This API wi
 
 #### Example request
 
+PowerShell:
+
+```powershell
+Invoke-WebRequest -Uri "http://localhost:8000/api/v0/completions" `
+  -Method POST `
+  -Headers @{ "Content-Type" = "application/json" } `
+  -Body '{
+    "model": "Llama-3.2-1B-Instruct-Hybrid",
+    "prompt": "What is the population of Paris?",
+    "stream": false
+  }'
+```
+
+Bash:
+
 ```bash
-curl -X POST http://localhost:8000/api/v0/completions ^
-  -H "Content-Type: application/json" ^
-  -d "{ 
-        \"model\": \"Llama-3.2-1B-Instruct-Hybrid\", 
-        \"prompt\": \"What is the population of Paris?\", 
-        \"stream\": false
-      }"
+curl -X POST http://localhost:8000/api/v0/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+        "model": "Llama-3.2-1B-Instruct-Hybrid",
+        "prompt": "What is the population of Paris?",
+        "stream": false
+      }'
 ```
 
 #### Response format
@@ -153,7 +189,7 @@ The following format is used for both streaming and non-streaming responses:
 {
   "id": "0",
   "object": "text_completion",
-  "created": <UNIX_TIMESTAMP>,
+  "created": 1742927481,
   "model": "Llama-3.2-1B-Instruct-Hybrid",
   "choices": [{
     "index": 0,

@@ -19,6 +19,7 @@ from packaging.version import Version
 from huggingface_hub import snapshot_download, list_repo_files
 import onnxruntime_genai as og
 import onnxruntime_genai.models.builder as model_builder
+from transformers import AutoTokenizer
 from turnkeyml.state import State
 from turnkeyml.tools import FirstTool
 import turnkeyml.common.status as status
@@ -53,9 +54,11 @@ execution_providers = {
 
 
 class OrtGenaiTokenizer(TokenizerAdapter):
-    def __init__(self, model: og.Model):
-        # Initialize the tokenizer and produce the initial tokens.
+    def __init__(self, model: og.Model, hf_tokenizer: AutoTokenizer):
+        super().__init__(hf_tokenizer)
+        # Initialize OGA tokenizer
         self.tokenizer = og.Tokenizer(model)
+
         # Placeholder value since some code will try to query it
         # If we actually need this to return a proper value, then
         # og.GeneratorParams.eos_token_id has it
@@ -63,12 +66,8 @@ class OrtGenaiTokenizer(TokenizerAdapter):
 
     def __call__(self, prompt: str, return_tensors="np"):
         tokens = self.tokenizer.encode(prompt)
-
         return PassthroughTokenizerResult(tokens)
 
-    # onnxruntime_genai's tokenizer doesn't support any arguments
-    # yet, so we just ignore skip_special_tokens and hope it
-    # doesn't have a major negative effect
     # pylint: disable=unused-argument
     def decode(self, response, skip_special_tokens=True) -> str:
         return self.tokenizer.decode(response)
@@ -274,7 +273,11 @@ class OgaLoad(FirstTool):
     def __init__(self):
         super().__init__(monitor_message="Loading OnnxRuntime-GenAI model")
 
-        self.status_stats = [Keys.DTYPE, Keys.DEVICE, Keys.OGA_MODELS_SUBFOLDER]
+        self.status_stats = [
+            Keys.DTYPE,
+            Keys.DEVICE,
+            Keys.LOCAL_MODEL_FOLDER,
+        ]
 
     @staticmethod
     def parser(add_help: bool = True) -> argparse.ArgumentParser:
@@ -401,7 +404,7 @@ class OgaLoad(FirstTool):
             full_model_path
         )
 
-        return full_model_path, oga_models_subfolder, model_exists_locally
+        return full_model_path, model_exists_locally
 
     @staticmethod
     def _download_onnx_model(checkpoint, device):
@@ -549,7 +552,14 @@ class OgaLoad(FirstTool):
         Loads the OGA model from local folder and then loads the tokenizer.
         """
         state.model = OrtGenaiModel(full_model_path)
-        state.tokenizer = OrtGenaiTokenizer(state.model.model)
+
+        hf_tokenizer = AutoTokenizer.from_pretrained(
+            full_model_path, local_files_only=True
+        )
+        state.tokenizer = OrtGenaiTokenizer(
+            state.model.model,
+            hf_tokenizer,
+        )
 
         status.add_to_state(state=state, name=checkpoint, model=checkpoint)
 
@@ -574,63 +584,83 @@ class OgaLoad(FirstTool):
         download_only: bool = False,
         subfolder: str = None,
     ) -> State:
-        checkpoint = input
-        state.checkpoint = checkpoint
         state.device = device
         state.dtype = dtype
 
         # Log initial stats
-        state.save_stat(Keys.CHECKPOINT, checkpoint)
         state.save_stat(Keys.DTYPE, dtype)
-        state.save_stat(Keys.DEVICE, state.device)
+        state.save_stat(Keys.DEVICE, device)
 
-        # Get base model information
-        base_model = get_base_model(checkpoint)
-        if base_model is not None:
-            state.save_stat("base_model", base_model)
+        # Check if input is a local folder
+        if os.path.isdir(input):
+            # input is a local folder
+            full_model_path = os.path.abspath(input)
+            checkpoint = "local_model"
+            state.checkpoint = checkpoint
+            state.save_stat(Keys.CHECKPOINT, checkpoint)
+            state.save_stat(Keys.LOCAL_MODEL_FOLDER, full_model_path)
+            # See if there is a file ending in ".onnx" in this folder
+            dir = os.listdir(input)
+            has_onnx_file = any([filename.endswith(".onnx") for filename in dir])
+            if not has_onnx_file:
+                raise ValueError(
+                    f"The folder {input} does not contain an ONNX model file."
+                )
+            if force:
+                raise ValueError(
+                    "Your input (-i, --input) points to a local folder, which is not "
+                    "compatible with the force argument."
+                )
 
-        # Validate configuration
-        hf_supported = self._validate_model_configuration(device, dtype, checkpoint)
+        else:
+            # input is a model checkpoint
+            checkpoint = input
+            state.checkpoint = checkpoint
+            state.save_stat(Keys.CHECKPOINT, checkpoint)
 
-        # Setup paths
-        full_model_path, oga_models_subfolder, model_exists_locally = (
-            self._setup_model_paths(
+            # Get base model information
+            base_model = get_base_model(checkpoint)
+            if base_model is not None:
+                state.save_stat("base_model", base_model)
+
+            # Validate configuration
+            hf_supported = self._validate_model_configuration(device, dtype, checkpoint)
+
+            # Setup paths
+            full_model_path, model_exists_locally = self._setup_model_paths(
                 state, checkpoint, device, dtype, subfolder, int4_block_size
             )
-        )
 
-        # Handle download/build if needed
-        if not model_exists_locally or force:
-            if not hf_supported:
-                raise ValueError(
-                    "The (device, dtype, checkpoint) combination is not supported: "
-                    f"({device}, {dtype}, {checkpoint})"
+            # Handle download/build if needed
+            if (not model_exists_locally) or force:
+                if not hf_supported:
+                    raise ValueError(
+                        "The (device, dtype, checkpoint) combination is not supported: "
+                        f"({device}, {dtype}, {checkpoint})"
+                    )
+
+                # Check if model is ONNX or safetensors
+                model_files = list_repo_files(repo_id=checkpoint)
+                is_onnx_model = any(
+                    [filename.endswith(".onnx") for filename in model_files]
                 )
 
-            # Check if model is ONNX or safetensors
-            model_files = list_repo_files(repo_id=checkpoint)
-            is_onnx_model = any(
-                [filename.endswith(".onnx") for filename in model_files]
-            )
-
-            if is_onnx_model:
-                oga_models_subfolder = None
-                full_model_path = self._download_onnx_model(checkpoint, device)
-            else:
-                self._download_and_build_safetensors_model(
-                    checkpoint,
-                    device,
-                    dtype,
-                    full_model_path,
-                    int4_block_size,
-                    input_path,
-                    state,
-                )
+                if is_onnx_model:
+                    full_model_path = self._download_onnx_model(checkpoint, device)
+                else:
+                    self._download_and_build_safetensors_model(
+                        checkpoint,
+                        device,
+                        dtype,
+                        full_model_path,
+                        int4_block_size,
+                        input_path,
+                        state,
+                    )
+                    state.save_stat(Keys.LOCAL_MODEL_FOLDER, full_model_path)
 
         # Load model if download-only argument is not set
         if not download_only:
-            if oga_models_subfolder is not None:
-                state.save_stat(Keys.OGA_MODELS_SUBFOLDER, oga_models_subfolder)
 
             saved_env_state = None
             try:

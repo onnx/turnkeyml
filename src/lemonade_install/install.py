@@ -42,7 +42,7 @@ npu_install_data = {
         "license_tag": "Beta ",
     },
     "1.4.0": {
-        "artifacts_zipfile": "ryzen_ai_14_4571/npu-llm-artifacts_1.4.0.zip",
+        "artifacts_zipfile": "ryzen_ai_14_4900/npu-llm-artifacts_1.4.0.zip",
         "license_file": (
             "https://account.amd.com/content/dam/account/en/licenses/download/"
             "amd-end-user-license-agreement.pdf"
@@ -70,7 +70,7 @@ hybrid_install_data = {
         "artifacts_parents_dir": os.path.join(
             DEFAULT_AMD_OGA_HYBRID_DIR, "hybrid-llm-artifacts_1.4.0"
         ),
-        "artifacts_zipfile": ("ryzen_ai_14_4571/hybrid-llm-artifacts_1.4.0.zip"),
+        "artifacts_zipfile": ("ryzen_ai_14_4900/hybrid-llm-artifacts_1.4.0.zip"),
         "license_file": (
             "https://account.amd.com/content/dam/account/en/licenses/download/"
             "amd-end-user-license-agreement.pdf"
@@ -105,6 +105,7 @@ class ModelManager:
             "Qwen2.5-0.5B-Instruct-CPU": {
                 "checkpoint": "Qwen/Qwen2.5-0.5B-Instruct",
                 "device": "cpu",
+                "reasoning": False,
             }
         }
 
@@ -118,18 +119,32 @@ class ModelManager:
             "Llama-3.2-1B-Instruct-Hybrid": {
                 "checkpoint": "amd/Llama-3.2-1B-Instruct-awq-g128-int4-asym-fp16-onnx-hybrid",
                 "device": "hybrid",
+                "reasoning": False,
             },
             "Llama-3.2-3B-Instruct-Hybrid": {
                 "checkpoint": "amd/Llama-3.2-3B-Instruct-awq-g128-int4-asym-fp16-onnx-hybrid",
                 "device": "hybrid",
+                "reasoning": False,
             },
             "Phi-3-Mini-Instruct-Hybrid": {
                 "checkpoint": "amd/Phi-3-mini-4k-instruct-awq-g128-int4-asym-fp16-onnx-hybrid",
                 "device": "hybrid",
+                "reasoning": False,
             },
             "Qwen-1.5-7B-Chat-Hybrid": {
                 "checkpoint": "amd/Qwen1.5-7B-Chat-awq-g128-int4-asym-fp16-onnx-hybrid",
                 "device": "hybrid",
+                "reasoning": False,
+            },
+            "DeepSeek-R1-Distill-Llama-8B-Hybrid": {
+                "checkpoint": "amd/DeepSeek-R1-Distill-Llama-8B-awq-asym-uint4-g128-lmhead-onnx-hybrid",
+                "device": "hybrid",
+                "reasoning": True,
+            },
+            "DeepSeek-R1-Distill-Qwen-7B-Hybrid": {
+                "checkpoint": "amd/DeepSeek-R1-Distill-Qwen-7B-awq-asym-uint4-g128-lmhead-onnx-hybrid",
+                "device": "hybrid",
+                "reasoning": True,
             },
         }
 
