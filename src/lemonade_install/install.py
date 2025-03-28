@@ -78,7 +78,7 @@ hybrid_install_data = {
             "https://account.amd.com/content/dam/account/en/licenses/download/"
             "amd-end-user-license-agreement.pdf"
         ),
-        "license_tag": "Beta ",
+        "license_tag": "",
     },
 }
 
