@@ -42,7 +42,7 @@ npu_install_data = {
         "license_tag": "Beta ",
     },
     "1.4.0": {
-        "artifacts_zipfile": "ryzen_ai_14_4900/npu-llm-artifacts_1.4.0.zip",
+        "artifacts_zipfile": "ryzen_ai_14_4571/npu-llm-artifacts_1.4.0.zip",
         "license_file": (
             "https://account.amd.com/content/dam/account/en/licenses/download/"
             "amd-end-user-license-agreement.pdf"
@@ -70,7 +70,10 @@ hybrid_install_data = {
         "artifacts_parents_dir": os.path.join(
             DEFAULT_AMD_OGA_HYBRID_DIR, "hybrid-llm-artifacts_1.4.0"
         ),
-        "artifacts_zipfile": ("ryzen_ai_14_4900/hybrid-llm-artifacts_1.4.0.zip"),
+        "artifacts_zipfile": (
+            "https://www.xilinx.com/bin/public/openDownload?"
+            "filename=hybrid-llm-artifacts_1.4.0_032825.zip"
+        ),
         "license_file": (
             "https://account.amd.com/content/dam/account/en/licenses/download/"
             "amd-end-user-license-agreement.pdf"
