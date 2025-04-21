@@ -183,12 +183,22 @@ class WindowsSystemInfo(SystemInfo):
         Returns:
             str: Windows power setting.
         """
+        # https://learn.microsoft.com/en-us/windows/win32/power/power-policy-settings
+        guid_to_name = {
+            "a1841308-3541-4fab-bc81-f71556f20b4a": "Power Saver",
+            "381b4222-f694-41f0-9685-ff5bb260df2e": "Balanced",
+            "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c": "High Performance",
+            "e9a42b02-d5df-448d-aa00-03f14749eb61": "Ultimate Performance",
+        }
+        default = "Windows power setting not found"
         try:
-            out = subprocess.check_output(["powercfg", "/getactivescheme"]).decode()
-            return re.search(r"\((.*?)\)", out).group(1)
+            out = subprocess.check_output(["powercfg", "/getactivescheme"], text=True)
+            match = re.search(r"([a-fA-F0-9\-]{36})", out)
+            if match:
+                return guid_to_name.get(match.group(1).lower(), default)
         except subprocess.CalledProcessError:
             pass
-        return "Windows power setting not found"
+        return default
 
     def get_dict(self) -> dict:
         """
