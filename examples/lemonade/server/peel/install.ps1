@@ -146,3 +146,6 @@ function Add-PEELToWindowsTerminal {
 
     Write-Host "Main script: Script execution completed."
 }
+
+# Call the main script
+. {& $MyInvocation.MyCommand.Definition}
