@@ -1,4 +1,6 @@
 powershell
+Write-Host "Entering script..."
+
 function Install-PEELModule {
     param(
         [string]$moduleRoot
