@@ -96,8 +96,7 @@ function Add-PEELToWindowsTerminal {
 }
 
 # Main script
-{
-    Write-Host "Main script: Starting script execution..."
+Write-Host "Main script: Starting script execution..."
     $VerbosePreference = "Continue"
     Write-Host "Main script: Verbose preference set to Continue"
     # Notify the user that the installation is starting
@@ -145,7 +144,4 @@ function Add-PEELToWindowsTerminal {
     }
 
     Write-Host "Main script: Script execution completed."
-}
 
-# Call the main script
-. {& $MyInvocation.MyCommand.Definition}
