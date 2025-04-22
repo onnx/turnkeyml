@@ -1,6 +1,5 @@
-powershell
 Write-Host "Entering script..."
-pause
+
 
 function Install-PEELModule {
     param(
