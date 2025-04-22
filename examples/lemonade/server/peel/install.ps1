@@ -3,46 +3,49 @@ Write-Host "Entering script..."
 
 # Source the peel.psm1 module to make its functions available
 Write-Host "Main script: Sourcing peel.psm1 module..."
-. (Join-Path -Path (Split-Path $MyInvocation.MyCommand.Definition) -ChildPath "peel.psm1")
-Write-Host "Main script: peel.psm1 module sourced."
+Import-Module peel -Force
+Write-Host "Main script: peel.psm1 module imported."
 function Install-PEELModule {
     param(
         [string]$moduleRoot
     )
     Write-Host "Install-PEELModule: Starting installation..."
-    $destinationPath = Join-Path -Path ([Environment]::GetFolderPath("MyDocuments")) -ChildPath "PowerShell\Modules\peel"
+    $destinationPath = Join-Path -Path ([Environment]::GetFolderPath("MyDocuments")) -ChildPath "WindowsPowerShell\Modules\peel"
     Write-Host "Install-PEELModule: Destination path set to: $destinationPath"
     try {
         Write-Host "Install-PEELModule: Checking if PEEL module is already installed..."
-        if (Test-Path -Path $destinationPath) {
-            Write-Host "PEEL module is already installed."
-        } else {
-            # Copy the module files to the destination directory
-            Write-Host "Install-PEELModule: PEEL module not found. Starting copying process..."
-            Write-Host "Copying module files to: $destinationPath"
-            Write-Host "Install-PEELModule: Copying files..."
-            Copy-Item -Path (Join-Path -Path $moduleRoot -ChildPath "*") -Destination $destinationPath -Recurse -Force
-            Write-Host "Install-PEELModule: Files copied successfully."
+        # Always copy to allow updates/fixes
+        if (!(Test-Path -Path $destinationPath)) {
+            Write-Host "Creating PEEL module directory: $destinationPath"
+            New-Item -ItemType Directory -Path $destinationPath -Force | Out-Null
         }
+        # Copy only peel.psm1 to the module root
+        $sourceModule = Join-Path -Path $moduleRoot -ChildPath "peel.psm1"
+        if (Test-Path $sourceModule) {
+            Write-Host "Copying $sourceModule to $destinationPath"
+            Copy-Item -Path $sourceModule -Destination $destinationPath -Force
+        } else {
+            Write-Error "Could not find peel.psm1 in $moduleRoot"
+            return $false
+        }
+        Write-Host "Install-PEELModule: Files copied successfully."
+        return $true
     }
-    catch{
+    catch {
         Write-Error "Error copying PEEL module files: $($_.Exception.Message)"
-        throw $_
+        return $false
     }
-    Write-Host "Install-PEELModule: Installation completed."
 }
 
 function Add-PEELToWindowsTerminal {
-    Write-Host "Add-PEELToWindowsTerminal: Starting registration..."
     param(
         [string]$moduleRoot
     )
-    # Register PEEL in Windows Terminal profiles
+    Write-Host "Add-PEELToWindowsTerminal: Starting registration..."
     try {
         Write-Host "Registering PEEL in Windows Terminal..."
         $settingsPath = "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
         Write-Host "Add-PEELToWindowsTerminal: Settings path: $settingsPath"
-        #Check if the file exist
         if (!(Test-Path -Path $settingsPath)) {
             Write-Host "Add-PEELToWindowsTerminal: Settings file does not exist."
             Write-Error "Windows Terminal settings file not found: $settingsPath"
@@ -51,48 +54,35 @@ function Add-PEELToWindowsTerminal {
         Write-Host "Add-PEELToWindowsTerminal: Settings file found. Reading settings content..."
         $settingsContent = Get-Content -Path $settingsPath -Raw | ConvertFrom-Json
         Write-Host "Add-PEELToWindowsTerminal: Settings content read."
-        # Check if the PEEL profile already exists
-        Write-Host "Add-PEELToWindowsTerminal: Checking if PEEL profile already exists..."
-        $peelProfileExists = $settingsContent.profiles.list | Where-Object { $_.name -eq "PEEL" }
-        Write-Host "Add-PEELToWindowsTerminal: Profile existence check completed."
-        if ($peelProfileExists) {
-            Write-Host "PEEL profile already exists in Windows Terminal."
-            Write-Host "Add-PEELToWindowsTerminal: Registration skipped, profile already exists."
-            return
-        }
-        
-
-        catch {
-            Write-Error "Error reading Windows Terminal settings file: $($_.Exception.Message)"
-            throw $_
-        }
-
-       
-        # Create the PEEL profile configuration
+        # Remove any existing PEEL profile
+        Write-Host "Add-PEELToWindowsTerminal: Removing any existing PEEL profile..."
+        $settingsContent.profiles.list = $settingsContent.profiles.list | Where-Object { $_.name -ne "PEEL" }
+        # Create the PEEL profile configuration with correct absolute icon path and auto-import
         Write-Host "Add-PEELToWindowsTerminal: Creating PEEL profile configuration..."
-        $newProfile = @{
-            "name" = "PEEL"
-            "guid" = (New-Guid).Guid.ToString()
-            "commandline" = "powershell.exe"
-            "startingDirectory" = "%USERPROFILE%"
-            "icon" = "$(Join-Path -Path $moduleRoot -ChildPath "../../../img/favicon.ico")"           
+        $workspaceRoot = (Resolve-Path -Path (Join-Path -Path $moduleRoot -ChildPath "..\..\..\.." )).Path
+        $iconPath = Join-Path -Path $workspaceRoot -ChildPath "img\favicon.ico"
+        $guid = "{" + ([guid]::NewGuid().ToString()) + "}"
+        $newProfile = [PSCustomObject]@{
+            name = "PEEL"
+            guid = $guid
+            # Import the PEEL module automatically on shell start
+            commandline = 'powershell.exe -NoExit -Command "Import-Module peel"'
+            startingDirectory = "%USERPROFILE%"
+            icon = $iconPath
         }
         Write-Host "Add-PEELToWindowsTerminal: PEEL profile configuration created."
-        # Add the new profile to the settings
-        Write-Host "Add-PEELToWindowsTerminal: Adding PEEL profile to settings list..."
         $settingsContent.profiles.list += $newProfile
         Write-Host "Add-PEELToWindowsTerminal: PEEL profile added to settings list."
-        # Write the updated configuration back to the settings file
         Write-Host "Add-PEELToWindowsTerminal: Writing updated settings back to file..."
-        $settingsContent | ConvertTo-Json -Depth 10 | Set-Content -Path $settingsPath
+        $json = $settingsContent | ConvertTo-Json -Depth 10
+        $json | Set-Content -Path $settingsPath
         Write-Host "Add-PEELToWindowsTerminal: Settings file updated successfully."
-    }
-     catch {
+        return $true
+    } catch {
         Write-Error "Error configuring PEEL in Windows Terminal: $($_.Exception.Message)"
-        throw $_
+        return $false
     }
     Write-Host "Add-PEELToWindowsTerminal: Registration completed."
-
 }
 
 # Main script
@@ -124,23 +114,19 @@ Write-Host "Main script: Starting script execution..."
         return
     }
     Write-Host "Main script: calling Install-PEELModule"
-    $installResult = Install-PEELModule -moduleRoot $moduleRoot -destinationPath $destinationPath
-    Write-Host "Main script: Install-PEELModule finished with result: $installResult"
-
-    if ($installResult) {
-        Write-Host "Main script: Install was successfull, calling Add-PEELToWindowsTerminal"
-
+    $installResult = Install-PEELModule -moduleRoot $moduleRoot
+    if ($installResult -eq $true) {
+        Write-Host "Main script: Install was successful, calling Add-PEELToWindowsTerminal"
         $addResult = Add-PEELToWindowsTerminal -moduleRoot $moduleRoot
         Write-Host "Main script: Add-PEELToWindowsTerminal finished with result: $addResult"
-        if($addResult) {
-            # Notify the user of success
+        if ($addResult) {
             Write-Host "PEEL module and Windows Terminal profile installed successfully!"
             Write-Host "The PEEL profile will be available in Windows Terminal after the next restart."
         } else {
-            Write-Error "PEEL module install, but an error occur when adding the profile to windows terminal"
+            Write-Error "PEEL module installed, but an error occurred when adding the profile to Windows Terminal."
         }
     } else {
-        Write-Error "An error occurred while installing PEEL Module"
+        Write-Error "An error occurred while installing PEEL Module."
     }
 
     Write-Host "Main script: Script execution completed."

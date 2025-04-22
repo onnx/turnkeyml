@@ -1,4 +1,4 @@
-# PEEL: PowerShell Enhanced with Enhanced Lemonade (LLM) Functionality
+# PEEL: PowerShell Enhanced by Embedded Lemonade (LLM) Functionality
 
 **Overview:**
 
@@ -9,46 +9,24 @@ PEEL is a Windows Terminal application that extends the capabilities of PowerShe
 1.  **PEEL Shell in Windows Terminal:**
     *   PEEL will register itself as a new shell option within Windows Terminal, similar to how "Windows PowerShell", "Command Prompt", and "Azure Cloud Shell" appear in the new tab dropdown.
     *   It should have a distinctive icon (the one provided) to identify it within the Windows Terminal UI.
-    * The default behavior of the shell should be the same as powershell.
+    *   The default behavior of the shell should be the same as powershell.
     *   **Icon**: The PEEL icon will be `turnkeyml/img/favicon.ico`.
-    * **API Version**: PEEL should use the v1 API of lemonade server
+    *   **API Version**: PEEL should use the v1 API of Lemonade Server
 
-2.  **`Lemonade-Install` Cmdlet:**
-    *   **Functionality:** Downloads and executes the latest Lemonade Server Installer (`Lemonade_Server_Installer.exe`) from the official TurnkeyML GitHub releases page: `https://github.com/onnx/turnkeyml/releases/latest/download/Lemonade_Server_Installer.exe`.
-    *   **Behavior:** This cmdlet should be able to handle scenarios where:
-        *   The installer is already present.
-        *   The installer download fails (e.g., due to network issues).
-        * The installer process throws an error
-    *   **Outcome:** After successful installation, the `lemonade-server` command should be available in the PEEL shell.
-3.  **`Get-Aid` Cmdlet:**
-    *   **Functionality:** Captures the terminal's scrollback history, sends it to the Lemonade Server via the streaming chat completions API, and displays the LLM's response in a streaming fashion directly within the terminal.
-    *   **Invocation:** It is intended to help get past the error.
-    *   **API Interaction:** Uses the streaming chat completions API described in the `server_spec.md`.
-    *   **Scrollback:** The `Get-Aid` cmdlet should capture the last N lines of the terminal's scrollback buffer (where N is a configurable number or a reasonable default, like 50). It can do this by checking the user's console's history.
-    * **Server**: The `Get-Aid` cmdlet should connect to the server in localhost:8080
-
-    * **Error handling**: if the connection to the server fails or is not running, notify the user.
-    *   **LLM Selection:** By default, it will invoke the "standard" LLM model in Lemonade Server.
-    *   **Model**: It will invoke Llama-3.2-3B-Instruct-Hybrid
+2.  **Cmdlets:**
+    *   **Install-Lemonade**: Downloads and runs the Lemonade Server installer.
+    *   **Get-Aid**: Sends the last 50 lines of terminal history to Lemonade Server using the Llama-3.2-3B-Instruct-Hybrid model.
+    *   **Get-MoreAid**: Like Get-Aid, but uses the Qwen-1.5-7B-Chat-Hybrid model.
+    *   **Get-MaximumAid**: Like Get-Aid, but uses the DeepSeek-R1-Distill-Qwen-7B-Hybrid model.
+    *   All cmdlets stream the LLM's response back to the terminal.
     *   **User Experience:** The output from the LLM should be clearly distinguished from the normal terminal output, perhaps using different colors or formatting.
-4.  **`Get-More-Aid` Cmdlet:**
-    *   **Functionality:** Similar to `Get-Aid`, but invokes a "larger" LLM model configured in Lemonade Server.
-    *   **Model**: It will invoke Qwen-1.5-7B-Chat-Hybrid
-    *   **User Experience:** Should have similar formatting as `Get-Aid`.
-5.  **`Get-Maximum-Aid` Cmdlet:**
-    *   **Functionality:** Similar to `Get-Aid`, but invokes the "largest" available LLM model configured in Lemonade Server.
-    *   **Model**: It will invoke DeepSeek-R1-Distill-Qwen-7B-Hybrid
-    *   **User Experience:** Should have similar formatting as `Get-Aid`.
-6. **Installation:**
+
+3. **Installation:**
     * Users should download the PEEL module (`peel` directory) to their local machine.
-    * Then run `install.ps1` from that directory in powershell.
+    * Then run `install.ps1` from that directory in PowerShell.
     * After that, PEEL should appear as an option in the Windows Terminal.
 
-
 **Implementation Details:**
-
-
-
 
 *   **Language:** PowerShell
 *   **Location:** New `peel` directory under `examples/lemonade/server/`.
@@ -62,14 +40,12 @@ examples/lemonade/server/
         └── assets/
             └── peel-icon.png # PEEL icon (provided)
 ```
-**Next Steps:**
 
-I think we should implement this in the following steps.
-1. **Set up the Folder Structure:** Create the required file structure under `examples/lemonade/server/peel`.
-2. **Create the Powershell Module Manifest:** This file `peel.psd1` will specify the metadata for the module.
-3. **Create the Powershell Module:** Create the main module file `peel.psm1`.
-4. **Create the Install script:** Create the `install.ps1` script to install the module.
-5. **Lemonade-Install cmdlet:** Implement the cmdlet that downloads and run the installer.
-6. **Get-Aid cmdlet:** Implement the cmdlet that send the terminal's scrollback.
-7. **Get-More-Aid and Get-Maximum-Aid:** Implement this similar to `Get-Aid`.
-8. **Register the app in the terminal:** Find the way of adding this app to the windows terminal options.
+**Cmdlet Details:**
+
+- **Install-Lemonade**: Downloads and executes the latest Lemonade Server Installer from the official TurnkeyML GitHub releases page.
+- **Get-Aid**: Captures the last 50 lines of terminal history and sends them to Lemonade Server using the Llama-3.2-3B-Instruct-Hybrid model.
+- **Get-MoreAid**: Same as Get-Aid, but uses the Qwen-1.5-7B-Chat-Hybrid model.
+- **Get-MaximumAid**: Same as Get-Aid, but uses the DeepSeek-R1-Distill-Qwen-7B-Hybrid model.
+
+All cmdlets stream the LLM's response and display it in the terminal.
