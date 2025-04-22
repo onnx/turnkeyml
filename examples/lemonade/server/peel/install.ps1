@@ -75,6 +75,7 @@ function Add-PEELToWindowsTerminal {
 
 # Main script
 {
+    $VerbosePreference = "Continue"
     # Notify the user that the installation is starting
     Write-Host "Starting PEEL installation..."
 
