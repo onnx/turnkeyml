@@ -1,6 +1,10 @@
 Write-Host "Entering script..."
 
 
+# Source the peel.psm1 module to make its functions available
+Write-Host "Main script: Sourcing peel.psm1 module..."
+. (Join-Path -Path (Split-Path $MyInvocation.MyCommand.Definition) -ChildPath "peel.psm1")
+Write-Host "Main script: peel.psm1 module sourced."
 function Install-PEELModule {
     param(
         [string]$moduleRoot
