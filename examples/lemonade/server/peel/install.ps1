@@ -1,10 +1,9 @@
 powershell
 function Install-PEELModule {
     param(
-        [string]$moduleRoot,
-        [string]$destinationPath
+        [string]$moduleRoot
     )
-    # Check if the module is already installed, handle errors with try-catch
+    $destinationPath = Join-Path -Path ([Environment]::GetFolderPath("MyDocuments")) -ChildPath "PowerShell\Modules\peel"
     try {
         if (Test-Path -Path $destinationPath) {
             Write-Host "PEEL module is already installed."
@@ -14,11 +13,11 @@ function Install-PEELModule {
             Copy-Item -Path (Join-Path -Path $moduleRoot -ChildPath "*") -Destination $destinationPath -Recurse -Force
         }
     }
-    catch {
+    catch{
         Write-Error "Error copying PEEL module files: $($_.Exception.Message)"
-        return $false
+        throw $_
     }
-    return $true
+    
 }
 
 function Add-PEELToWindowsTerminal {
@@ -33,44 +32,45 @@ function Add-PEELToWindowsTerminal {
         #Check if the file exist
         if (!(Test-Path -Path $settingsPath)) {
             Write-Error "Windows Terminal settings file not found: $settingsPath"
-            return $false
+            throw "Windows Terminal settings file not found: $settingsPath"
         }
 
-        # Read the settings.json file, handle errors with try-catch
-        try {
-            $settingsContent = Get-Content -Path $settingsPath -Raw | ConvertFrom-Json
-        }
-        catch {
-            Write-Error "Error reading Windows Terminal settings file: $($_.Exception.Message)"
-            return $false
-        }
-
+        $settingsContent = Get-Content -Path $settingsPath -Raw | ConvertFrom-Json
+        
         # Check if the PEEL profile already exists
-        $peelProfileExists = $settingsContent.profiles.list | Where-Object { $_.name -eq "PEEL" } | Select-Object -First 1
+        $peelProfileExists = $settingsContent.profiles.list | Where-Object { $_.name -eq "PEEL" }
 
         if ($peelProfileExists) {
             Write-Host "PEEL profile already exists in Windows Terminal."
-            return $true
+            return
         }
+        catch {
+            Write-Error "Error reading Windows Terminal settings file: $($_.Exception.Message)"
+            throw $_
+        }
+
+       
         # Create the PEEL profile configuration
         $newProfile = @{
             "name" = "PEEL"
             "guid" = (New-Guid).Guid.ToString()
             "commandline" = "powershell.exe"
             "startingDirectory" = "%USERPROFILE%"
-            "icon" = "$(Join-Path -Path $moduleRoot -ChildPath "../../../img/favicon.ico")"
+            "icon" = "$(Join-Path -Path $moduleRoot -ChildPath "../../../img/favicon.ico")"           
         }
-
+        
         # Add the new profile to the settings
         $settingsContent.profiles.list += $newProfile
 
         # Write the updated configuration back to the settings file
         $settingsContent | ConvertTo-Json -Depth 10 | Set-Content -Path $settingsPath
-    } catch {
-        Write-Error "Error configuring PEEL in Windows Terminal: $($_.Exception.Message)"
-        return $false
     }
-    return $true
+     catch {
+        Write-Error "Error configuring PEEL in Windows Terminal: $($_.Exception.Message)"
+        throw $_
+    }
+    
+
 }
 
 # Main script
