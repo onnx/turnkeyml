@@ -1,24 +1,29 @@
 # PEEL: PowerShell Enhanced by Embedded Lemonade (LLM) Functionality
 
-**Overview:**
+## Overview
 
 PEEL is a PowerShell module that extends the capabilities of PowerShell by integrating with Lemonade Server. It offers seamless access to LLM-powered assistance directly within the terminal, providing contextual help based on the terminal's scrollback.
 
-**Key Features:**
+PEEL currently requires a Ryzen AI 300-series PC running Windows 11. 
 
-1.  **Cmdlets:**
-    *   **Install-Lemonade**: Downloads and runs the Lemonade Server installer (GUI mode).
-    *   **Get-Aid**: Sends the last 50 lines of terminal history to Lemonade Server using the Llama-3.2-3B-Instruct-Hybrid model.
-    *   **Get-MoreAid**: Like Get-Aid, but uses the Qwen-1.5-7B-Chat-Hybrid model.
-    *   **Get-MaximumAid**: Like Get-Aid, but uses the DeepSeek-R1-Distill-Qwen-7B-Hybrid model.
-    *   All cmdlets stream the LLM's response back to the terminal.
-    *   **User Experience:** The output from the LLM should be clearly distinguished from the normal terminal output, perhaps using different colors or formatting.
+## Key Features
 
-2. **Installation:**
-    * Users should download the PEEL module (`peel` directory) to their local machine.
-    * Then run `install.ps1` from that directory in PowerShell.
-    * The new cmdlets are now available.
-    * Run the `Install-Lemonade` cmdlet to get Lemonade Server, if you don't have it already.
+PEEL adds the following PowerShell cmdlets.
+
+Get Aid:
+* **Get-Aid**: Sends the last 50 lines of terminal history to Lemonade Server using the Llama-3.2-3B-Instruct-Hybrid model.
+* **Get-MoreAid**: Like Get-Aid, but uses the Qwen-1.5-7B-Chat-Hybrid model.
+* **Get-MaximumAid**: Like Get-Aid, but uses the DeepSeek-R1-Distill-Qwen-7B-Hybrid model.
+
+Helper:
+* **Install-Lemonade**: Downloads and runs the Lemonade Server installer (GUI mode). This is just included to help you install Lemonade Server, in case you don't already have it.
+
+
+## Installation
+ * Clone this repository.
+ * In PowerShell, run `install.ps1` from the same directory as this document.
+ * The new cmdlets are now available.
+ * Run the `Install-Lemonade` cmdlet to get Lemonade Server, if you don't have it already.
 
 **Implementation Details:**
 
@@ -33,11 +38,73 @@ examples/lemonade/server/
         ├── install.ps1 # Installation script
 ```
 
-**Cmdlet Details:**
+## Usage Example
 
-- **Install-Lemonade**: Downloads and launches the Lemonade Server Installer in GUI mode from the official TurnkeyML GitHub releases page. The user must complete the installation manually.
-- **Get-Aid**: Captures the last 50 lines of terminal history and sends them to Lemonade Server using the Llama-3.2-3B-Instruct-Hybrid model.
-- **Get-MoreAid**: Same as Get-Aid, but uses the Qwen-1.5-7B-Chat-Hybrid model.
-- **Get-MaximumAid**: Same as Get-Aid, but uses the DeepSeek-R1-Distill-Qwen-7B-Hybrid model.
+First, run some command that doesn't work, like:
 
-All cmdlets stream the LLM's response and display it in the terminal.
+```PowerShell
+git pull-request
+```
+
+This will produce an error message like:
+
+```PowerShell
+git: 'pull-request' is not a git command. See 'git --help'.
+```
+
+Use the `Get-MoreAid` command to send the scrollback to an LLM and get help:
+
+```PowerShell
+Get-MoreAid
+```
+
+The whole terminal session ends up looking like this:
+
+```PowerShell
+(base) PS C:\Users\user> git pull-request
+git: 'pull-request' is not a git command. See 'git --help'.
+(base) PS C:\Users\user> Get-MoreAid
+lemonade-server status output: Server is running on port 8000
+Waiting for Lemonade Server to become ready (timeout: 40 seconds)...
+Health check attempt 1 of 20: http://localhost:8000/api/v0/health
+Lemonade Server is ready.
+Capturing terminal history...
+Sending history to Lemonade Server...
+
+Lemonade Server Response:
+---------------------------
+The `git pull-request` command is not recognized as a built-in Git command. It seems you might be referring to GitHub's workflow or a misunderstanding. When you want to create a pull request on GitHub, you would typically use the following steps:
+
+1. First, make sure you are in the correct repository directory using `cd [repository-name]`.
+2. Check out the latest changes from the remote branch with `git pull origin [branch-name]`. Replace `[branch-name]` with the name of the branch you want to merge.
+3. If there are any changes you want to contribute, stage them with `git add .`, then commit them with a meaningful message using `git commit -m "Your commit message"`.
+4. Finally, go to the GitHub repository's page, click on the "New pull request" button, and fill out the details, including selecting the base branch and the branch you just committed.
+
+If you're encountering an error or need assistance with this process, please provide the specific error message or the context of your command, and I'll be happy to help you interpret the output and suggest a solution.
+```
+
+## Portions Licensed as Follows
+
+\> This project was inspired by [`wut-cli`](https://github.com/shobrook/wut) and uses the `EXPLAIN_PROMPT` system prompt for `Get-Aid`.
+
+MIT License
+
+Copyright (c) 2024 Jonathan Shobrook
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
