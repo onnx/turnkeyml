@@ -51,32 +51,48 @@ function Ensure-LemonadeServer {
     [CmdletBinding()]
     param(
         [int]$Port = 8000,
-        [int]$MaxTries = 20,
+        [int]$MaxTries = 10,
         [int]$SleepSeconds = 2
     )
     $ServerUrl = "http://localhost:$Port/api/v0/chat/completions"
-    # 1. Check if Lemonade Server is installed (using CLI)
+    $spinner = @('|', '/', '-', '\')
+    $spinIndex = 0
     $isInstalled = $false
-    try {
-        $version = & lemonade-server --version 2>&1
-        if ($LASTEXITCODE -eq 0) { $isInstalled = $true }
-        else { Write-Host "lemonade-server --version output: $version" }
-    } catch { Write-Host "Error running lemonade-server --version: $_" }
+    $isRunning = $false
+    $status = $null
+
+    # Spinner while checking lemonade-server status (using Start-Job)
+    Write-Host ""  # Blank line before spinner
+    $spinnerMessage = "Getting LLM Aid..."
+    $statusJob = Start-Job -ScriptBlock {
+        try {
+            & lemonade-server status 2>&1
+        } catch {
+            $null
+        }
+    }
+    while ($statusJob.State -eq 'Running') {
+        $spinChar = $spinner[$spinIndex % $spinner.Length]
+        Write-Host ("`r $spinChar $spinnerMessage ") -NoNewline -ForegroundColor Yellow
+        Start-Sleep -Milliseconds 120
+        $spinIndex++
+    }
+    $status = Receive-Job $statusJob
+    Remove-Job $statusJob
+    Write-Host ("`r" + (' ' * 60) + "`r") -NoNewline
+    if ($status -match "Server is running on port $Port") {
+        $isInstalled = $true
+        $isRunning = $true
+    } elseif ($status -match "Server is not running") {
+        $isInstalled = $true
+        $isRunning = $false
+    }
     if (-not $isInstalled) {
         Write-Error "Lemonade Server is not installed. To use this cmdlet, please run Install-Lemonade to set up Lemonade Server first."
         return $false
     }
-    # 2. Check if Lemonade Server is running (using CLI)
-    $isRunning = $false
-    try {
-        $status = & lemonade-server status 2>&1
-        Write-Host "lemonade-server status output: $status"
-        if ($status -match "Server is running on port $Port") { $isRunning = $true }
-    } catch { Write-Host "Error running lemonade-server status: $_" }
     if (-not $isRunning) {
-        Write-Host "Lemonade Server is not running. Starting..."
         try {
-            Write-Host "Running: lemonade-server serve --port $Port"
             $proc = Start-Process -FilePath "lemonade-server" -ArgumentList "serve --port $Port" -WindowStyle Hidden -PassThru -ErrorAction Stop
             Start-Sleep -Seconds 2
             if ($proc.HasExited) {
@@ -88,26 +104,34 @@ function Ensure-LemonadeServer {
             return $false
         }
     }
-    # 3. Wait for server to be ready
-    Write-Host "Waiting for Lemonade Server to become ready (timeout: $(${MaxTries} * $SleepSeconds) seconds)..."
+    # Spinner animation while waiting for server health
+    $spinIndex = 0
     $healthUrl = "http://localhost:$Port/api/v0/health"
-    for ($i=1; $i -le $MaxTries; $i++) {
-        Write-Host "Health check attempt $i of ${MaxTries}: $healthUrl"
+    $ready = $false
+    $totalTries = $MaxTries
+    Write-Host ""  # Blank line before spinner
+    while (-not $ready -and $totalTries -gt 0) {
+        $spinChar = $spinner[$spinIndex % $spinner.Length]
+        Write-Host ("`r $spinChar Getting LLM Aid... ") -NoNewline -ForegroundColor Yellow
         try {
             $resp = Invoke-WebRequest -Uri $healthUrl -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
             if ($resp.StatusCode -eq 200) {
-                Write-Host "Lemonade Server is ready."
-                return $true
-            } else {
-                Write-Host "Health check status code: $($resp.StatusCode)"
+                $ready = $true
+                break
             }
-        } catch {
-            Write-Host "Health check failed: $($_.Exception.Message)"
-        }
-        Start-Sleep -Seconds $SleepSeconds
+        } catch {}
+        Start-Sleep -Milliseconds 200
+        $spinIndex++
+        $totalTries--
     }
-    Write-Error "Lemonade Server did not become ready in time after $MaxTries attempts."
-    return $false
+    # Clear spinner line
+    Write-Host ("`r" + (' ' * 60) + "`r") -NoNewline
+    if ($ready) {
+        return $true
+    } else {
+        Write-Error "Lemonade Server did not become ready in time."
+        return $false
+    }
 }
 
 function Invoke-AidCore {
@@ -119,10 +143,9 @@ function Invoke-AidCore {
     )
     $ServerUrl = "http://localhost:$Port/api/v0/chat/completions"
     if (-not (Ensure-LemonadeServer -Port $Port)) {
-        Write-Error "Lemonade Server is not available. Aborting."
+        Write-Error "Lemonade Server is not available. Exiting."
         return
     }
-    Write-Host "Capturing terminal history..."
     $history = (Get-History -Count $ScrollbackLines).CommandLine | Out-String
     $body = @{
         model = $Model
@@ -141,7 +164,6 @@ Your goal is to help users understand (and potentially fix) things like stack tr
         )
         stream = $true
     } | ConvertTo-Json
-    Write-Host "Sending history to Lemonade Server..."
     try {
         Add-Type -AssemblyName System.Net.Http
         $handler = New-Object System.Net.Http.HttpClientHandler
@@ -153,9 +175,10 @@ Your goal is to help users understand (and potentially fix) things like stack tr
         $response = $client.SendAsync($httpRequest, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead).Result
         $stream = $response.Content.ReadAsStreamAsync().Result
         $reader = New-Object System.IO.StreamReader($stream)
-        Write-Host "" -ForegroundColor DarkCyan
-        Write-Host "Lemonade Server Response:" -ForegroundColor DarkCyan
-        Write-Host "---------------------------" -ForegroundColor DarkCyan
+        # Spinner until first response
+        $spinner = @('|', '/', '-', '\')
+        $spinIndex = 0
+        $firstResponse = $false
         while (-not $reader.EndOfStream) {
             $line = $reader.ReadLine().Trim()
             if ($line -eq "" -or $line -eq "data: [DONE]" -or $line -eq "[DONE]") { continue }
@@ -163,13 +186,26 @@ Your goal is to help users understand (and potentially fix) things like stack tr
             try {
                 $data = $line | ConvertFrom-Json -ErrorAction Stop
                 if ($data.choices -and $data.choices[0].delta.content) {
+                    if (-not $firstResponse) {
+                        # Clear spinner line and print response header
+                        Write-Host ("`r" + (' ' * 60) + "`r") -NoNewline
+                        Write-Host "Lemonade Server Response:" -ForegroundColor DarkCyan
+                        Write-Host "---------------------------" -ForegroundColor DarkCyan
+                        $firstResponse = $true
+                    }
                     Write-Host $data.choices[0].delta.content -NoNewline -ForegroundColor Green
                 }
             } catch {
                 # Ignore lines that aren't valid JSON
+                if (-not $firstResponse) {
+                    $spinChar = $spinner[$spinIndex % $spinner.Length]
+                    Write-Host ("`r $spinChar Waiting for Lemonade Server response... ") -NoNewline -ForegroundColor Yellow
+                    Start-Sleep -Milliseconds 120
+                    $spinIndex++
+                }
             }
         }
-        Write-Host "" -ForegroundColor DarkCyan
+        if ($firstResponse) { Write-Host "" -ForegroundColor DarkCyan }
     } catch {
         Write-Error "Failed to connect to Lemonade Server: $($_.Exception.Message)"
     }
