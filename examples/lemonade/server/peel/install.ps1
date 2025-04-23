@@ -1,4 +1,3 @@
-
 function Install-PEELModule {
     param(
         [string]$moduleRoot
@@ -72,6 +71,40 @@ try {
     $importSuccess = $false
 }
 
+# Register PEEL shell in Windows Terminal (if not already present)
+try {
+    $wtSettingsPath = Join-Path $env:LOCALAPPDATA "Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
+    if (Test-Path $wtSettingsPath) {
+        $settings = Get-Content $wtSettingsPath -Raw | ConvertFrom-Json
+        $peelProfile = $settings.profiles.list | Where-Object { $_.name -eq "PEEL" }
+        $pwshPath = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
+        $peelCommand = "$pwshPath -NoExit -Command ""`$env:PEEL_SHELL='1'; Import-Module peel"""
+        if ($peelProfile) {
+            # Update existing PEEL profile to use correct commandline and remove 'env' property if present
+            $peelProfile.commandline = $peelCommand
+            if ($peelProfile.PSObject.Properties["env"]) {
+                $peelProfile.PSObject.Properties.Remove("env")
+            }
+        } else {
+            $peelProfileObj = [PSCustomObject]@{
+                name = "PEEL"
+                commandline = $peelCommand
+                icon = ""
+                startingDirectory = "~"
+                hidden = $false
+                guid = "{b1b1b1b1-1111-1111-1111-111111111111}"
+            }
+            $settings.profiles.list += $peelProfileObj
+        }
+        $settings | ConvertTo-Json -Depth 100 | Set-Content $wtSettingsPath -Encoding UTF8
+        Write-Host "PEEL shell profile registered or updated in Windows Terminal."
+    } else {
+        Write-Warning "Windows Terminal settings.json not found. Skipping PEEL shell registration."
+    }
+} catch {
+    Write-Warning "Could not register PEEL shell in Windows Terminal: $($_.Exception.Message)"
+}
+
 if ($importSuccess -and $installResult -eq $true) {
     Write-Host "PEEL module installed successfully!"
     exit 0
@@ -79,6 +112,8 @@ if ($importSuccess -and $installResult -eq $true) {
     Write-Error "An error occurred while installing or importing the PEEL Module."
     exit 1
 }
+
+# Note: The PEEL shell sets the PEEL_SHELL environment variable. peel.psm1 should check for this variable to enable transcript logic only in PEEL shells.
 
 Write-Host "Main script: Script execution completed."
 

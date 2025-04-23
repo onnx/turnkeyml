@@ -85,7 +85,7 @@ If you're encountering an error or need assistance with this process, please pro
 
 ## Portions Licensed as Follows
 
-\> This project was inspired by [`wut-cli`](https://github.com/shobrook/wut) and uses the `EXPLAIN_PROMPT` system prompt for `Get-Aid`.
+\> This project was inspired by [`wut-cli`](https://github.com/shobrook/wut) its system prompt is based on the `wut` `EXPLAIN_PROMPT` system prompt.
 
 MIT License
 

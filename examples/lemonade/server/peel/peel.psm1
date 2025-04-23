@@ -5,6 +5,30 @@
     Contains the implementation of Install-Lemonade, Get-Aid, Get-MoreAid, and Get-MaximumAid
 #>
 
+# --- PEEL shell detection logic ---
+if ($env:PEEL_SHELL) {
+    $global:PEEL_SHELL = $true
+}
+# --- end PEEL shell detection logic ---
+
+# --- PEEL transcript logic ---
+# Only start transcript if running in a PEEL shell
+if ($env:PEEL_SHELL) {
+    $global:PEELTranscriptPath = Join-Path $env:TEMP ("peel_transcript_" + $PID + "_" + [guid]::NewGuid().ToString() + ".txt")
+    try {
+        if (-not (Get-Variable -Name TranscriptEnabled -Scope Global -ErrorAction SilentlyContinue)) {
+            $global:TranscriptEnabled = $false
+        }
+        if (-not $global:TranscriptEnabled) {
+            Start-Transcript -Path $global:PEELTranscriptPath | Out-Null
+            $global:TranscriptEnabled = $true
+        }
+    } catch {
+        Write-Warning "Could not start transcript: $($_.Exception.Message)"
+    }
+}
+# --- end transcript logic ---
+
 function Install-Lemonade {
     <#
         .SYNOPSIS
@@ -73,13 +97,13 @@ function Ensure-LemonadeServer {
     }
     while ($statusJob.State -eq 'Running') {
         $spinChar = $spinner[$spinIndex % $spinner.Length]
-        Write-Host ("`r $spinChar $spinnerMessage ") -NoNewline -ForegroundColor Yellow
-        Start-Sleep -Milliseconds 120
+        [Console]::Write("`r $spinChar $spinnerMessage   ")
+        Start-Sleep -Milliseconds 80
         $spinIndex++
     }
+    [Console]::Write("`r" + (' ' * 60) + "`r")
     $status = Receive-Job $statusJob
     Remove-Job $statusJob
-    Write-Host ("`r" + (' ' * 60) + "`r") -NoNewline
     if ($status -match "Server is running on port $Port") {
         $isInstalled = $true
         $isRunning = $true
@@ -112,7 +136,7 @@ function Ensure-LemonadeServer {
     Write-Host ""  # Blank line before spinner
     while (-not $ready -and $totalTries -gt 0) {
         $spinChar = $spinner[$spinIndex % $spinner.Length]
-        Write-Host ("`r $spinChar Getting LLM Aid... ") -NoNewline -ForegroundColor Yellow
+        [Console]::Write("`r $spinChar Getting LLM Aid...   ")
         try {
             $resp = Invoke-WebRequest -Uri $healthUrl -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
             if ($resp.StatusCode -eq 200) {
@@ -120,12 +144,11 @@ function Ensure-LemonadeServer {
                 break
             }
         } catch {}
-        Start-Sleep -Milliseconds 200
+        Start-Sleep -Milliseconds 80
         $spinIndex++
         $totalTries--
     }
-    # Clear spinner line
-    Write-Host ("`r" + (' ' * 60) + "`r") -NoNewline
+    [Console]::Write("`r" + (' ' * 60) + "`r")
     if ($ready) {
         return $true
     } else {
@@ -141,26 +164,49 @@ function Invoke-AidCore {
         [int]$Port = 8000,
         [int]$ScrollbackLines = 50
     )
+    # Prevent running unless in a PEEL shell
+    if (-not ($env:PEEL_SHELL -or $global:PEEL_SHELL)) {
+        Write-Error "This command can only be run in a PEEL shell. Please launch the PEEL shell from Windows Terminal."
+        return
+    }
     $ServerUrl = "http://localhost:$Port/api/v0/chat/completions"
     if (-not (Ensure-LemonadeServer -Port $Port)) {
         Write-Error "Lemonade Server is not available. Exiting."
         return
     }
-    $history = (Get-History -Count $ScrollbackLines).CommandLine | Out-String
+    # --- Use transcript scrollback instead of just command history ---
+    $transcriptPath = $global:PEELTranscriptPath
+    if ((Test-Path $transcriptPath)) {
+        $scrollback = Get-Content $transcriptPath -Raw
+        # Optionally trim to last N lines/characters if needed
+        $maxChars = 8000
+        if ($scrollback.Length -gt $maxChars) {
+            $scrollback = $scrollback.Substring($scrollback.Length - $maxChars)
+        }
+    } else {
+        $scrollback = (Get-History -Count $ScrollbackLines).CommandLine | Out-String
+    }
     $body = @{
         model = $Model
         messages = @(
             @{ role = "system"; content = @"
+<assistant>
 You are a command-line assistant whose job is to explain the output of the most recently executed command in the terminal.
 Your goal is to help users understand (and potentially fix) things like stack traces, error messages, logs, or any other confusing output from the terminal.
+</assistant>
 
-- Receive the last command in the terminal history and the previous commands before it as context.
+<instructions>
+
+- Receive the last command and its output (from the transcript scrollback) as context.
+- Do not discuss the fact that the transcript is a transcript, focus on the last command.
 - Explain the output of the last command.
 - Use a clear, concise, and informative tone.
 - If the output is an error or warning, e.g. a stack trace or incorrect command, identify the root cause and suggest a fix.
 - Otherwise, if the output is something else, e.g. logs or a web response, summarize the key points.
+
+</instructions>
 "@ },
-            @{ role = "user"; content = $history }
+            @{ role = "user"; content = $scrollback }
         )
         stream = $true
     } | ConvertTo-Json
@@ -187,8 +233,7 @@ Your goal is to help users understand (and potentially fix) things like stack tr
                 $data = $line | ConvertFrom-Json -ErrorAction Stop
                 if ($data.choices -and $data.choices[0].delta.content) {
                     if (-not $firstResponse) {
-                        # Clear spinner line and print response header
-                        Write-Host ("`r" + (' ' * 60) + "`r") -NoNewline
+                        [Console]::Write("`r" + (' ' * 60) + "`r")
                         Write-Host "Lemonade Server Response:" -ForegroundColor DarkCyan
                         Write-Host "---------------------------" -ForegroundColor DarkCyan
                         $firstResponse = $true
@@ -199,13 +244,16 @@ Your goal is to help users understand (and potentially fix) things like stack tr
                 # Ignore lines that aren't valid JSON
                 if (-not $firstResponse) {
                     $spinChar = $spinner[$spinIndex % $spinner.Length]
-                    Write-Host ("`r $spinChar Waiting for Lemonade Server response... ") -NoNewline -ForegroundColor Yellow
-                    Start-Sleep -Milliseconds 120
+                    [Console]::Write("`r $spinChar Waiting for Lemonade Server response...   ")
+                    Start-Sleep -Milliseconds 80
                     $spinIndex++
                 }
             }
         }
-        if ($firstResponse) { Write-Host "" -ForegroundColor DarkCyan }
+        if (-not $firstResponse) {
+            [Console]::Write("`r" + (' ' * 60) + "`r")
+        }
+        Write-Host ""
     } catch {
         Write-Error "Failed to connect to Lemonade Server: $($_.Exception.Message)"
     }
