@@ -236,9 +236,6 @@ Your goal is to help users understand (and potentially fix) things like stack tr
         $response = $client.SendAsync($httpRequest, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead).Result
         $stream = $response.Content.ReadAsStreamAsync().Result
         $reader = New-Object System.IO.StreamReader($stream)
-        # Spinner until first response
-        $spinner = @('|', '/', '-', '\')
-        $spinIndex = 0
         $firstResponse = $false
         while (-not $reader.EndOfStream) {
             $line = $reader.ReadLine().Trim()
@@ -257,12 +254,7 @@ Your goal is to help users understand (and potentially fix) things like stack tr
                 }
             } catch {
                 # Ignore lines that aren't valid JSON
-                if (-not $firstResponse) {
-                    $spinChar = $spinner[$spinIndex % $spinner.Length]
-                    [Console]::Write("`r $spinChar Waiting for Lemonade Server response...   ")
-                    Start-Sleep -Milliseconds 80
-                    $spinIndex++
-                }
+                continue
             }
         }
         if (-not $firstResponse) {
