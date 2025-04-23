@@ -64,29 +64,8 @@ function Ensure-LemonadeServer {
         else { Write-Host "lemonade-server --version output: $version" }
     } catch { Write-Host "Error running lemonade-server --version: $_" }
     if (-not $isInstalled) {
-        Write-Host "Lemonade Server not found. Please install Lemonade Server using the GUI installer."
-        $installerPath = "$env:TEMP\Lemonade_Server_Installer.exe"
-        if (!(Test-Path $installerPath)) {
-            Write-Host "Downloading Lemonade Server Installer from $InstallerUrl..."
-            Write-Host "COMMAND: Invoke-WebRequest -Uri '$InstallerUrl' -OutFile '$installerPath' -ErrorAction Stop"
-            try {
-                Invoke-WebRequest -Uri $InstallerUrl -OutFile $installerPath -ErrorAction Stop
-                Write-Host "Lemonade Server Installer downloaded successfully to $installerPath"
-            } catch {
-                Write-Error "Failed to download Lemonade Server Installer: $($_.Exception.Message)"
-                return $false
-            }
-        }
-        Write-Host "Launching Lemonade Server Installer GUI..."
-        Write-Host "COMMAND: Start-Process -FilePath '$installerPath'"
-        try {
-            Start-Process -FilePath $installerPath
-            Write-Host "Lemonade Server Installer launched. Please complete the installation in the GUI."
-        } catch {
-            Write-Error "Failed to launch Lemonade Server Installer: $($_.Exception.Message)"
-            return $false
-        }
-        throw "Lemonade Server installation must be completed manually using the GUI installer."
+        Write-Error "Lemonade Server is not installed. To use this cmdlet, please run Install-Lemonade to set up Lemonade Server first."
+        return $false
     }
     # 2. Check if Lemonade Server is running (using CLI)
     $isRunning = $false
