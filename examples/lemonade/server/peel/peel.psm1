@@ -184,8 +184,19 @@ function Invoke-AidCore {
             $scrollback = $scrollback.Substring($scrollback.Length - $maxChars)
         }
     } else {
-        $scrollback = (Get-History -Count $ScrollbackLines).CommandLine | Out-String
+        $scrollback = (Get-History -Count $ScrollbackLines).CommandLine
+        if ($null -eq $scrollback) {
+            $scrollback = ""
+        } elseif ($scrollback -is [System.Collections.IEnumerable] -and -not ($scrollback -is [string])) {
+            $scrollback = $scrollback -join "`n"
+        } else {
+            $scrollback = [string]$scrollback
+        }
     }
+    # Ensure scrollback is a string (defensive)
+    if ($null -eq $scrollback) { $scrollback = "" }
+    $scrollback = [string]$scrollback  # Explicitly cast to string
+
     $body = @{
         model = $Model
         messages = @(
@@ -209,7 +220,11 @@ Your goal is to help users understand (and potentially fix) things like stack tr
             @{ role = "user"; content = $scrollback }
         )
         stream = $true
-    } | ConvertTo-Json
+    } | ConvertTo-Json -Depth 5
+
+    Write-Host "DEBUG: JSON body to send to server:" -ForegroundColor Yellow
+    Write-Host $body -ForegroundColor Yellow
+
     try {
         Add-Type -AssemblyName System.Net.Http
         $handler = New-Object System.Net.Http.HttpClientHandler
