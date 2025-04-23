@@ -1,6 +1,6 @@
 <#
     .SYNOPSIS
-    This file contains the cmdlets for the PEEL (PowerShell Enhanced with Enhanced Lemonade) module.
+    This file contains the cmdlets for the PEEL (PowerShell Enhanced by Embedded Lemonade) module.
     
     Contains the implementation of Install-Lemonade, Get-Aid, Get-MoreAid, and Get-MaximumAid
 #>

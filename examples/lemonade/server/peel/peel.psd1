@@ -1,10 +1,10 @@
 @{
     ModuleVersion = '0.1.0'
     RootModule = 'peel.psm1'
-    Description = 'PEEL: PowerShell Enhanced by Embedded Lemonade (LLM) Functionality'
-    Author = 'TurnkeyML'
-    CompanyName = 'TurnkeyML'
-    Copyright = '(c) 2024 TurnkeyML'
+    Description = 'PEEL: PowerShell Enhanced by Embedded Lemonade'
+    Author = 'Lemonade'
+    CompanyName = 'AMD'
+    Copyright = '(c) 2025 AMD'
     FunctionsToExport = @(
         'Install-Lemonade'
         'Get-Aid'

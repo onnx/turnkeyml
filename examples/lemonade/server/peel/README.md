@@ -2,7 +2,7 @@
 
 ## Overview
 
-PEEL is a PowerShell module that extends the capabilities of PowerShell by integrating with Lemonade Server. It offers seamless access to LLM-powered assistance directly within the terminal, providing contextual help based on the terminal's scrollback.
+🍋 PEEL is a PowerShell module that extends the capabilities of PowerShell by integrating with [Lemonade Server](https://github.com/onnx/turnkeyml). It offers seamless access to LLM-powered assistance directly within the terminal, providing contextual help based on the terminal's scrollback.
 
 PEEL currently requires a Ryzen AI 300-series PC running Windows 11. 
 
@@ -10,12 +10,12 @@ PEEL currently requires a Ryzen AI 300-series PC running Windows 11.
 
 PEEL adds the following PowerShell cmdlets.
 
-Get Aid:
+Get Aid cmdlets:
 * **Get-Aid**: Sends the last 50 lines of terminal history to Lemonade Server using the Llama-3.2-3B-Instruct-Hybrid model.
 * **Get-MoreAid**: Like Get-Aid, but uses the Qwen-1.5-7B-Chat-Hybrid model.
 * **Get-MaximumAid**: Like Get-Aid, but uses the DeepSeek-R1-Distill-Qwen-7B-Hybrid model.
 
-Helper:
+Helper cmdlet:
 * **Install-Lemonade**: Downloads and runs the Lemonade Server installer (GUI mode). This is just included to help you install Lemonade Server, in case you don't already have it.
 
 
