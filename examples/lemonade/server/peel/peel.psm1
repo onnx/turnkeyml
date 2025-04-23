@@ -50,7 +50,6 @@ function Install-Lemonade {
 function Ensure-LemonadeServer {
     [CmdletBinding()]
     param(
-        [string]$InstallerUrl = "https://github.com/onnx/turnkeyml/releases/latest/download/Lemonade_Server_Installer.exe",
         [int]$Port = 8000,
         [int]$MaxTries = 20,
         [int]$SleepSeconds = 2
