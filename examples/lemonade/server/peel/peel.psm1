@@ -26,6 +26,7 @@ function Install-Lemonade {
         Write-Host "Lemonade Server Installer found at $installerPath"
     } else {
         Write-Host "Downloading Lemonade Server Installer from $installerUrl..."
+        Write-Host "COMMAND: Invoke-WebRequest -Uri '$installerUrl' -OutFile '$installerPath' -ErrorAction Stop"
         try {
             Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath -ErrorAction Stop
             Write-Host "Lemonade Server Installer downloaded successfully to $installerPath"
@@ -36,9 +37,11 @@ function Install-Lemonade {
     }
 
     Write-Host "Executing Lemonade Server Installer..."
+    Write-Host "Please complete the installation manually using the GUI."
+    Write-Host "COMMAND: Start-Process -FilePath '$installerPath'"
     try {
-        Start-Process -FilePath $installerPath -ArgumentList "/S" -Wait -ErrorAction Stop
-        Write-Host "Lemonade Server Installer executed successfully."
+        Start-Process -FilePath $installerPath
+        Write-Host "Lemonade Server Installer launched. Please complete the installation in the GUI."
     } catch {
         Write-Error "Failed to execute Lemonade Server Installer: $($_.Exception.Message)"
     }
@@ -50,7 +53,7 @@ function Ensure-LemonadeServer {
         [string]$InstallerUrl = "https://github.com/onnx/turnkeyml/releases/latest/download/Lemonade_Server_Installer.exe",
         [int]$Port = 8000,
         [int]$MaxTries = 20,
-        [int]$SleepSeconds = 1
+        [int]$SleepSeconds = 2
     )
     $ServerUrl = "http://localhost:$Port/api/v0/chat/completions"
     # 1. Check if Lemonade Server is installed (using CLI)
@@ -61,10 +64,11 @@ function Ensure-LemonadeServer {
         else { Write-Host "lemonade-server --version output: $version" }
     } catch { Write-Host "Error running lemonade-server --version: $_" }
     if (-not $isInstalled) {
-        Write-Host "Lemonade Server not found. Installing..."
+        Write-Host "Lemonade Server not found. Please install Lemonade Server using the GUI installer."
         $installerPath = "$env:TEMP\Lemonade_Server_Installer.exe"
         if (!(Test-Path $installerPath)) {
             Write-Host "Downloading Lemonade Server Installer from $InstallerUrl..."
+            Write-Host "COMMAND: Invoke-WebRequest -Uri '$InstallerUrl' -OutFile '$installerPath' -ErrorAction Stop"
             try {
                 Invoke-WebRequest -Uri $InstallerUrl -OutFile $installerPath -ErrorAction Stop
                 Write-Host "Lemonade Server Installer downloaded successfully to $installerPath"
@@ -73,14 +77,16 @@ function Ensure-LemonadeServer {
                 return $false
             }
         }
-        Write-Host "Executing Lemonade Server Installer..."
+        Write-Host "Launching Lemonade Server Installer GUI..."
+        Write-Host "COMMAND: Start-Process -FilePath '$installerPath'"
         try {
-            Start-Process -FilePath $installerPath -ArgumentList "/S" -Wait -ErrorAction Stop
-            Write-Host "Lemonade Server Installer executed successfully."
+            Start-Process -FilePath $installerPath
+            Write-Host "Lemonade Server Installer launched. Please complete the installation in the GUI."
         } catch {
-            Write-Error "Failed to execute Lemonade Server Installer: $($_.Exception.Message)"
+            Write-Error "Failed to launch Lemonade Server Installer: $($_.Exception.Message)"
             return $false
         }
+        throw "Lemonade Server installation must be completed manually using the GUI installer."
     }
     # 2. Check if Lemonade Server is running (using CLI)
     $isRunning = $false
@@ -140,57 +146,45 @@ function Invoke-AidCore {
     }
     Write-Host "Capturing terminal history..."
     $history = (Get-History -Count $ScrollbackLines).CommandLine | Out-String
-    $payload = @{
+    $body = @{
         model = $Model
         messages = @(
-            @{ role = "system"; content = "You are a helpful assistant that helps the user with powershell" },
+            @{ role = "system"; content = "You are a helpful assistant for PowerShell users. You are given the user's recent PowerShell scrollback history, including commands and error messages. You must do your best to help the user based only on this information. Never ask the user to provide more information, paste error messages, or clarify their question. Respond with the most helpful, concise advice or next command based only on the scrollback provided." },
             @{ role = "user"; content = "This is the powershell console history : $($history) \n
                 Help me with the errors or the next command I need to do." }
         )
         stream = $true
     } | ConvertTo-Json
     Write-Host "Sending history to Lemonade Server..."
-    Write-Host "POST URL: $ServerUrl"
-    Write-Host "POST BODY: $payload"
     try {
-        $response = Invoke-WebRequest -Uri $ServerUrl -Method Post -Headers @{"Content-Type" = "application/json"} -Body $payload -UseBasicParsing -ErrorAction Stop
-        if ($response.StatusCode -eq 404) {
-            Write-Host "DEBUG: 404 Not Found from $ServerUrl"
-            # Check if the model is available
-            Write-Host "Checking available models on Lemonade Server..."
-            try {
-                $modelsUrl = "http://localhost:" + $Port + "/api/v0/models"
-                Write-Host "DEBUG: GET $modelsUrl"
-                $modelsResp = Invoke-WebRequest -Uri $modelsUrl -UseBasicParsing -ErrorAction Stop
-                Write-Host "DEBUG: Models response: $($modelsResp.Content)"
-                $models = ($modelsResp.Content | ConvertFrom-Json).data.id
-                if ($models -notcontains $Model) {
-                    Write-Error "Model '$Model' is not available on Lemonade Server. Available models: $($models -join ', ')"
-                } else {
-                    Write-Error "Lemonade Server is running, but the /api/v0/chat/completions endpoint was not found (404). Please check your Lemonade Server version and configuration."
-                }
-            } catch {
-                Write-Error "Failed to fetch available models from Lemonade Server. The /api/v0/chat/completions endpoint may be missing, or the server is not OpenAI-compatible."
-            }
-            return
-        } elseif ($response.StatusCode -ne 200) {
-            Write-Host "DEBUG: Non-200 status code: $($response.StatusCode)"
-            Write-Error "Lemonade Server returned status code: $($response.StatusCode)"
-        }
-        Write-Host "DEBUG: Response content: $($response.Content)"
-        $jsonLines = ($response.Content -split "`n" )| Where-Object {$_.trim() -ne ""}
-        Write-Host "`n" -ForegroundColor DarkCyan
+        Add-Type -AssemblyName System.Net.Http
+        $handler = New-Object System.Net.Http.HttpClientHandler
+        $client = New-Object System.Net.Http.HttpClient($handler)
+        $uri = $ServerUrl
+        $request = New-Object System.Net.Http.StringContent($body, [System.Text.Encoding]::UTF8, "application/json")
+        $httpRequest = New-Object System.Net.Http.HttpRequestMessage([System.Net.Http.HttpMethod]::Post, $uri)
+        $httpRequest.Content = $request
+        $response = $client.SendAsync($httpRequest, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead).Result
+        $stream = $response.Content.ReadAsStreamAsync().Result
+        $reader = New-Object System.IO.StreamReader($stream)
+        Write-Host "" -ForegroundColor DarkCyan
         Write-Host "Lemonade Server Response:" -ForegroundColor DarkCyan
         Write-Host "---------------------------" -ForegroundColor DarkCyan
-        foreach ($jsonLine in $jsonLines) {
-           $data = ($jsonLine -replace "data: ", "") | ConvertFrom-Json -ErrorAction SilentlyContinue
-           if ($data.choices -and $data.choices[0].delta.content) {
-               Write-Host $data.choices[0].delta.content -NoNewline -ForegroundColor Green
-           }
+        while (-not $reader.EndOfStream) {
+            $line = $reader.ReadLine().Trim()
+            if ($line -eq "" -or $line -eq "data: [DONE]" -or $line -eq "[DONE]") { continue }
+            if ($line.StartsWith("data: ")) { $line = $line.Substring(6) }
+            try {
+                $data = $line | ConvertFrom-Json -ErrorAction Stop
+                if ($data.choices -and $data.choices[0].delta.content) {
+                    Write-Host $data.choices[0].delta.content -NoNewline -ForegroundColor Green
+                }
+            } catch {
+                # Ignore lines that aren't valid JSON
+            }
         }
-        Write-Host "`n" -ForegroundColor DarkCyan
+        Write-Host "" -ForegroundColor DarkCyan
     } catch {
-        Write-Host "DEBUG: Exception thrown in Invoke-WebRequest: $($_.Exception.Message)"
         Write-Error "Failed to connect to Lemonade Server: $($_.Exception.Message)"
     }
 }

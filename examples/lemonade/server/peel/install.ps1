@@ -1,6 +1,3 @@
-Write-Host "Entering script..."
-
-
 # Source the peel.psm1 module to make its functions available
 Write-Host "Main script: Sourcing peel.psm1 module..."
 Import-Module peel -Force
