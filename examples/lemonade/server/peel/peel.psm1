@@ -222,9 +222,6 @@ Your goal is to help users understand (and potentially fix) things like stack tr
         stream = $true
     } | ConvertTo-Json -Depth 5
 
-    Write-Host "DEBUG: JSON body to send to server:" -ForegroundColor Yellow
-    Write-Host $body -ForegroundColor Yellow
-
     try {
         Add-Type -AssemblyName System.Net.Http
         $handler = New-Object System.Net.Http.HttpClientHandler
