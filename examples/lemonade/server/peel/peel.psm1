@@ -266,12 +266,10 @@ Your goal is to help users understand (and potentially fix) things like stack tr
 function Get-Aid {
     <#
         .SYNOPSIS
-        Captures the terminal's scrollback history, sends it to Lemonade Server, and displays the LLM's response.
+        Explains the output of your most recent terminal command using an LLM.
 
         .DESCRIPTION
-        This cmdlet captures the last 50 lines of the terminal's scrollback history, sends it to the
-        Lemonade Server via the streaming chat completions API, and displays the LLM's response in
-        a streaming fashion within the terminal.
+        Captures the last 50 lines of the terminal's scrollback history, sends it to Lemonade Server via the streaming chat completions API, and displays the LLM's response in a streaming fashion within the terminal. Uses the model Llama-3.2-3B-Instruct-Hybrid.
     #>
     [CmdletBinding()]
     param()
@@ -281,13 +279,10 @@ function Get-Aid {
 function Get-MoreAid {
     <#
         .SYNOPSIS
-        Captures the terminal's scrollback history, sends it to Lemonade Server, and displays the LLM's response.
+        Explains the output of your most recent terminal command using an LLM.
 
         .DESCRIPTION
-        This cmdlet captures the last 50 lines of the terminal's scrollback history, sends it to the
-        Lemonade Server via the streaming chat completions API, and displays the LLM's response in
-        a streaming fashion within the terminal.
-        This uses the model Qwen-1.5-7B-Chat-Hybrid
+        Captures the last 50 lines of the terminal's scrollback history, sends it to Lemonade Server via the streaming chat completions API, and displays the LLM's response in a streaming fashion within the terminal. Uses the model Qwen-1.5-7B-Chat-Hybrid.
     #>
     [CmdletBinding()]
     param()
@@ -297,9 +292,10 @@ function Get-MoreAid {
 function Get-MaximumAid {
     <#
         .SYNOPSIS
-        Captures the terminal's scrollback history, sends it to Lemonade Server, and displays the LLM's response using the largest model.
+        Explains the output of your most recent terminal command using an LLM.
+
         .DESCRIPTION
-        This cmdlet captures the last 50 lines of the terminal's scrollback history, sends it to the Lemonade Server via the streaming chat completions API, and displays the LLM's response in a streaming fashion within the terminal. This uses the model DeepSeek-R1-Distill-Qwen-7B-Hybrid.
+        Captures the last 50 lines of the terminal's scrollback history, sends it to Lemonade Server via the streaming chat completions API, and displays the LLM's response in a streaming fashion within the terminal. Uses the largest available model: DeepSeek-R1-Distill-Qwen-7B-Hybrid.
     #>
     [CmdletBinding()]
     param()
