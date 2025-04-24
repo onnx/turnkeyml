@@ -55,6 +55,7 @@ examples/lemonade/server/
         ├── peel.psd1 # Module manifest
         ├── peel.psm1 # PowerShell module implementation
         ├── install.ps1 # Installation script
+        ├── favicon.ico # Icon for Windows Terminal
 ```
 
 ## Usage Example
@@ -71,35 +72,28 @@ This will produce an error message like:
 git: 'pull-request' is not a git command. See 'git --help'.
 ```
 
-Use the `Get-MoreAid` command to send the scrollback to an LLM and get help:
+Use the `Get-Aid` command to send the scrollback to an LLM and get help:
 
 ```PowerShell
-Get-MoreAid
+Get-Aid
 ```
 
 The whole terminal session ends up looking like this:
 
 ```PowerShell
-(base) PS C:\Users\user> git pull-request
+PS C:\Users\user> git pull-request
 git: 'pull-request' is not a git command. See 'git --help'.
-(base) PS C:\Users\user> Get-MoreAid
-lemonade-server status output: Server is running on port 8000
-Waiting for Lemonade Server to become ready (timeout: 40 seconds)...
-Health check attempt 1 of 20: http://localhost:8000/api/v0/health
-Lemonade Server is ready.
-Capturing terminal history...
-Sending history to Lemonade Server...
+PS C:\Users\user> Get-Aid
 
 Lemonade Server Response:
 ---------------------------
-The `git pull-request` command is not recognized as a built-in Git command. It seems you might be referring to GitHub's workflow or a misunderstanding. When you want to create a pull request on GitHub, you would typically use the following steps:
+The last command executed was `git pull-request`. This is not a valid Git command. The correct command to pull changes from a remote repository is `git pull`.
 
-1. First, make sure you are in the correct repository directory using `cd [repository-name]`.
-2. Check out the latest changes from the remote branch with `git pull origin [branch-name]`. Replace `[branch-name]` with the name of the branch you want to merge.
-3. If there are any changes you want to contribute, stage them with `git add .`, then commit them with a meaningful message using `git commit -m "Your commit message"`.
-4. Finally, go to the GitHub repository's page, click on the "New pull request" button, and fill out the details, including selecting the base branch and the branch you just committed.
+The error message suggests that you should see the Git documentation for more information on how to use the `git` command.
 
-If you're encountering an error or need assistance with this process, please provide the specific error message or the context of your command, and I'll be happy to help you interpret the output and suggest a solution.
+If you meant to pull changes from a remote repository, you can try running `git pull <repository-name> <branch-name>` (e.g., `git pull origin master`).
+
+If you meant to use a different command, please let me know and I'll do my best to help.
 ```
 
 ## Portions Licensed as Follows
