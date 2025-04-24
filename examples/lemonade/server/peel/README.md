@@ -41,7 +41,7 @@ The recommended way to use PEEL is via the **PEEL shell profile in Windows Termi
 ## Installation
  * Clone this repository.
  * In PowerShell, run `install.ps1` from the same directory as this document.
- * The new cmdlets are now available.
+ * The new PEEL shell, and its cmdlets, are now available in Windows Terminal.
  * Run the `Install-Lemonade` cmdlet to get Lemonade Server, if you don't have it already.
 
 **Implementation Details:**
