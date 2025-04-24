@@ -18,6 +18,25 @@ Get Aid cmdlets:
 Helper cmdlet:
 * **Install-Lemonade**: Downloads and runs the Lemonade Server installer (GUI mode). This is just included to help you install Lemonade Server, in case you don't already have it.
 
+## PEEL Shell Usage (Recommended)
+
+The recommended way to use PEEL is via the **PEEL shell profile in Windows Terminal**. The installer automatically registers a PEEL profile, which launches PowerShell with the required environment variable and module import. This ensures full functionality, including automatic transcript capture for LLM assistance.
+
+- **Transcript Recording:**
+  - PEEL records a transcript of your shell session (commands and outputs) to a temporary file. This transcript is used to provide context to the LLM when you run `Get-Aid` and related commands.
+  - The transcript is stored in your system's temporary directory and is unique to each PEEL shell session.
+
+- **Environment Variable:**
+  - The PEEL shell sets the `PEEL_SHELL` environment variable automatically.
+  - If you want to use PEEL features in any PowerShell session (not just the Windows Terminal PEEL profile), you can manually set the `PEEL_SHELL` environment variable in your user or system environment variables, or in your PowerShell profile script:
+    ```powershell
+    $env:PEEL_SHELL = '1'
+    Import-Module peel
+    ```
+
+- **Why use the PEEL shell?**
+  - Ensures transcript-based context is available for LLM commands.
+  - Prevents accidental use in non-PEEL shells, which would not capture the full scrollback.
 
 ## Installation
  * Clone this repository.
