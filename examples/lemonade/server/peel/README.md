@@ -38,6 +38,34 @@ The recommended way to use PEEL is via the **PEEL shell profile in Windows Termi
   - Ensures transcript-based context is available for LLM commands.
   - Prevents accidental use in non-PEEL shells, which would not capture the full scrollback.
 
+## Using PEEL Shell in VS Code
+
+You can use PEEL shell as a custom terminal profile in Visual Studio Code as well as Windows Terminal.
+
+**To add PEEL as a terminal profile in VS Code:**
+
+1. Open VS Code settings (File > Preferences > Settings or press `Ctrl+,`).
+2. Search for `terminal.integrated.profiles.windows` and click `Edit in settings.json`.
+3. Add the following profile to your `settings.json`:
+
+```json
+"terminal.integrated.profiles.windows": {
+  "PEEL": {
+    "path": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    "args": [
+      "-NoExit",
+      "-Command",
+      "& { $env:PEEL_SHELL='1'; Import-Module peel }"
+    ]
+  }
+},
+"terminal.integrated.defaultProfile.windows": "PEEL"
+```
+
+4. Save the file. Now, you can open a PEEL shell from the VS Code terminal dropdown.
+
+> **Note:** Make sure the PEEL PowerShell module is installed and accessible to the PowerShell instance launched by VS Code.
+
 ## Installation
  * Clone this repository.
  * In PowerShell, run `install.ps1` from the same directory as this document.
