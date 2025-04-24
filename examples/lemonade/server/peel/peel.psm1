@@ -177,51 +177,43 @@ function Invoke-AidCore {
     # --- Use transcript scrollback instead of just command history ---
     $transcriptPath = $global:PEELTranscriptPath
     if ((Test-Path $transcriptPath)) {
-        $scrollback = Get-Content $transcriptPath -Raw
+        $scrollbackRaw = Get-Content $transcriptPath -Raw
+        $scrollback = $scrollbackRaw
         # Optionally trim to last N lines/characters if needed
         $maxChars = 8000
         if ($scrollback.Length -gt $maxChars) {
             $scrollback = $scrollback.Substring($scrollback.Length - $maxChars)
         }
+        $scrollback = [string]$scrollback
     } else {
-        $scrollback = (Get-History -Count $ScrollbackLines).CommandLine
-        if ($null -eq $scrollback) {
-            $scrollback = ""
-        } elseif ($scrollback -is [System.Collections.IEnumerable] -and -not ($scrollback -is [string])) {
-            $scrollback = $scrollback -join "`n"
-        } else {
-            $scrollback = [string]$scrollback
-        }
+        $scrollback = (Get-History -Count $ScrollbackLines).CommandLine | Out-String
+        $scrollback = [string]$scrollback
     }
-    # Ensure scrollback is a string (defensive)
-    if ($null -eq $scrollback) { $scrollback = "" }
-    $scrollback = [string]$scrollback  # Explicitly cast to string
-
     $body = @{
         model = $Model
         messages = @(
             @{ role = "system"; content = @"
 <assistant>
-You are a command-line assistant whose job is to explain the output of the most recently executed command in the terminal.
+You are a command-line assistant invoked via Get-Aid (or Get-MoreAid, Get-MaximumAid) whose job is to explain the output of the most recently executed command in the terminal.
 Your goal is to help users understand (and potentially fix) things like stack traces, error messages, logs, or any other confusing output from the terminal.
 </assistant>
 
 <instructions>
 
-- Receive the last command and its output (from the transcript scrollback) as context.
+- Receive the last command prior to your invokation and its output (from the transcript scrollback) as context.
 - Do not discuss the fact that the transcript is a transcript, focus on the last command.
 - Explain the output of the last command.
 - Use a clear, concise, and informative tone.
 - If the output is an error or warning, e.g. a stack trace or incorrect command, identify the root cause and suggest a fix.
 - Otherwise, if the output is something else, e.g. logs or a web response, summarize the key points.
+- Don't instruct the user to interact with you futher, as the user doesn't have that ability.
 
 </instructions>
 "@ },
             @{ role = "user"; content = $scrollback }
         )
         stream = $true
-    } | ConvertTo-Json -Depth 5
-
+    } | ConvertTo-Json
     try {
         Add-Type -AssemblyName System.Net.Http
         $handler = New-Object System.Net.Http.HttpClientHandler
@@ -293,7 +285,6 @@ function Get-MaximumAid {
     <#
         .SYNOPSIS
         Explains the output of your most recent terminal command using an LLM.
-
         .DESCRIPTION
         Captures the last 50 lines of the terminal's scrollback history, sends it to Lemonade Server via the streaming chat completions API, and displays the LLM's response in a streaming fashion within the terminal. Uses the largest available model: DeepSeek-R1-Distill-Qwen-7B-Hybrid.
     #>
