@@ -174,7 +174,7 @@ function Invoke-AidCore {
         Write-Error "Lemonade Server is not available. Exiting."
         return
     }
-    # --- Use transcript scrollback instead of just command history ---
+
     $transcriptPath = $global:PEELTranscriptPath
     if ((Test-Path $transcriptPath)) {
         $scrollbackRaw = Get-Content $transcriptPath -Raw
