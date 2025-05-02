@@ -2,7 +2,7 @@
 
 ## Overview
 
-Mindcraft is an open-source project that creates Minecraft bots powered by large language models (LLMs) to engage with the game and its players. This readme will demonstrate how to integrate Lemonade to use local LLMs with MindCraft.
+Mindcraft is an open-source project that creates Minecraft bots powered by large language models (LLMs) to engage with the game and its players. This readme will demonstrate how to integrate Lemonade to use local LLMs with Mindcraft.
 
 ## Expectations
 
