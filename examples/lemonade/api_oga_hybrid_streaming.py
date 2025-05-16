@@ -15,6 +15,7 @@ https://github.com/onnx/turnkeyml/blob/main/docs/lemonade/README.md#install
 from threading import Thread
 from lemonade.api import from_pretrained
 from lemonade.tools.ort_genai.oga import OrtGenaiStreamer
+from lemonade_install.install import notice
 
 model, tokenizer = from_pretrained(
     "amd/Llama-3.2-1B-Instruct-awq-g128-int4-asym-fp16-onnx-hybrid", recipe="oga-hybrid"
@@ -37,3 +38,5 @@ for new_text in streamer:
     print(new_text)
 
 thread.join()
+
+notice()

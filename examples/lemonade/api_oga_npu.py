@@ -9,6 +9,7 @@ https://github.com/onnx/turnkeyml/blob/main/docs/lemonade/getting_started.md#ins
 """
 
 from lemonade.api import from_pretrained
+from lemonade_install.install import notice
 
 model, tokenizer = from_pretrained(
     "amd/Phi-3.5-mini-instruct-awq-g128-int4-asym-bf16-onnx-ryzen-strix",
@@ -19,3 +20,5 @@ input_ids = tokenizer("This is my prompt", return_tensors="pt").input_ids
 response = model.generate(input_ids, max_new_tokens=30)
 
 print(tokenizer.decode(response[0]))
+
+notice()

@@ -7,25 +7,22 @@
 
 We are on a mission to make it easy to use the most important tools in the ONNX ecosystem. TurnkeyML accomplishes this by providing a full SDK for LLMs with the Lemonade SDK, as well as a no-code CLIs for general ONNX workflows with `turnkey`.
 
-## 🍋 Lemonade SDK: Quickly serve, benchmark and deploy LLMs
+## 🚧 🍋The Lemonade SDK Project has moved to: https://github.com/lemonade-sdk/lemonade 🚧
 
-The [Lemonade SDK](https://github.com/onnx/turnkeyml/blob/main/docs/lemonade/README.md) is designed to make it easy to serve, benchmark, and deploy large language models (LLMs) on a variety of hardware platforms, including CPU, GPU, and NPU. 
+The new PyPI package name is `lemonade-sdk`
 
-<div align="center">
-  <img src="https://download.amd.com/images/lemonade_640x480_1.gif" alt="Lemonade Demo" title="Lemonade in Action">
-</div>
+The new Lemonade_Server_Installer.exe is at: https://github.com/lemonade-sdk/lemonade/releases
 
-The [Lemonade SDK](https://github.com/onnx/turnkeyml/blob/main/docs/lemonade/README.md) is comprised of the following:
+Please migrate to the new repository and package as soon as possible.
 
-- 🌐 **Lemonade Server**: A server interface that uses the standard Open AI API, allowing applications to integrate with local LLMs.
-- 🐍 **Lemonade Python API**: Offers High-Level API for easy integration of Lemonade LLMs into Python applications and Low-Level API for custom experiments.
-- 🖥️ **Lemonade CLI**: The `lemonade` CLI lets you mix-and-match LLMs, frameworks (PyTorch, ONNX, GGUF), and measurement tools to run experiments. The available tools are:
-  - Prompting an LLM.
-  - Measuring the accuracy of an LLM using a variety of tests.
-  - Benchmarking an LLM to get the time-to-first-token and tokens per second.
-  - Profiling the memory usage of an LLM.
+For example:
+```
+    pip uninstall turnkeyml
+    pip install lemonade-sdk[YOUR_EXTRAS]
+    e.g., pip install lemonade-sdk[llm-oga-hybrid]
+```
 
-### [Click here to get started with Lemonade.](https://github.com/onnx/turnkeyml/blob/main/docs/lemonade/README.md)
+Thank you for using Lemonade SDK!
 
 ## 🔑 Turnkey: A Complementary Tool for ONNX Workflows
 

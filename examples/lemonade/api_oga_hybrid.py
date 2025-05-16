@@ -9,6 +9,7 @@ https://github.com/onnx/turnkeyml/blob/main/docs/lemonade/README.md#install
 """
 
 from lemonade.api import from_pretrained
+from lemonade_install.install import notice
 
 model, tokenizer = from_pretrained(
     "amd/Llama-3.2-1B-Instruct-awq-g128-int4-asym-fp16-onnx-hybrid", recipe="oga-hybrid"
@@ -18,3 +19,5 @@ input_ids = tokenizer("This is my prompt", return_tensors="pt").input_ids
 response = model.generate(input_ids, max_new_tokens=30)
 
 print(tokenizer.decode(response[0]))
+
+notice()

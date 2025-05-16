@@ -1,24 +1,22 @@
 # Lemonade Examples
 
-This folder contains examples of how to deploy `lemonade` into applications. 
+### RELOCATION NOTICE
 
-## Server Examples
+This content has moved to: https://github.com/lemonade-sdk/lemonade/tree/main/examples
 
-The `server/` folder contains examples of how to use Lemonade Server with existing applications that support server interfaces. Learn more in `server/README.md`. 
+The Lemonade SDK project has moved to https://github.com/lemonade-sdk/lemonade
 
-## API Examples
+The new PyPI package name is `lemonade-sdk`
 
-This folder has examples of using the Lemonade API to integrate LLMs into Python applications. These APIs make it easy to load a model, generate responses, and also show how to stream those responses.
+The new Lemonade_Server_Installer.exe is at: https://github.com/lemonade-sdk/lemonade/releases
 
-The `demos/` folder also contains some higher-level application demos of the APIs. Learn more in `demos/README.md`.
+Please migrate to the new repository and package as soon as possible.
 
-This table shows which API examples are available:
+For example:
+```
+    pip uninstall turnkeyml
+    pip install lemonade-sdk[YOUR_EXTRAS]
+    e.g., pip install lemonade-sdk[llm-oga-hybrid]
+```
 
-| Framework                  | CPU                       | GPU              | NPU             | Hybrid             |
-|----------------------------|---------------------------|------------------|-----------------|--------------------|
-| Huggingface                | api_basic.py              | -                | -               | -                  |
-| OGA                        | api_oga_cpu.py            | api_oga_igpu.py | api_oga_npu.py | api_oga_hybrid.py |
-| Huggingface with streaming | api_streaming.py          | -                | -               | -                  |
-| OGA with streaming         | api_oga_cpu_streaming.py  | api_oga_igpu_streaming.py | api_oga_npu_streaming.py | api_oga_hybrid_streaming.py |
-
-To run an API example, first set up a conda environment with the appropriate framework and backend support. Then run the scripts with a command like `python api_basic.py`.
+Thank you for using Lemonade SDK!
