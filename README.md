@@ -7,15 +7,13 @@
 
 We are on a mission to make it easy to use the most important tools in the ONNX ecosystem. TurnkeyML accomplishes this by providing a full SDK for LLMs with the Lemonade SDK, as well as a no-code CLIs for general ONNX workflows with `turnkey`.
 
-## 🍋 Lemonade SDK: Quickly serve, benchmark and deploy LLMs
+## 🚧 🍋The Lemonade SDK Project has moved to: https://github.com/lemonade-sdk/lemonade 🚧
 
-# The Lemonade SDK Project has moved to: https://github.com/lemonade-sdk/lemonade
+The new PyPI package name is `lemonade-sdk`
 
-## The new PyPI package name is `lemonade-sdk`
+The new Lemonade_Server_Installer.exe is at: https://github.com/lemonade-sdk/lemonade/releases
 
-## The new Lemonade_Server_Installer.exe is at: https://github.com/lemonade-sdk/lemonade/releases
-
-## Please migrate to the new repository and package as soon as possible.
+Please migrate to the new repository and package as soon as possible.
 
 For example:
 ```
@@ -24,7 +22,7 @@ For example:
     e.g., pip install lemonade-sdk[llm-oga-hybrid]
 ```
 
-## Thank you for using Lemonade SDK!
+Thank you for using Lemonade SDK!
 
 ## 🔑 Turnkey: A Complementary Tool for ONNX Workflows
 
