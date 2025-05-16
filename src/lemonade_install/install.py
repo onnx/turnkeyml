@@ -770,6 +770,9 @@ def notice():
             "The Lemonade SDK project has moved to https://github.com/lemonade-sdk/lemonade"
         )
         print("The new PyPI package name is `lemonade-sdk`")
+        print(
+            "The new Lemonade_Server_Installer.exe is at: https://github.com/lemonade-sdk/lemonade/releases"
+        )
         print("Please migrate to the new repository and package as soon as possible.")
         print("For example:")
         print("    pip uninstall turnkeyml")

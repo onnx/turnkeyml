@@ -13,6 +13,8 @@ We are on a mission to make it easy to use the most important tools in the ONNX 
 
 ## The new PyPI package name is `lemonade-sdk`
 
+## The new Lemonade_Server_Installer.exe is at: https://github.com/lemonade-sdk/lemonade/releases
+
 ## Please migrate to the new repository and package as soon as possible.
 
 For example:
