@@ -10,6 +10,7 @@ i.e., huggingface-based recipes such as hf-cpu and hf-dgpu.
 from threading import Thread
 from transformers import TextIteratorStreamer
 from lemonade.api import from_pretrained
+from lemonade_install.install import notice
 
 model, tokenizer = from_pretrained("Qwen/Qwen2.5-0.5B-Instruct", recipe="hf-cpu")
 
@@ -33,3 +34,5 @@ for new_text in streamer:
     print(new_text)
 
 thread.join()
+
+notice()

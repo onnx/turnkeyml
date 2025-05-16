@@ -4,6 +4,7 @@ from queue import Queue
 from time import sleep
 from transformers import StoppingCriteriaList
 from lemonade.tools.server.serve import StopOnEvent
+from lemonade_install.install import notice
 
 
 class TextStreamer:
@@ -100,6 +101,8 @@ def main():
         print()
 
         thread.join()
+
+        notice()
 
 
 if __name__ == "__main__":

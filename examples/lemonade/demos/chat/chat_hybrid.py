@@ -4,6 +4,7 @@ from transformers import StoppingCriteriaList
 from lemonade.tools.server.serve import StopOnEvent
 from lemonade.api import from_pretrained
 from lemonade.tools.ort_genai.oga import OrtGenaiStreamer
+from lemonade_install.install import notice
 
 
 def main():
@@ -59,6 +60,8 @@ def main():
         print()
 
         thread.join()
+
+        notice()
 
 
 if __name__ == "__main__":

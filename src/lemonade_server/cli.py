@@ -4,6 +4,7 @@ import os
 from typing import Tuple
 import psutil
 from typing import List
+from lemonade_install.install import notice
 
 
 class PullError(Exception):
@@ -175,6 +176,8 @@ def get_server_info() -> Tuple[int | None, int | None]:
 
 
 def main():
+    notice()
+
     parser = argparse.ArgumentParser(
         description="Serve LLMs on CPU, GPU, and NPU.",
         usage=argparse.SUPPRESS,
@@ -229,6 +232,8 @@ def main():
         stop()
     elif args.command == "help" or not args.command:
         parser.print_help()
+
+    notice()
 
 
 if __name__ == "__main__":

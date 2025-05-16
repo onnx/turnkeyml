@@ -2,17 +2,7 @@
 
 ## LLMs: `lemonade` tooling
 
-The `docs/lemonade` directory has documentation for the LLM-focused `lemonade` tooling:
-- [Getting Started](https://github.com/onnx/turnkeyml/blob/main/docs/lemonade/README.md): start here for LLMs.
-- Accuracy tests (task performance):
-  - [HumanEval](https://github.com/onnx/turnkeyml/blob/main/docs/lemonade/humaneval_accuracy.md): details of the HumanEval coding task test.
-  - [MMLU](https://github.com/onnx/turnkeyml/blob/main/docs/lemonade/mmlu_accuracy.md): details of the MMLU general reasoning test.
-  - [Perplexity](https://github.com/onnx/turnkeyml/blob/main/docs/lemonade/perplexity.md): details of the Perplexity test for LLMs.
-- Tool-specific setup guides:
-    - [llama.cpp](https://github.com/onnx/turnkeyml/blob/main/docs/lemonade/llamacpp.md)
-    - [OnnxRuntime GenaI iGPU and CPU](https://github.com/onnx/turnkeyml/blob/main/docs/lemonade/ort_genai_igpu.md)
-
-For examples on using Lemonade, see [Lemonade Example Readme](https://github.com/onnx/turnkeyml/blob/main/examples/lemonade)
+The Lemonade SDK project has moved to: https://github.com/lemonade-sdk/lemonade
 
 ## CNNs and Transformers: `turnkey` tooling
 

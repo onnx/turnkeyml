@@ -762,10 +762,35 @@ class Install:
             self._install_quark(quark)
 
 
+def notice():
+    if not os.environ.get("TURNKEYML_SUPRESS_LEMONADE_NOTICE"):
+        print("\n\n\n")
+        print("RELOCATION NOTICE")
+        print(
+            "The Lemonade SDK project has moved to https://github.com/lemonade-sdk/lemonade"
+        )
+        print("The new PyPI package name is `lemonade-sdk`")
+        print("Please migrate to the new repository and package as soon as possible.")
+        print("For example:")
+        print("    pip uninstall turnkeyml")
+        print("    pip install lemonade-sdk[YOUR_EXTRAS]")
+        print("    e.g., pip install lemonade-sdk[llm-oga-hybrid]")
+        print("")
+        print(
+            "Thank you for using Lemonade SDK! You can suppress this message by setting"
+        )
+        print("the environment variable TURNKEYML_SUPRESS_LEMONADE_NOTICE")
+        print("\n\n\n")
+
+
 def main():
+    notice()
+
     installer = Install()
     args = installer.parser().parse_args()
     installer.run(**args.__dict__)
+
+    notice()
 
 
 if __name__ == "__main__":

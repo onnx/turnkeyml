@@ -24,8 +24,12 @@ from lemonade.tools.quark.quark_quantize import QuarkQuantize
 from lemonade.tools.report.llm_report import LemonadeReport
 from lemonade.tools.server.serve import Server
 
+from lemonade_install.install import notice
+
 
 def main():
+
+    notice()
 
     # List the available tools
     tools = [
@@ -130,6 +134,8 @@ https://github.com/onnx/turnkeyml/blob/main/docs/lemonade/README.md""",
             # Support "~" in the cache_dir argument
             parsed_cache_dir = os.path.expanduser(global_args[fs.Keys.CACHE_DIR])
             management_tool.parse_and_run(parsed_cache_dir, argv)
+
+    notice()
 
 
 if __name__ == "__main__":

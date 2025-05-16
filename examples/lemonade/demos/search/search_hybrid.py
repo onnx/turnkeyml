@@ -4,6 +4,7 @@ from transformers import StoppingCriteriaList
 from lemonade.api import from_pretrained
 from lemonade.tools.ort_genai.oga import OrtGenaiStreamer
 from lemonade.tools.server.serve import StopOnEvent
+from lemonade_install.install import notice
 
 employee_handbook = """
 1. You will work very hard every day.\n
@@ -81,6 +82,8 @@ def main():
         print()
 
         thread.join()
+
+        notice()
 
 
 if __name__ == "__main__":

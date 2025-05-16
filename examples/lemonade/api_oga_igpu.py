@@ -9,6 +9,7 @@ https://github.com/onnx/turnkeyml/blob/main/docs/lemonade/README.md#install
 """
 
 from lemonade.api import from_pretrained
+from lemonade_install.install import notice
 
 model, tokenizer = from_pretrained("Qwen/Qwen2.5-0.5B-Instruct", recipe="oga-igpu")
 
@@ -16,3 +17,5 @@ input_ids = tokenizer("This is my prompt", return_tensors="pt").input_ids
 response = model.generate(input_ids, max_new_tokens=30)
 
 print(tokenizer.decode(response[0]))
+
+notice()
