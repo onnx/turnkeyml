@@ -66,8 +66,8 @@ setup(
     ],
     extras_require={
         "llm": [
-            "torch>=2.0.0",
-            "transformers",
+            "torch>=2.6.0",
+            "transformers<=4.51.3",
             "accelerate",
             "py-cpuinfo",
             "sentencepiece",
@@ -77,7 +77,7 @@ setup(
             "human-eval-windows==1.0.4",
             "fastapi",
             "uvicorn[standard]",
-            "openai>=1.66.0",
+            "openai>=1.81.0",
             "lm-eval[api]",
         ],
         "llm-oga-cpu": [
