@@ -56,7 +56,8 @@ setup(
         "zstandard",
         "matplotlib",
         "tabulate",
-        # huggingface-hub==0.31.0 introduces a new transfer protocol that was causing us issues 
+        "onnxconverter-common",
+        # huggingface-hub==0.31.0 introduces a new transfer protocol that was causing us issues
         "huggingface-hub==0.30.2",
         # Conditional dependencies for ONNXRuntime backends
         "onnxruntime >=1.10.1,<1.22.0;platform_system=='Linux' and extra != 'llm-oga-cuda'",
@@ -65,8 +66,8 @@ setup(
     ],
     extras_require={
         "llm": [
-            "torch>=2.0.0",
-            "transformers",
+            "torch>=2.6.0",
+            "transformers<=4.51.3",
             "accelerate",
             "py-cpuinfo",
             "sentencepiece",
@@ -76,23 +77,20 @@ setup(
             "human-eval-windows==1.0.4",
             "fastapi",
             "uvicorn[standard]",
-            "openai>=1.66.0",
+            "openai>=1.81.0",
             "lm-eval[api]",
         ],
         "llm-oga-cpu": [
             "onnxruntime-genai==0.6.0",
-            "torch>=2.0.0,<2.4",
             "turnkeyml[llm]",
         ],
         "llm-oga-igpu": [
             "onnxruntime-genai-directml==0.6.0",
-            "torch>=2.0.0,<2.4",
             "transformers<4.45.0",
             "turnkeyml[llm]",
         ],
         "llm-oga-cuda": [
             "onnxruntime-genai-cuda==0.6.0",
-            "torch>=2.0.0,<2.4",
             "transformers<4.45.0",
             "turnkeyml[llm]",
         ],

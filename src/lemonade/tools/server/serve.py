@@ -762,6 +762,7 @@ class Server(ManagementTool):
                 created_event = ResponseCreatedEvent(
                     response=response,
                     type="response.created",
+                    sequence_number=0,
                 )
                 yield f"data: {created_event.model_dump_json()}\n\n".encode("utf-8")
 
@@ -776,6 +777,7 @@ class Server(ManagementTool):
                         item_id="0 ",
                         output_index=0,
                         type="response.output_text.delta",
+                        sequence_number=0,
                     )
                     full_response += token
 
@@ -810,6 +812,7 @@ class Server(ManagementTool):
                 completed_event = ResponseCompletedEvent(
                     response=response,
                     type="response.completed",
+                    sequence_number=0,
                 )
                 yield f"data: {completed_event.model_dump_json()}\n\n".encode("utf-8")
 
