@@ -56,7 +56,8 @@ setup(
         "zstandard",
         "matplotlib",
         "tabulate",
-        # huggingface-hub==0.31.0 introduces a new transfer protocol that was causing us issues 
+        "onnxconverter-common",
+        # huggingface-hub==0.31.0 introduces a new transfer protocol that was causing us issues
         "huggingface-hub==0.30.2",
         # Conditional dependencies for ONNXRuntime backends
         "onnxruntime >=1.10.1,<1.22.0;platform_system=='Linux' and extra != 'llm-oga-cuda'",
