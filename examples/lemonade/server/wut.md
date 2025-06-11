@@ -1,3 +1,3 @@
 # `wut` Terminal Assistant
 
-This content has moved to: https://github.com/lemonade-sdk/lemonade/blob/main/docs/server/featured_apps.md
+This content has moved to: https://lemonade-server.ai/docs/server/apps/wut/
