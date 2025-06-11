@@ -2,7 +2,7 @@
 
 ### RELOCATION NOTICE
 
-This content has moved to: https://github.com/lemonade-sdk/lemonade/blob/main/docs/source_installation_inst.md
+This content has moved to: https://lemonade-server.ai/install_options.html
 
 The Lemonade SDK project has moved to https://github.com/lemonade-sdk/lemonade
 
