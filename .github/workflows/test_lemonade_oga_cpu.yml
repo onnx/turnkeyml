@@ -19,7 +19,7 @@ jobs:
         LEMONADE_CI_MODE: "True"
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
       - name: Set up Miniconda with 64-bit Python
         uses: conda-incubator/setup-miniconda@v2
         with:
