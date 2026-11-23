@@ -76,7 +76,6 @@ class TensorRT(BaseRT):
             )
 
             if "NVIDIA" not in result.stdout or result.returncode == 1:
-
                 raise exp.BenchmarkException(msg)
         except FileNotFoundError:
             raise exp.BenchmarkException(msg)

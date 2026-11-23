@@ -107,7 +107,7 @@ class BaseRT(ABC):
     def local_output_dir(self):
         return os.path.join(
             build.output_dir(self.cache_dir, self.build_name),
-            f"{str(self.device_type).replace('::','_')}_benchmark",
+            f"{str(self.device_type).replace('::', '_')}_benchmark",
         )
 
     @property

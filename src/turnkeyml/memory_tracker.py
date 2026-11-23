@@ -12,7 +12,6 @@ MEMORY_USAGE_PNGL_FILENAME = "memory_usage.png"
 
 
 class MemoryTracker:
-
     @staticmethod
     def get_time_mem_list(process):
         return [time.time(), process.memory_info().rss]
@@ -152,7 +151,6 @@ class MemoryTracker:
             while (
                 not tracker_exit and tracked_process.status() == psutil.STATUS_RUNNING
             ):
-
                 time.sleep(track_memory_interval)
 
                 # Read any messages from the parent process

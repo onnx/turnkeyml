@@ -9,6 +9,7 @@ turnkey -i multiple_invocations.py discover
 
 You should see the two unique invocations being discovered.
 """
+
 import torch
 
 torch.manual_seed(1)

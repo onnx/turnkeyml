@@ -15,7 +15,7 @@ class Arg:
     action: str = None
 
     def add_arg(self, parser_obj):
-        if self.type == bool:
+        if self.type == bool:  # noqa: E721
             parser_obj.add_argument(
                 "--" + self.name, default=self.default, action=self.action
             )

@@ -95,9 +95,9 @@ class Sequence:
         Example: '1.100 GB (1.638 GB peak)'
         """
         mem_info = self.process.memory_info()
-        mem_info_str = f"{mem_info.rss / 1024 ** 3:,.3f} GB"
+        mem_info_str = f"{mem_info.rss / 1024**3:,.3f} GB"
         if platform.system() == "Windows":
-            mem_info_str += f" ({mem_info.peak_wset / 1024 ** 3:,.3f} GB peak)"
+            mem_info_str += f" ({mem_info.peak_wset / 1024**3:,.3f} GB peak)"
         return mem_info_str
 
     def launch(
@@ -190,14 +190,12 @@ class Sequence:
         # Run the build
         saved_exception = None
         for tool, argv in self.tools.items():
-
             start_time = time.time()
 
             # Insert tool name into memory tracker queue before new tool starts
             state.memory_tracker.set_label(tool.unique_name)
 
             try:
-
                 # Set status as incomplete, since tool just started
                 state.save_stat(tool.status_key, build.FunctionStatus.INCOMPLETE)
 
@@ -231,7 +229,6 @@ class Sequence:
             # Broad exception is desirable as we want to capture
             # all exceptions (including those we can't anticipate)
             except Exception as e:  # pylint: disable=broad-except
-
                 if os.environ.get("TURNKEY_DEBUG", "").lower() == "true":
                     # It may be useful to raise the exception here, since
                     # if any of the subsequent lines of code raise another
@@ -300,7 +297,6 @@ class Sequence:
             state.save_stat(fs.Keys.MEMORY_USAGE_PLOT, "NONE")
 
         if vars(state).get("models_found") and vars(state).get("invocation_info"):
-
             # Present status statistics from the tools
             for tool in self.tools:
                 state.invocation_info.stats_keys += tool.status_stats

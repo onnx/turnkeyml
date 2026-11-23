@@ -137,8 +137,8 @@ inputs2 = {"x": torch.rand(input_features * 2)}
 model2(**inputs2)
     """,
         "selected_models.txt": f"""
-    {os.path.join(corpus_dir,"linear.py")}
-    {os.path.join(corpus_dir,"linear2.py")}
+    {os.path.join(corpus_dir, "linear.py")}
+    {os.path.join(corpus_dir, "linear2.py")}
     """,
         "timeout.py": """
 # labels: name::timeout author::turnkey license::mit test_group::a task::test

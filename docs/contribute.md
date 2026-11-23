@@ -120,8 +120,9 @@ Tests are defined in `tests/` and run automatically on each PR, as defined in ou
 
 We don't have any fancy testing framework set up yet. If you want to run tests locally:
 - Activate a `conda` environment that has `turnkey` (this package) installed.
-- Run `conda install pylint` if you haven't already (other pylint installs will give you a lot of import warnings).
-- Run `pylint src --rcfile .pylintrc` from the repo root.
+- Install Ruff with `python -m pip install ruff==0.15.7`.
+- Run `ruff check src/turnkeyml examples/turnkey plugins/devices/src` and
+  `ruff format --check src/turnkeyml examples/turnkey plugins/devices/src` from the repo root.
 - Run `python *.py` for each test script in `test/`.
 
 ## Versioning

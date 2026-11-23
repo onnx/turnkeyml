@@ -99,7 +99,6 @@ class NiceHelpFormatter(argparse.RawDescriptionHelpFormatter):
 
 
 class ToolParser(argparse.ArgumentParser):
-
     def error(self, message):
         if message.startswith("unrecognized arguments"):
             unrecognized = message.split(": ")[1]
@@ -129,7 +128,6 @@ class ToolParser(argparse.ArgumentParser):
 
 
 class Tool(abc.ABC):
-
     unique_name: str
 
     @classmethod

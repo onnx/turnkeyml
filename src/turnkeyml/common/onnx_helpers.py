@@ -102,7 +102,6 @@ def io_bytes(onnx_path: str) -> Tuple[int, int]:
     def get_nodes_bytes(nodes):
         nodes_bytes = {}
         for node in nodes:
-
             # Get the number of the data type
             dtype_bytes = elem_type_to_bytes(node.type.tensor_type.elem_type)
 

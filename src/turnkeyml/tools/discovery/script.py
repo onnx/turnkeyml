@@ -181,7 +181,6 @@ def explore_frame(
 
     if not inside_nn_subclass:
         if hasattr(local_var, "forward_instrumented"):
-
             # Starting in version 2.2.0, torch dynamo added wrappers to callbacks
             # while tracing frames, which conflicts with TurnkeML's analysis. Here,
             # we suppress errors caused by those callback wrappers and only raise an
@@ -189,9 +188,7 @@ def explore_frame(
             td = torch._dynamo  # pylint: disable=protected-access
             td.config.suppress_errors = True
             if hasattr(td.eval_frame, "guarded_backend_cache"):
-                td.eval_frame.guarded_backend_cache.skip_backend_check_for_run_only_mode = (
-                    True
-                )
+                td.eval_frame.guarded_backend_cache.skip_backend_check_for_run_only_mode = True
 
             return
 

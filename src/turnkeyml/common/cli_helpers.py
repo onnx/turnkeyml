@@ -7,7 +7,6 @@ from turnkeyml.tools.management_tools import ManagementTool
 
 
 class CustomArgumentParser(argparse.ArgumentParser):
-
     def error(self, message):
         self.print_usage()
         printing.log_error(message)

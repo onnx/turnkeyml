@@ -232,7 +232,6 @@ class Discover(FirstTool):
 
         # Convert all positional arguments into keyword arguments
         if args != ():
-
             forward_function = model_info.model.forward
             all_args = list(inspect.signature(forward_function).parameters.keys())
             for i in range(len(args)):

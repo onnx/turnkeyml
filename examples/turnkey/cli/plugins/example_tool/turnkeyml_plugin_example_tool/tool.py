@@ -1,5 +1,5 @@
 """
-This script is an example of a tool.py file for Tool Plugin. Such a tool.py 
+This script is an example of a tool.py file for Tool Plugin. Such a tool.py
 can be used to redefine the build phase of the turnkey CLI, benchmark_files(),
 and build_model() to have any custom behavior.
 
@@ -9,7 +9,7 @@ spends a few seconds updating the monitor's percent progress indicator.
 
 After you install the plugin, you can tell `turnkey` to use this sequence with:
 
-    turnkey -i INPUT_SCRIPT export-pytorch example-plugin-tool 
+    turnkey -i INPUT_SCRIPT export-pytorch example-plugin-tool
 """
 
 import argparse

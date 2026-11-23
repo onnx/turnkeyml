@@ -1,1 +1,1 @@
-from .discover import Discover
+from .discover import Discover as Discover
