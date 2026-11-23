@@ -1,11 +1,10 @@
 # Welcome to ONNX TurnkeyML
 
-[![Lemonade tests](https://github.com/onnx/turnkeyml/actions/workflows/test_lemonade.yml/badge.svg)](https://github.com/onnx/turnkeyml/tree/main/test "Check out our tests")
 [![Turnkey tests](https://github.com/onnx/turnkeyml/actions/workflows/test_turnkey.yml/badge.svg)](https://github.com/onnx/turnkeyml/tree/main/test "Check out our tests")
 [![OS - Windows | Linux](https://img.shields.io/badge/OS-windows%20%7C%20linux-blue)](https://github.com/onnx/turnkeyml/blob/main/docs/install.md "Check out our instructions")
 [![Made with Python](https://img.shields.io/badge/Python-3.8,3.10-blue?logo=python&logoColor=white)](https://github.com/onnx/turnkeyml/blob/main/docs/install.md "Check out our instructions")
 
-We are on a mission to make it easy to use the most important tools in the ONNX ecosystem. TurnkeyML accomplishes this by providing a full SDK for LLMs with the Lemonade SDK, as well as a no-code CLIs for general ONNX workflows with `turnkey`.
+We are on a mission to make it easy to use the most important tools in the ONNX ecosystem. TurnkeyML provides a no-code CLI for general ONNX workflows with `turnkey`.
 
 ## 🚧 🍋The Lemonade SDK Project has moved to: https://github.com/lemonade-sdk/lemonade 🚧
 
@@ -17,7 +16,6 @@ Please migrate to the new repository and package as soon as possible.
 
 For example:
 ```
-    pip uninstall turnkeyml
     pip install lemonade-sdk[YOUR_EXTRAS]
     e.g., pip install lemonade-sdk[llm-oga-hybrid]
 ```

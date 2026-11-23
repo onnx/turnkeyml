@@ -21,7 +21,7 @@ output = model(**encoded_input)
 
 ### How Turnkey Works
 
-The `turnkey` (CNNs and transformers) and `lemonade` (LLMs) CLIs provide a set of `Tools` that users can invoke in a `Sequence`. The first `Tool` takes the input (`-i`), performs some action, and passes its state to the next `Tool` in the `Sequence`.
+The `turnkey` CLI provides a set of `Tools` that users can invoke in a `Sequence`. The first `Tool` takes the input (`-i`), performs some action, and passes its state to the next `Tool` in the `Sequence`.
 
 You can read the `Sequence` out like a sentence. For example, the demo command above was:
 
