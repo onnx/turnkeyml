@@ -139,7 +139,7 @@ class Tool(abc.ABC):
             "part of a sequence of Tools, for example: `turnkey -i INPUTS tool-one "
             "tool-two tool-three`. Tools communicate data to each other via State. "
             "You can learn more at "
-            "https://github.com/onnx/turnkeyml/blob/main/docs/lemonade/tools_user_guide.md"
+            "https://github.com/onnx/turnkeyml/blob/main/docs/turnkey/tools_user_guide.md"
         )
 
         return ToolParser(
