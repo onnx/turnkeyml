@@ -62,7 +62,6 @@ jobs:
         shell: bash -el {0}
         run: |
           python -m pip install --upgrade pip
-          conda install pylint
           pip install -e .
           pip install transformers
           python -m pip check

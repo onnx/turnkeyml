@@ -170,7 +170,7 @@ class UniqueInvocationInfo(BasicInfo):
 
         if self.depth == 0 and multiple_unique_invocations:
             printing.logn(
-                f"\n{self.indent}\tWith input shape {invocation_idx+1} "
+                f"\n{self.indent}\tWith input shape {invocation_idx + 1} "
                 f"(executed {self.executed}x{exec_time_formatted})",
                 c=printing.Colors.OKGREEN,
             )
@@ -223,7 +223,6 @@ class UniqueInvocationInfo(BasicInfo):
             c=self.status_message_color,
         )
         if self.is_target:
-
             # Get the maximum key length to figure out the number
             # of tabs needed to align the values
             max_key_len = 0

@@ -1,6 +1,7 @@
 """
 The following script is used to get the latency and outputs of a given run on the NVIDIA GPU.
 """
+
 # pylint: disable = no-name-in-module
 # pylint: disable = import-error
 import subprocess

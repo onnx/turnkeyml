@@ -100,10 +100,10 @@ class WindowsSystemInfo(SystemInfo):
         memory = self.connection.Win32_PhysicalMemory()
         if memory:
             total_capacity = sum([int(m.Capacity) for m in memory])
-            total_capacity_str = f"{total_capacity/(1024**3)} GB"
+            total_capacity_str = f"{total_capacity / (1024**3)} GB"
             details_str = " + ".join(
                 [
-                    f"{m.Manufacturer} {int(m.Capacity)/(1024**3)} GB {m.Speed} ns"
+                    f"{m.Manufacturer} {int(m.Capacity) / (1024**3)} GB {m.Speed} ns"
                     for m in memory
                 ]
             )

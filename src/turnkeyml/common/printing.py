@@ -61,12 +61,12 @@ def clean_print(type: LogType, msg):
         if line_idx != 0:
             log(" " * indentation)
         s_line = line.split("**")
-        for idx, l in enumerate(s_line):
+        for idx, segment in enumerate(s_line):
             c = Colors.ENDC if idx % 2 == 0 else Colors.BOLD
             if idx != len(s_line) - 1:
-                log(l, c=c, is_error=is_error)
+                log(segment, c=c, is_error=is_error)
             else:
-                logn(l, c=c, is_error=is_error)
+                logn(segment, c=c, is_error=is_error)
 
 
 def log_error(msg):

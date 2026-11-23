@@ -139,7 +139,6 @@ def evaluate_files(
             )
 
     for file_path_encoded in input_files_expanded:
-
         printing.log_info(f"Running turnkey on {file_path_encoded}")
 
         file_path_absolute, targets, encoded_input = fs.decode_input_arg(
