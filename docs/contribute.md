@@ -116,7 +116,8 @@ Please have a discussion with the team before making major changes. The best way
 
 ## Testing
 
-Tests are defined in `tests/` and run automatically on each PR, as defined in our [testing action](https://github.com/onnx/turnkeyml/blob/main/.github/workflows/test.yml). This action performs both linting and unit testing and must succeed before code can be merged.
+Tests are defined in `test/`. The [Turnkey test workflow](../.github/workflows/test_turnkey.yml) runs lint and tests on every PR; the [device-plugin workflow](../.github/workflows/test_devices_plugin.yml) runs when relevant files change.
+There is currently no automated GPU workflow.
 
 We don't have any fancy testing framework set up yet. If you want to run tests locally:
 - Activate a `conda` environment that has `turnkey` (this package) installed.
@@ -132,6 +133,7 @@ We use semantic versioning, as described in [versioning.md](https://github.com/o
 ## PyPI Release Process
 
 TurnkeyML is provided as a package on PyPI, the Python Package Index, as [turnkeyml](https://pypi.org/project/turnkeyml/). The release process for pushing an updated package to PyPI is mostly automated, however (by design), there are a few manual steps.
+1. Create the GitHub environments `pypi` and `testpypi` and configure any required approvals and tag restrictions. Configure [trusted publishing](https://docs.pypi.org/trusted-publishers/adding-a-publisher/) for the `turnkeyml` project on PyPI and TestPyPI. For both, use owner `onnx`, repository `turnkeyml`, and workflow `publish-to-test-pypi.yml`; use environment `pypi` for PyPI and `testpypi` for TestPyPI. An `RC*` tag publishes to TestPyPI, and a `v*` tag publishes to PyPI.
 1. Make sure the version number in [version.py](https://github.com/onnx/turnkeyml/blob/main/src/turnkeyml/version.py) has a higher value than the current [PyPI package](https://pypi.org/project/turnkeyml/).
     - Note: if you don't take care of this, PyPI will reject the updated package and you will need to start over from Step 1 of this guide.
     - If you are unsure what to set the version number to, consult [versioning.md](https://github.com/onnx/turnkeyml/blob/main/docs/versioning.md).
