@@ -8,12 +8,6 @@ on:
     branches: ["main", "canary", "refresh"]
   pull_request:
     branches: ["main", "canary", "refresh"]
-    paths:
-    - src/turnkeyml/**
-    - test/turnkey/**
-    - examples/turnkey/**
-    - pyproject.toml
-    - .github/workflows/test_turnkey.yml
 
 permissions:
   contents: read
@@ -28,9 +22,11 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Set up Miniconda with 64-bit Python
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@be893c923ea9cf1cf7cd510fbdde27c7e18cbdcb # v4.1.0
         with:
           miniconda-version: "latest"
           activate-environment: tkml
@@ -39,13 +35,10 @@ jobs:
         shell: bash -el {0}
         run: |
           python -m pip install --upgrade pip
-          pip install ruff==0.15.7
-          pip install pytest
-          pip install -e plugins/devices
-          pip install -e . # Required to test current tkml package instead of pypi version
+          python -m pip install ruff==0.15.7 pytest
           # tokenizers 0.20.4 seems to have an install bug, which we must avoid by limiting
           # the transformers version
-          pip install "transformers<4.46.3" "tokenizers<0.20.4" timm
+          python -m pip install -e . -e plugins/devices "transformers<4.46.3" "tokenizers<0.20.4" timm
           python -m pip check
       - name: Lint and format with Ruff
         shell: bash -el {0}
@@ -83,5 +76,5 @@ jobs:
         shell: bash -el {0}
         run: |
           rm -rf ~/.cache/turnkey
-          pip install -e examples/turnkey/cli/plugins/example_tool
+          python -m pip install -e examples/turnkey/cli/plugins/example_tool
           turnkey -i examples/turnkey/cli/scripts/hello_world.py discover export-pytorch example-plugin-tool benchmark

@@ -13,7 +13,11 @@ dependencies = [
     "invoke>=2.0.0",
     "onnx>=1.11.0,<1.18.0",
     "onnxmltools==1.10.0",
-    "torch>=1.12.1",
+    # onnxmltools 1.10 imports pkg_resources, removed in setuptools 82.
+    "setuptools<82",
+    # PyTorch 2.9 switches the default ONNX exporter to Dynamo; the current
+    # input handling and supported opsets target the TorchScript exporter.
+    "torch>=1.12.1,<2.9",
     "pyyaml>=5.4",
     "typeguard>=2.3.13",
     "packaging>=20.9",
