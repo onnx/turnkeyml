@@ -18,7 +18,7 @@ jobs:
   build-turnkey:
       strategy:
           matrix:
-            python-version: ["3.8", "3.11"]
+            python-version: ["3.11"]
             os: [ubuntu-latest, windows-latest]
       runs-on: ubuntu-latest
       steps:
