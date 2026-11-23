@@ -1,42 +1,58 @@
-# Welcome to ONNX TurnkeyML
+# ONNX TurnkeyML
 
 [![Turnkey tests](https://github.com/onnx/turnkeyml/actions/workflows/test_turnkey.yml/badge.svg)](https://github.com/onnx/turnkeyml/tree/main/test "Check out our tests")
 [![OS - Windows | Linux](https://img.shields.io/badge/OS-windows%20%7C%20linux-blue)](https://github.com/onnx/turnkeyml/blob/main/docs/install.md "Check out our instructions")
-[![Made with Python](https://img.shields.io/badge/Python-3.8,3.10-blue?logo=python&logoColor=white)](https://github.com/onnx/turnkeyml/blob/main/docs/install.md "Check out our instructions")
+[![Python 3.11](https://img.shields.io/badge/Python-3.11-blue?logo=python&logoColor=white)](docs/install.md)
 
-We are on a mission to make it easy to use the most important tools in the ONNX ecosystem. TurnkeyML provides a no-code CLI for general ONNX workflows with `turnkey`.
+TurnkeyML provides a no-code CLI for ONNX workflows. Use `turnkey` to discover
+PyTorch models, export them to ONNX, and run tools in configurable sequences.
 
-## 🚧 🍋The Lemonade SDK Project has moved to: https://github.com/lemonade-sdk/lemonade 🚧
+## Installation
 
-The new PyPI package name is `lemonade-sdk`
+The current source requires **Python 3.11** and is tested on Windows and Linux.
+To install it from a source checkout:
 
-The new Lemonade_Server_Installer.exe is at: https://github.com/lemonade-sdk/lemonade/releases
-
-Please migrate to the new repository and package as soon as possible.
-
-For example:
-```
-    pip install lemonade-sdk[YOUR_EXTRAS]
-    e.g., pip install lemonade-sdk[llm-oga-hybrid]
+```bash
+git clone https://github.com/onnx/turnkeyml.git
+cd turnkeyml
+python -m pip install -e .
 ```
 
-Thank you for using Lemonade SDK!
+See the [installation guide](docs/install.md) for environment setup and optional
+model and Slurm dependencies.
 
-## 🔑 Turnkey: A Complementary Tool for ONNX Workflows
+## Quick start
 
-While Lemonade focuses on LLMs, [Turnkey](https://github.com/onnx/turnkeyml/blob/main/docs/turnkey/README.md) is a no-code CLI designed for general ONNX workflows, such as exporting and optimizing CNNs and Transformers.
+From the repository root, discover and export the included self-test model:
 
-To see the list of supported tools, using the following command:
+```bash
+turnkey -i models/selftest/linear.py discover export-pytorch
+```
+
+List available tools and get help for a specific tool:
 
 ```bash
 turnkey -h
+turnkey export-pytorch -h
 ```
 
 <div align="center">
   <img src="https://download.amd.com/images/tkml_640x480_1.gif" alt="Turnkey Demo" title="Turnkey CLI">
 </div>
 
-### [Click here to get started with `turnkey`.](https://github.com/onnx/turnkeyml/blob/main/docs/turnkey/README.md)
+## Learn more
+
+- [Turnkey guide](docs/turnkey/README.md): workflows and concepts.
+- [Tools user guide](docs/turnkey/tools_user_guide.md): CLI and API reference.
+- [Examples](examples/turnkey/README.md) and [models](models/readme.md).
+- [Plugins](plugins/README.md): extend Turnkey with custom tools and devices.
+
+## Lemonade SDK
+
+Lemonade has moved to [lemonade-sdk/lemonade](https://github.com/lemonade-sdk/lemonade)
+and is no longer included in this repository. Install it separately with
+`python -m pip install lemonade-sdk`. See the new repository for its
+documentation and [releases](https://github.com/lemonade-sdk/lemonade/releases).
 
 ## Contributing
 

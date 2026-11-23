@@ -23,7 +23,7 @@ If you are installing TurnkeyML on **Windows**, manually download and install [M
 Then create and activate a virtual environment like this:
 
 ```
-conda create -n tkml python=3.8
+conda create -n tkml python=3.11
 conda activate tkml
 ```
 
