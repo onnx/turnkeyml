@@ -37,7 +37,7 @@ jobs:
       TURNKEY_TRACEBACK: True
     strategy:
       matrix:
-        python-version: ["3.8"]
+        python-version: ["3.11"]
     steps:
       - uses: actions/checkout@v7
       - uses: conda-incubator/setup-miniconda@v3
